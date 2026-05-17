@@ -4,7 +4,7 @@
 
 ## 🎯 Overview
 
-AI Study Planner is a full-stack web application that automatically generates personalized weekly study plans using a hybrid architecture combining a deterministic planning engine with local lightweight AI (Ollama + Phi-3 Mini).
+AI Study Planner is a full-stack web application that automatically generates personalized weekly study plans using a hybrid architecture combining a deterministic planning engine with AI (Llama 3.2 + LoRA fine-tuning).
 
 ### Key Features
 
@@ -24,9 +24,53 @@ AI Study Planner is a full-stack web application that automatically generates pe
 | **Frontend** | React + TailwindCSS + Axios |
 | **Backend** | FastAPI + Python 3.11+ |
 | **Database** | PostgreSQL 15+ |
-| **AI Service** | Ollama + Phi-3 Mini |
+| **AI Service** | Llama 3.2 + LoRA (Google Colab) / Ollama (local fallback) |
 | **Reverse Proxy** | Nginx |
 | **Containerization** | Docker + Docker Compose |
+
+### AI Architecture
+
+The application uses a **hybrid AI approach** for optimal cost-effectiveness:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      FastAPI Backend                        │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │         Deterministic Planning Engine                │  │
+│  │  • Constructs valid time slots                       │  │
+│  │  • Calculates subject priorities                     │  │
+│  │  • Validates constraints                             │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                           ↓                                 │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              AI Service (Adaptive)                   │  │
+│  │                                                       │  │
+│  │  Primary: Google Colab (Llama 3.2 + LoRA)          │  │
+│  │  • Cost: 0-50€/month                                │  │
+│  │  • Fine-tuned for study planning                    │  │
+│  │  • Accessible via ngrok tunnel                      │  │
+│  │                                                       │  │
+│  │  Fallback: Local Ollama (Llama 3.2)                │  │
+│  │  • Used when Colab unavailable                      │  │
+│  │  • Development environment                          │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                           ↓                                 │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │            Validation Service                        │  │
+│  │  • Schema validation                                 │  │
+│  │  • Constraint checking                               │  │
+│  │  • Auto-correction                                   │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Why Llama 3.2 + LoRA on Google Colab?**
+- **Cost-effective**: 0-50€/month vs 200-500€/month for VPS
+- **Scalable**: Handles up to ~50 users before needing migration
+- **Fine-tunable**: LoRA adapters for domain-specific optimization
+- **Flexible**: Easy migration to VPS when user base grows
+
+See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and [GOOGLE_COLAB_SETUP.md](./GOOGLE_COLAB_SETUP.md) for details.
 
 ### Project Structure
 
@@ -61,7 +105,7 @@ AIplaning/
 - Python 3.11+
 - Node.js 18+
 - PostgreSQL 15+
-- Ollama (for AI features)
+- Google Colab account (for AI features) OR Ollama (local fallback)
 
 ### Backend Setup
 
@@ -117,16 +161,50 @@ AIplaning/
 
    Frontend will be available at: http://localhost:5173
 
-### Ollama Setup (AI Service)
+### AI Service Setup
+
+The application supports two AI service configurations:
+
+#### Option 1: Google Colab + Llama 3.2 + LoRA (Recommended for Production)
+
+This is the cost-effective production solution (0-50€/month).
+
+1. **Set up Google Colab notebook**
+   - See [GOOGLE_COLAB_SETUP.md](./GOOGLE_COLAB_SETUP.md) for detailed instructions
+   - Configure Llama 3.2 with LoRA adapter
+   - Set up ngrok tunnel for external access
+
+2. **Configure backend**
+   ```bash
+   # In backend/.env
+   AI_SERVICE_TYPE=colab
+   AI_SERVICE_URL=https://your-ngrok-url.ngrok.io
+   AI_MODEL_NAME=llama3.2
+   AI_LORA_ADAPTER=study-planning-v1
+   ```
+
+3. **Start Colab notebook**
+   - Run all cells in the notebook
+   - Copy the ngrok URL to your `.env` file
+   - Keep the notebook running while using the application
+
+**Cost Estimate:**
+- Free tier: Limited GPU hours
+- Colab Pro: ~10€/month for extended GPU access
+- Scales to ~50 users before needing VPS migration
+
+#### Option 2: Local Ollama (Development/Fallback)
+
+For local development or as a fallback when Colab is unavailable.
 
 1. **Install Ollama**
    ```bash
    curl -fsSL https://ollama.com/install.sh | sh
    ```
 
-2. **Pull Phi-3 Mini model**
+2. **Pull Llama 3.2 model**
    ```bash
-   ollama pull phi3
+   ollama pull llama3.2
    ```
 
 3. **Start Ollama service**
@@ -134,7 +212,17 @@ AIplaning/
    ollama serve
    ```
 
+4. **Configure backend**
+   ```bash
+   # In backend/.env
+   AI_SERVICE_TYPE=ollama
+   AI_SERVICE_URL=http://127.0.0.1:11434
+   AI_MODEL_NAME=llama3.2
+   ```
+
    Ollama API will be available at: http://127.0.0.1:11434
+
+**Note:** The backend automatically falls back to Ollama if the Colab service is unavailable.
 
 ## 🧪 Testing
 

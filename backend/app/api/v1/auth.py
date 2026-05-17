@@ -131,9 +131,9 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user.failed_login_attempts = 0
     db.commit()
     
-    # Create tokens
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
+    # Create tokens (sub must be string per JWT spec)
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
     
     return {
         "access_token": access_token,
@@ -186,8 +186,8 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
         )
     
     # Create new tokens
-    access_token = create_access_token(data={"sub": user.id})
-    new_refresh_token = create_refresh_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": str(user.id)})
+    new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
     
     return {
         "access_token": access_token,

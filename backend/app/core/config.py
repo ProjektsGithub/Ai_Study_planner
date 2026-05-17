@@ -27,13 +27,25 @@ class Settings(BaseSettings):
     
     # Ollama AI Service
     OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
-    OLLAMA_MODEL: str = "phi3"
+    OLLAMA_MODEL: str = "llama3.2"
     OLLAMA_TEMPERATURE: float = 0.2
     OLLAMA_NUM_CTX: int = 4096
     OLLAMA_TIMEOUT: int = 30
     
+    # AI Service Type (ollama or colab)
+    AI_SERVICE_TYPE: str = "ollama"
+    
+    # Google Colab Configuration (for production)
+    COLAB_API_URL: str = ""
+    COLAB_API_KEY: str = ""
+    
+    # LoRA Configuration
+    LORA_ENABLED: bool = False
+    LORA_ADAPTER_PATH: str = "./lora-adapters"
+    LORA_DEFAULT_ADAPTER: str = "study-planning-v1"
+    
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     
     # Resource Limits
     MAX_CONCURRENT_AI_REQUESTS: int = 1
@@ -42,6 +54,11 @@ class Settings(BaseSettings):
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 100
+    
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        """Convert ALLOWED_ORIGINS string to list"""
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
     
     model_config = ConfigDict(
         env_file=".env",
