@@ -1,0 +1,106 @@
+"""
+FastAPI dependencies for authentication and database
+"""
+from typing import Generator, Optional
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+from app.core.database import SessionLocal
+from app.core.security import decode_token
+from app.models.user import User
+
+# HTTP Bearer token security
+security = HTTPBearer()
+
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    Dependency for getting database session.
+    Yields a database session and ensures it's closed after use.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Dependency for getting current authenticated user from JWT token.
+    
+    Args:
+        credentials: HTTP Bearer credentials
+        db: Database session
+        
+    Returns:
+        Current authenticated user
+        
+    Raises:
+        HTTPException: If token is invalid or user not found
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    # Decode token
+    token = credentials.credentials
+    payload = decode_token(token)
+    
+    if payload is None:
+        raise credentials_exception
+    
+    # Check token type
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Get user ID from token
+    user_id: Optional[int] = payload.get("sub")
+    if user_id is None:
+        raise credentials_exception
+    
+    # Get user from database
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+    
+    return user
+
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Dependency for getting current active user.
+    
+    Args:
+        current_user: Current user from get_current_user dependency
+        
+    Returns:
+        Current active user
+        
+    Raises:
+        HTTPException: If user is inactive
+    """
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user"
+        )
+    return current_user

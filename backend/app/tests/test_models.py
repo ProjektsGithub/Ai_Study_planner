@@ -2,7 +2,7 @@
 Tests for database models
 """
 import pytest
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timezone
 from app.models import (
     User,
     StudentProfile,
@@ -22,7 +22,7 @@ def test_user_model():
         email="test@example.com",
         password_hash="hashed_password",
         name="Test User",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
         is_active=True,
         failed_login_attempts=0,
     )
@@ -40,8 +40,8 @@ def test_student_profile_model():
         academic_level="Bachelor Year 3",
         weekly_study_goal=25.0,
         preferences={"theme": "dark"},
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
     assert profile.cursus == "Computer Science"
     assert profile.weekly_study_goal == 25.0
@@ -57,7 +57,7 @@ def test_subject_model():
         difficulty=4,
         target_weekly_hours=6.0,
         exam_date=date(2026, 6, 1),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     assert subject.name == "Algorithms"
     assert subject.priority == 5
@@ -72,7 +72,7 @@ def test_availability_model():
         day_of_week="Monday",
         start_time=time(18, 0),
         end_time=time(22, 0),
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     assert availability.day_of_week == "Monday"
     assert availability.start_time == time(18, 0)
@@ -86,7 +86,7 @@ def test_constraint_model():
         constraint_type="max_daily_hours",
         parameters={"max_hours": 4.0},
         active=True,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     assert constraint.constraint_type == "max_daily_hours"
     assert constraint.parameters["max_hours"] == 4.0
@@ -102,7 +102,7 @@ def test_study_plan_model():
         status="generated",
         summary="Test plan",
         edited=False,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     assert plan.plan_id == "550e8400-e29b-41d4-a716-446655440000"
     assert plan.status == "generated"
@@ -133,7 +133,7 @@ def test_generation_log_model():
         duration_seconds=2.5,
         token_count=150,
         success=True,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     assert log.request_hash == "abc123"
     assert log.duration_seconds == 2.5
@@ -147,7 +147,7 @@ def test_notification_model():
         notification_type="plan_generated",
         message="Your study plan has been generated",
         read=False,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     assert notification.notification_type == "plan_generated"
     assert notification.read is False

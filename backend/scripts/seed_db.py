@@ -3,7 +3,7 @@ Database seeding script for development data
 """
 import sys
 from pathlib import Path
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 import uuid
 
 # Add parent directory to path
@@ -45,7 +45,7 @@ def seed_database():
             email="student@example.com",
             password_hash=pwd_context.hash("password123"),
             name="Test Student",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             is_active=True,
             failed_login_attempts=0,
         )
@@ -60,8 +60,8 @@ def seed_database():
             academic_level="Bachelor Year 3",
             weekly_study_goal=25.0,
             preferences={"preferred_study_time": "evening", "break_duration": 15},
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
         db.add(profile)
         
@@ -79,7 +79,7 @@ def seed_database():
         for subject_data in subjects_data:
             subject = Subject(
                 user_id=user.id,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 **subject_data
             )
             db.add(subject)
@@ -106,7 +106,7 @@ def seed_database():
         for availability_data in availabilities_data:
             availability = Availability(
                 user_id=user.id,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 **availability_data
             )
             db.add(availability)
@@ -134,7 +134,7 @@ def seed_database():
         for constraint_data in constraints_data:
             constraint = Constraint(
                 user_id=user.id,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 **constraint_data
             )
             db.add(constraint)
@@ -148,7 +148,7 @@ def seed_database():
             status="generated",
             summary="Balanced study plan focusing on upcoming exams",
             edited=False,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         db.add(plan)
         db.flush()

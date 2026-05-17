@@ -3,7 +3,7 @@ Availability model
 """
 from sqlalchemy import Column, Integer, String, Time, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.core.database import Base
 
 
@@ -17,7 +17,7 @@ class Availability(Base):
     day_of_week = Column(String(10), nullable=False)  # Monday-Sunday
     start_time = Column(Time, nullable=False)  # HH:MM format
     end_time = Column(Time, nullable=False)  # HH:MM format
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     user = relationship("User", back_populates="availabilities")
