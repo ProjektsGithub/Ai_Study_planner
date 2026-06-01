@@ -127,3 +127,23 @@ PROJECT_REFERENCE.md
 
 # Scripts PowerShell
 *.ps1
+
+# Test files
+backend/test_*.py
+backend/*.bat
+backend/create_db*.py
+backend/create_db*.sql
+backend/cleanup_*.py
+backend/debug_*.py
+
+# Coverage reports
+backend/.coverage
+backend/coverage.xml
+backend/.pytest_cache/
+
+# Frontend build
+frontend/dist/
+frontend/.vite/
+
+# Logs
+*.log

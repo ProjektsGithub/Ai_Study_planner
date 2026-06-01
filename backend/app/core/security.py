@@ -4,11 +4,12 @@ Security utilities for password hashing and JWT token management
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from app.core.config import settings
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use low rounds for development on Windows (bcrypt is slow on Windows)
+# In production, consider using 10-12 rounds
+BCRYPT_ROUNDS = 4
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -21,8 +22,18 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         
     Returns:
         True if password matches, False otherwise
+    
+    Note:
+        Truncates password to 72 bytes for bcrypt compatibility
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate password to 72 bytes for bcrypt compatibility
+    password_bytes = plain_password.encode('utf-8')[:72]
+    hashed_bytes = hashed_password.encode('utf-8')
+    
+    try:
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -34,8 +45,19 @@ def get_password_hash(password: str) -> str:
         
     Returns:
         Hashed password
+    
+    Note:
+        Bcrypt has a 72-byte limit, so we truncate if necessary
     """
-    return pwd_context.hash(password)
+    # Truncate password to 72 bytes for bcrypt compatibility
+    password_bytes = password.encode('utf-8')[:72]
+    
+    # Generate salt and hash
+    salt = bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    
+    # Return as string
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

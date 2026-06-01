@@ -63,9 +63,14 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Get user ID from token
-    user_id: Optional[int] = payload.get("sub")
-    if user_id is None:
+    # Get user ID from token (sub is string per JWT spec, convert to int)
+    user_id_str: Optional[str] = payload.get("sub")
+    if user_id_str is None:
+        raise credentials_exception
+    
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
         raise credentials_exception
     
     # Get user from database

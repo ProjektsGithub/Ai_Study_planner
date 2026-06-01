@@ -3,8 +3,22 @@ AI Study Planner - FastAPI Main Application
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
 from app.core.config import settings
-from app.api.v1 import auth
+from app.api.v1 import api_router
+from app.services.background_jobs import background_jobs
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    # Startup
+    await background_jobs.start()
+    yield
+    # Shutdown
+    await background_jobs.stop()
+
 
 app = FastAPI(
     title="AI Study Planner API",
@@ -12,19 +26,20 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
+    lifespan=lifespan
 )
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1")
+# Include API v1 router
+app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/")

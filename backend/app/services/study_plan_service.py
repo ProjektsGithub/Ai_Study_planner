@@ -562,6 +562,11 @@ class StudyPlanService:
             
             self.db.commit()
             
+            # Create notification for plan generation
+            from app.services.notification_service import NotificationService
+            notification_service = NotificationService(self.db)
+            notification_service.create_plan_generated_notification(user_id, study_plan)
+            
             return {
                 "success": True,
                 "plan_id": plan_id
