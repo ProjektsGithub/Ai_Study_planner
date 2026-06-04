@@ -14,12 +14,14 @@ class Availability(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    day_of_week = Column(String(10), nullable=False)  # Monday-Sunday
-    start_time = Column(Time, nullable=False)  # HH:MM format
-    end_time = Column(Time, nullable=False)  # HH:MM format
+    day_of_week = Column(String(10), nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    
+    energy_level = Column(String(20), nullable=True)
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
-    # Relationships
     user = relationship("User", back_populates="availabilities")
     
     def __repr__(self):

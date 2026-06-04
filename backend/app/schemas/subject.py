@@ -2,7 +2,7 @@
 Pydantic schemas for Subject
 """
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import date, datetime
 
 
@@ -13,6 +13,16 @@ class SubjectBase(BaseModel):
     difficulty: int = Field(..., ge=1, le=5, description="Difficulty level (1-5 scale)")
     target_weekly_hours: float = Field(..., ge=0.5, le=168, description="Target weekly study hours (0.5-168 range)")
     exam_date: Optional[date] = Field(None, description="Exam date (must be future date)")
+    
+    exam_type: Optional[str] = Field(None, pattern="^(written_exam|oral|project|continuous_assessment|mixed)$", description="Type of exam")
+    ects_credits: Optional[float] = Field(None, ge=0, le=30, description="ECTS credits for this subject")
+    coefficient: Optional[float] = Field(None, ge=0, le=10, description="Coefficient/weight in grade calculation")
+    is_mandatory: bool = Field(True, description="Whether the subject is mandatory")
+    validation_status: str = Field("in_progress", pattern="^(not_started|in_progress|validated|failed)$", description="Validation status")
+    
+    weekly_class_hours: Optional[float] = Field(None, ge=0, le=168, description="Total class hours per week")
+    current_progress: float = Field(0.0, ge=0, le=100, description="Current progress percentage")
+    weak_topics: Optional[List[str]] = Field(None, description="List of weak topics/chapters")
     
     @field_validator('exam_date')
     @classmethod
@@ -35,6 +45,16 @@ class SubjectUpdate(BaseModel):
     difficulty: Optional[int] = Field(None, ge=1, le=5, description="Difficulty level (1-5 scale)")
     target_weekly_hours: Optional[float] = Field(None, ge=0.5, le=168, description="Target weekly study hours (0.5-168 range)")
     exam_date: Optional[date] = Field(None, description="Exam date (must be future date)")
+    
+    exam_type: Optional[str] = Field(None, pattern="^(written_exam|oral|project|continuous_assessment|mixed)$")
+    ects_credits: Optional[float] = Field(None, ge=0, le=30)
+    coefficient: Optional[float] = Field(None, ge=0, le=10)
+    is_mandatory: Optional[bool] = None
+    validation_status: Optional[str] = Field(None, pattern="^(not_started|in_progress|validated|failed)$")
+    
+    weekly_class_hours: Optional[float] = Field(None, ge=0, le=168)
+    current_progress: Optional[float] = Field(None, ge=0, le=100)
+    weak_topics: Optional[List[str]] = None
     
     @field_validator('exam_date')
     @classmethod

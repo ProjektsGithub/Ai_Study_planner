@@ -54,15 +54,17 @@ class AIService:
         self, 
         planning_data: Dict[str, Any],
         weekly_study_goal: float,
-        user_preferences: Dict[str, Any]
+        user_preferences: Dict[str, Any],
+        profile_context: Optional[Dict[str, Any]] = None
     ) -> str:
         """
-        Construct structured prompt for AI generation.
+        Construct structured prompt for AI generation with enhanced context.
         
         Args:
             planning_data: Output from PlanningEngine
             weekly_study_goal: Target weekly study hours
             user_preferences: User preferences (break duration, session length, etc.)
+            profile_context: Additional profile context (semester dates, commitments, etc.)
         
         Returns:
             Formatted prompt string
@@ -74,17 +76,33 @@ class AIService:
         prompt = f"""You are an AI study planner. Generate a weekly study schedule based on the following data.
 
 **WEEKLY STUDY GOAL**: {weekly_study_goal} hours
-
-**AVAILABLE TIME SLOTS**:
 """
         
-        # Add available slots grouped by day
+        if profile_context:
+            prompt += "\n**ACADEMIC CONTEXT**:\n"
+            if profile_context.get('semester_start_date'):
+                prompt += f"- Semester: {profile_context['semester_start_date']} to {profile_context.get('semester_end_date', 'TBD')}\n"
+            if profile_context.get('exam_period_start'):
+                prompt += f"- Exam Period starts: {profile_context['exam_period_start']}\n"
+            if profile_context.get('total_course_hours_per_week'):
+                prompt += f"- Class hours per week: {profile_context['total_course_hours_per_week']}h\n"
+            if profile_context.get('other_commitments_hours'):
+                prompt += f"- Other commitments: {profile_context['other_commitments_hours']}h/week\n"
+            
+            if profile_context.get('preferred_study_time'):
+                prompt += f"- Preferred study time: {profile_context['preferred_study_time']}\n"
+            if profile_context.get('study_pace'):
+                prompt += f"- Study pace preference: {profile_context['study_pace']}\n"
+        
+        prompt += "\n**AVAILABLE TIME SLOTS**:\n"
+        
         slots_by_day = {}
         for slot in valid_slots:
             day = slot['day']
             if day not in slots_by_day:
                 slots_by_day[day] = []
-            slots_by_day[day].append(f"{slot['start_time']}-{slot['end_time']} ({slot['duration_minutes']}min)")
+            energy = f" [Energy: {slot.get('energy_level', 'medium')}]" if slot.get('energy_level') else ""
+            slots_by_day[day].append(f"{slot['start_time']}-{slot['end_time']} ({slot['duration_minutes']}min){energy}")
         
         for day, slots in sorted(slots_by_day.items()):
             prompt += f"\n{day}:\n"
@@ -94,7 +112,18 @@ class AIService:
         prompt += f"\n**SUBJECTS** (ordered by priority):\n"
         for subj in subject_priorities:
             exam_info = f", exam: {subj['exam_date']}" if subj['exam_date'] else ""
-            prompt += f"- {subj['subject_name']} (priority: {subj['priority_score']:.1f}, target: {subj['target_weekly_hours']}h/week{exam_info})\n"
+            exam_type = f" ({subj['exam_type']})" if subj.get('exam_type') else ""
+            ects_info = f", ECTS: {subj['ects_credits']}" if subj.get('ects_credits') else ""
+            coef_info = f", coef: {subj['coefficient']}" if subj.get('coefficient') else ""
+            mandatory = " [MANDATORY]" if subj.get('is_mandatory') else ""
+            status = f" [{subj['validation_status'].upper()}]" if subj.get('validation_status') else ""
+            progress = f", progress: {subj['current_progress']}%" if subj.get('current_progress') else ""
+            
+            prompt += f"- {subj['subject_name']}{mandatory}{status} (priority: {subj['priority_score']:.1f}, "
+            prompt += f"target: {subj['target_weekly_hours']}h/week{ects_info}{coef_info}{exam_info}{exam_type}{progress})\n"
+            
+            if subj.get('weak_topics'):
+                prompt += f"  Weak topics: {', '.join(subj['weak_topics'])}\n"
         
         prompt += f"\n**CONSTRAINTS**:\n"
         if constraints['max_daily_hours']:
@@ -116,13 +145,17 @@ class AIService:
                 prompt += f"- Preferred break duration: {user_preferences['break_duration']} minutes\n"
         
         prompt += f"""
-**INSTRUCTIONS**:
-1. Allocate study sessions to the available time slots
-2. Prioritize subjects with higher priority scores
-3. Respect all constraints (max daily hours, breaks, fixed slots)
-4. Try to reach the weekly study goal of {weekly_study_goal} hours
-5. Distribute sessions across the week for better retention
-6. Consider exam dates when scheduling
+**OPTIMIZATION INSTRUCTIONS**:
+1. Prioritize MANDATORY and FAILED subjects (must validate)
+2. Consider ECTS credits and coefficients (higher impact on grades)
+3. Schedule difficult subjects during HIGH energy time slots
+4. Focus on weak topics for each subject when planning sessions
+5. Account for class hours and other commitments
+6. Respect exam dates and types (projects need distributed time, exams need intensive review)
+7. Distribute sessions across the week for spaced repetition
+8. Respect all constraints (max daily hours, breaks, fixed slots)
+9. Try to reach the weekly study goal of {weekly_study_goal} hours
+10. Consider validation status and current progress
 
 **OUTPUT FORMAT** (JSON only, no explanation):
 {{
@@ -133,11 +166,11 @@ class AIService:
       "end_time": "10:30:00",
       "subject_name": "Mathematics",
       "task_type": "lecture_review",
-      "notes": "Focus on chapter 5"
+      "notes": "Focus on weak topics: Integrals"
     }}
   ],
   "total_hours": 25.5,
-  "reasoning": "Brief explanation of the schedule"
+  "reasoning": "Brief explanation of the schedule strategy"
 }}
 
 **VALID TASK TYPES**: lecture_review, exercise_practice, exam_preparation, project_work, reading
@@ -263,16 +296,18 @@ Generate the study plan now:"""
         planning_data: Dict[str, Any],
         weekly_study_goal: float,
         user_preferences: Dict[str, Any],
-        user_id: int
+        user_id: int,
+        profile_context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        Generate study plan using AI.
+        Generate study plan using AI with enhanced context.
         
         Args:
             planning_data: Output from PlanningEngine
             weekly_study_goal: Target weekly study hours
             user_preferences: User preferences
             user_id: User ID for logging
+            profile_context: Additional profile context (semester dates, commitments, etc.)
         
         Returns:
             Dictionary with:
@@ -284,12 +319,15 @@ Generate the study plan now:"""
         Raises:
             Exception: If generation fails after retries
         """
-        # Acquire semaphore to limit concurrent requests
         async with self.semaphore:
             start_time = time.time()
             
-            # Construct prompt
-            prompt = self._construct_prompt(planning_data, weekly_study_goal, user_preferences)
+            prompt = self._construct_prompt(
+                planning_data, 
+                weekly_study_goal, 
+                user_preferences,
+                profile_context
+            )
             request_hash = self._compute_request_hash(prompt)
             
             try:

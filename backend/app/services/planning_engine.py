@@ -65,7 +65,15 @@ class SubjectPriority:
             "base_priority": self.subject.priority,
             "difficulty": self.subject.difficulty,
             "target_weekly_hours": self.subject.target_weekly_hours,
-            "exam_date": self.subject.exam_date.isoformat() if self.subject.exam_date else None
+            "exam_date": self.subject.exam_date.isoformat() if self.subject.exam_date else None,
+            "exam_type": self.subject.exam_type,
+            "ects_credits": self.subject.ects_credits,
+            "coefficient": self.subject.coefficient,
+            "is_mandatory": self.subject.is_mandatory,
+            "validation_status": self.subject.validation_status,
+            "weekly_class_hours": self.subject.weekly_class_hours,
+            "current_progress": self.subject.current_progress,
+            "weak_topics": self.subject.weak_topics
         }
     
     def __repr__(self):
@@ -197,13 +205,13 @@ class PlanningEngine:
     
     def calculate_priorities(self) -> List[SubjectPriority]:
         """
-        Calculate subject priorities with weighted scoring.
+        Calculate subject priorities with enhanced weighted scoring.
         
         Formula (0.0-100.0 scale):
-        - Base priority: 20% weight (1-5 scale)
-        - Difficulty: 20% weight (1-5 scale)
-        - Exam proximity: 40% weight (days until exam)
-        - Target hours vs allocated: 20% weight (not implemented yet, will be 0)
+        - Validation status: 40% weight (failed=40, mandatory=35, in_progress=25)
+        - ECTS × Coefficient: 30% weight
+        - Exam proximity: 20% weight (days until exam)
+        - Base priority + Difficulty: 10% weight
         
         Returns:
             List of SubjectPriority objects sorted by score (descending)
@@ -213,27 +221,34 @@ class PlanningEngine:
         
         priorities = []
         
-        for subject in self.subjects:
-            # Base priority (20% weight): normalize 1-5 to 0-100
-            base_score = ((subject.priority - 1) / 4) * 100 * 0.20
-            
-            # Difficulty (20% weight): normalize 1-5 to 0-100
-            difficulty_score = ((subject.difficulty - 1) / 4) * 100 * 0.20
-            
-            # Exam proximity (40% weight)
-            exam_score = self._calculate_exam_proximity_score(subject.exam_date) * 0.40
-            
-            # Target hours vs allocated (20% weight)
-            # Not implemented yet (requires existing plan data)
-            # For now, use target_weekly_hours as a factor
-            hours_score = min(subject.target_weekly_hours / 20, 1.0) * 100 * 0.20
-            
-            # Total score
-            total_score = base_score + difficulty_score + exam_score + hours_score
-            
-            priorities.append(SubjectPriority(subject, total_score))
+        max_ects_coef = max((s.ects_credits or 1) * (s.coefficient or 1) for s in self.subjects)
         
-        # Sort by priority score (descending)
+        for subject in self.subjects:
+            score = 0.0
+            
+            if subject.validation_status == "failed":
+                score += 40.0
+            elif subject.validation_status == "in_progress" and subject.is_mandatory:
+                score += 35.0
+            elif subject.validation_status == "in_progress":
+                score += 25.0
+            elif subject.validation_status == "not_started":
+                score += 15.0
+            
+            ects = subject.ects_credits or 1
+            coef = subject.coefficient or 1
+            ects_coef_score = ((ects * coef) / max_ects_coef) * 30.0
+            score += ects_coef_score
+            
+            exam_score = self._calculate_exam_proximity_score(subject.exam_date) * 0.20
+            score += exam_score
+            
+            base_score = ((subject.priority - 1) / 4) * 100 * 0.05
+            difficulty_score = ((subject.difficulty - 1) / 4) * 100 * 0.05
+            score += base_score + difficulty_score
+            
+            priorities.append(SubjectPriority(subject, score))
+        
         priorities.sort(key=lambda x: x.priority_score, reverse=True)
         
         self.subject_priorities = priorities

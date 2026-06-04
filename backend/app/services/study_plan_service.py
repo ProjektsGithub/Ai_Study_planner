@@ -122,12 +122,24 @@ class StudyPlanService:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
             
+            profile_context = {
+                "semester_start_date": profile.semester_start_date.isoformat() if profile.semester_start_date else None,
+                "semester_end_date": profile.semester_end_date.isoformat() if profile.semester_end_date else None,
+                "exam_period_start": profile.exam_period_start.isoformat() if profile.exam_period_start else None,
+                "total_course_hours_per_week": profile.total_course_hours_per_week,
+                "other_commitments_hours": profile.other_commitments_hours,
+                "preferred_study_time": profile.preferred_study_time,
+                "preferred_session_duration": profile.preferred_session_duration,
+                "study_pace": profile.study_pace
+            }
+            
             ai_result = loop.run_until_complete(
                 self.ai_service.generate_study_plan(
                     planning_data=planning_data,
                     weekly_study_goal=profile.weekly_study_goal,
                     user_preferences=profile.preferences or {},
-                    user_id=user_id
+                    user_id=user_id,
+                    profile_context=profile_context
                 )
             )
             

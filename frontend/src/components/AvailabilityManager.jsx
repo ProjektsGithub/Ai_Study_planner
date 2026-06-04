@@ -32,7 +32,8 @@ const AvailabilityManager = () => {
   const [formData, setFormData] = useState({
     day_of_week: 'Monday',
     start_time: '09:00',
-    end_time: '17:00'
+    end_time: '17:00',
+    energy_level: ''
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -57,7 +58,8 @@ const AvailabilityManager = () => {
     setFormData({
       day_of_week: 'Monday',
       start_time: '09:00',
-      end_time: '17:00'
+      end_time: '17:00',
+      energy_level: ''
     });
     setErrors({});
     setIsModalOpen(true);
@@ -67,8 +69,9 @@ const AvailabilityManager = () => {
     setEditingAvailability(availability);
     setFormData({
       day_of_week: availability.day_of_week,
-      start_time: availability.start_time.substring(0, 5), // HH:MM
-      end_time: availability.end_time.substring(0, 5)
+      start_time: availability.start_time.substring(0, 5),
+      end_time: availability.end_time.substring(0, 5),
+      energy_level: availability.energy_level || ''
     });
     setErrors({});
     setIsModalOpen(true);
@@ -122,8 +125,9 @@ const AvailabilityManager = () => {
     try {
       const payload = {
         day_of_week: formData.day_of_week,
-        start_time: formData.start_time + ':00', // Add seconds
-        end_time: formData.end_time + ':00'
+        start_time: formData.start_time + ':00',
+        end_time: formData.end_time + ':00',
+        energy_level: formData.energy_level === '' ? null : formData.energy_level
       };
 
       if (editingAvailability) {
@@ -264,6 +268,24 @@ const AvailabilityManager = () => {
               error={errors.end_time}
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Energy Level
+            </label>
+            <select
+              name="energy_level"
+              value={formData.energy_level}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Not specified</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Your typical energy level during this time</p>
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">

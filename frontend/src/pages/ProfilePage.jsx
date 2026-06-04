@@ -15,6 +15,14 @@ const ProfilePage = () => {
     cursus: '',
     academic_level: '',
     weekly_study_goal: 20,
+    semester_start_date: '',
+    semester_end_date: '',
+    exam_period_start: '',
+    total_course_hours_per_week: '',
+    other_commitments_hours: '',
+    preferred_study_time: '',
+    preferred_session_duration: '',
+    study_pace: '',
     preferences: {}
   });
   
@@ -50,6 +58,14 @@ const ProfilePage = () => {
           cursus: response.data.cursus || '',
           academic_level: response.data.academic_level || '',
           weekly_study_goal: response.data.weekly_study_goal || 20,
+          semester_start_date: response.data.semester_start_date || '',
+          semester_end_date: response.data.semester_end_date || '',
+          exam_period_start: response.data.exam_period_start || '',
+          total_course_hours_per_week: response.data.total_course_hours_per_week || '',
+          other_commitments_hours: response.data.other_commitments_hours || '',
+          preferred_study_time: response.data.preferred_study_time || '',
+          preferred_session_duration: response.data.preferred_session_duration || '',
+          study_pace: response.data.study_pace || '',
           preferences: response.data.preferences || {}
         });
       }
@@ -62,10 +78,13 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const numericFields = ['weekly_study_goal', 'total_course_hours_per_week', 'other_commitments_hours', 'preferred_session_duration'];
+    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'weekly_study_goal' ? parseFloat(value) : value
+      [name]: numericFields.includes(name) ? (value === '' ? '' : parseFloat(value)) : value
     }));
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -103,7 +122,22 @@ const ProfilePage = () => {
     setMessage(null);
 
     try {
-      await apiClient.post('/api/v1/profile', formData);
+      const cleanedData = { ...formData };
+      
+      // Convert empty strings to null for optional fields
+      const optionalFields = [
+        'semester_start_date', 'semester_end_date', 'exam_period_start',
+        'total_course_hours_per_week', 'other_commitments_hours',
+        'preferred_study_time', 'preferred_session_duration', 'study_pace'
+      ];
+      
+      optionalFields.forEach(field => {
+        if (cleanedData[field] === '') {
+          cleanedData[field] = null;
+        }
+      });
+
+      await apiClient.post('/api/v1/profile', cleanedData);
       setMessage({ type: 'success', text: 'Profil enregistré avec succès !' });
     } catch (error) {
       setMessage({
@@ -234,6 +268,131 @@ const ProfilePage = () => {
               <p className="text-sm text-gray-600">
                 Nombre d'heures que vous souhaitez étudier par semaine (entre 1 et 168 heures)
               </p>
+            </div>
+          </div>
+
+          {/* Semester context */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Contexte du semestre
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="Début du semestre"
+                type="date"
+                name="semester_start_date"
+                value={formData.semester_start_date}
+                onChange={handleChange}
+              />
+              <Input
+                label="Fin du semestre"
+                type="date"
+                name="semester_end_date"
+                value={formData.semester_end_date}
+                onChange={handleChange}
+              />
+              <Input
+                label="Début des examens"
+                type="date"
+                name="exam_period_start"
+                value={formData.exam_period_start}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          {/* Time commitments */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Engagements de temps
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Heures de cours par semaine"
+                type="number"
+                name="total_course_hours_per_week"
+                value={formData.total_course_hours_per_week}
+                onChange={handleChange}
+                min="0"
+                max="168"
+                step="0.5"
+                placeholder="Ex: 20"
+              />
+              <Input
+                label="Autres engagements (heures/semaine)"
+                type="number"
+                name="other_commitments_hours"
+                value={formData.other_commitments_hours}
+                onChange={handleChange}
+                min="0"
+                max="168"
+                step="0.5"
+                placeholder="Job, sport, associations..."
+              />
+            </div>
+          </div>
+
+          {/* Study preferences */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Préférences d'étude
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="preferred_study_time" className="block text-sm font-medium text-gray-700 mb-1">
+                  Moment préféré
+                </label>
+                <select
+                  id="preferred_study_time"
+                  name="preferred_study_time"
+                  value={formData.preferred_study_time}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="morning">Matin</option>
+                  <option value="afternoon">Après-midi</option>
+                  <option value="evening">Soir</option>
+                  <option value="flexible">Flexible</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="preferred_session_duration" className="block text-sm font-medium text-gray-700 mb-1">
+                  Durée de session (minutes)
+                </label>
+                <select
+                  id="preferred_session_duration"
+                  name="preferred_session_duration"
+                  value={formData.preferred_session_duration}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="45">45 min</option>
+                  <option value="60">1 heure</option>
+                  <option value="90">1h30</option>
+                  <option value="120">2 heures</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="study_pace" className="block text-sm font-medium text-gray-700 mb-1">
+                  Rythme d'étude
+                </label>
+                <select
+                  id="study_pace"
+                  name="study_pace"
+                  value={formData.study_pace}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sélectionner</option>
+                  <option value="intensive">Intensif</option>
+                  <option value="balanced">Équilibré</option>
+                  <option value="relaxed">Relax</option>
+                </select>
+              </div>
             </div>
           </div>
 

@@ -18,11 +18,19 @@ class DayOfWeek(str, Enum):
     SUNDAY = "Sunday"
 
 
+class EnergyLevel(str, Enum):
+    """Enum for energy levels"""
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
 class AvailabilityBase(BaseModel):
     """Base schema for Availability"""
     day_of_week: DayOfWeek = Field(..., description="Day of the week (Monday-Sunday)")
     start_time: time = Field(..., description="Start time in HH:MM format (24-hour)")
     end_time: time = Field(..., description="End time in HH:MM format (24-hour)")
+    energy_level: Optional[EnergyLevel] = Field(None, description="Energy level during this time slot")
     
     @field_validator('end_time')
     @classmethod
@@ -45,6 +53,7 @@ class AvailabilityUpdate(BaseModel):
     day_of_week: Optional[DayOfWeek] = Field(None, description="Day of the week (Monday-Sunday)")
     start_time: Optional[time] = Field(None, description="Start time in HH:MM format (24-hour)")
     end_time: Optional[time] = Field(None, description="End time in HH:MM format (24-hour)")
+    energy_level: Optional[EnergyLevel] = Field(None, description="Energy level during this time slot")
     
     @field_validator('end_time')
     @classmethod
@@ -64,6 +73,7 @@ class AvailabilityResponse(BaseModel):
     day_of_week: str
     start_time: time
     end_time: time
+    energy_level: Optional[str] = None
     created_at: datetime
     
     model_config = {
