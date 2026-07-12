@@ -4,9 +4,11 @@
  */
 import axios from 'axios';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL,
   timeout: 30000, // 30 seconds
   headers: {
     'Content-Type': 'application/json',
@@ -45,7 +47,7 @@ apiClient.interceptors.response.use(
         
         if (refreshToken) {
           const response = await axios.post(
-            `${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/refresh`,
+            `${baseURL}/api/v1/auth/refresh`,
             { refresh_token: refreshToken }
           );
 

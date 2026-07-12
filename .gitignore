@@ -123,6 +123,19 @@ Thumbs.db
 
 # Kiro specs and configuration
 .kiro/
+
+# Recap and analysis files (temporary documentation)
+recap/
+*_ANALYSIS.md
+*_COMPLETE.md
+*_SUMMARY.md
+*_FIX*.md
+SOLUTION*.md
+RESOLUTION*.md
+CORRECTIONS*.md
+STATUS*.md
+TEST_*.md
+docfiinal.md
 PROJECT_REFERENCE.md
 
 # Scripts PowerShell
@@ -135,6 +148,18 @@ backend/create_db*.py
 backend/create_db*.sql
 backend/cleanup_*.py
 backend/debug_*.py
+backend/apply_*.py
+backend/apply_*.bat
+backend/find_*.py
+
+# Task completion and implementation summaries
+backend/TASK_*.md
+backend/SEMESTER_*.md
+backend/*_SUMMARY.md
+backend/*_IMPLEMENTATION.md
+
+# Ne pas ignorer test_colab_connection.py (utile pour la config)
+!backend/test_colab_connection.py
 
 # Coverage reports
 backend/.coverage
@@ -147,3 +172,12 @@ frontend/.vite/
 
 # Logs
 *.log
+
+
+# Google Colab
+notebooks/.ipynb_checkpoints/
+notebooks/*_backup.ipynb
+notebooks/inference_logs.json
+notebooks/lora_adapters/
+notebooks/models/
+notebooks/.ngrok/

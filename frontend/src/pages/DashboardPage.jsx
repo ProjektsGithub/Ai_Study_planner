@@ -1,310 +1,228 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useAcademicData } from '../context/AcademicDataContext';
+import { useStudyPlan } from '../context/StudyPlanContext';
+import { useGamification } from '../context/GamificationContext';
 import apiClient from '../api/client';
+
+// Widgets
+import ECTSProgressWidget from '../components/dashboard/ECTSProgressWidget';
+import RiskSubjectsWidget from '../components/dashboard/RiskSubjectsWidget';
+import UpcomingExamsWidget from '../components/dashboard/UpcomingExamsWidget';
+import WeekPlanWidget from '../components/dashboard/WeekPlanWidget';
+import SetupProgressBanner from '../components/dashboard/SetupProgressBanner';
+
+// Gamification
+import StreakCounter from '../components/gamification/StreakCounter';
+import BadgeDisplay from '../components/gamification/BadgeDisplay';
+
+// UI Components
 import Card from '../components/ui/Card';
+import Skeleton from '../components/ui/Skeleton';
 
+// ─── Quick Actions config ─────────────────────────────────────────────────────
+const QUICK_ACTIONS = [
+  {
+    id: 'my-courses',
+    label: 'My Courses',
+    description: 'Select & qualify your semester courses',
+    href: '/subjects',
+    gradient: 'from-violet-600 to-indigo-500',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+    ),
+  },
+  {
+    id: 'exam-schedule',
+    label: 'Exam Schedule',
+    description: 'Plan your key evaluation dates',
+    href: '/exams',
+    gradient: 'from-blue-600 to-cyan-500',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'ai-recommendations',
+    label: 'AI Recommendations',
+    description: 'Performance analysis and study priorities',
+    href: '/recommendations',
+    gradient: 'from-amber-600 to-red-500',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+    ),
+  },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const DashboardPage = () => {
-  const [loading, setLoading] = useState(true);
-  const [currentPlan, setCurrentPlan] = useState(null);
-  const [upcomingSessions, setUpcomingSessions] = useState([]);
-  const [stats, setStats] = useState({
-    totalSubjects: 0,
-    totalAvailabilities: 0,
-    totalConstraints: 0,
-    weeklyGoal: 0
-  });
+  const { academicProfile, loading: academicLoading, fetchAllData } = useAcademicData();
+  const { currentPlan, loading: planLoading, fetchCurrentPlan } = useStudyPlan();
+  const { streak, badges } = useGamification();
 
-  useEffect(() => {
-    loadDashboardData();
+  const [setupStatus, setSetupStatus] = useState(null);
+  const [setupLoading, setSetupLoading] = useState(true);
+
+  const fetchSetupStatus = useCallback(async () => {
+    setSetupLoading(true);
+    try {
+      const res = await apiClient.get('/api/v1/setup/status');
+      setSetupStatus(res.data);
+    } catch {
+      // Non-critical — don't block the dashboard
+      setSetupStatus(null);
+    } finally {
+      setSetupLoading(false);
+    }
   }, []);
 
-  const loadDashboardData = async () => {
-    try {
-      // Load current plan
-      const plansResponse = await apiClient.get('/api/v1/study-plans/current');
-      if (plansResponse.data) {
-        const plan = plansResponse.data;
-        setCurrentPlan(plan);
+  useEffect(() => {
+    fetchAllData();
+    fetchCurrentPlan();
+    fetchSetupStatus();
+  }, [fetchAllData, fetchCurrentPlan, fetchSetupStatus]);
 
-        // Load sessions for current plan
-        const sessionsResponse = await apiClient.get(`/api/v1/study-plans/${plan.id}/sessions`);
-        const sessions = sessionsResponse.data || [];
-        
-        // Filter upcoming sessions (today and future)
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
-        const upcoming = sessions
-          .filter(session => {
-            const sessionDate = new Date(session.date);
-            return sessionDate >= today;
-          })
-          .sort((a, b) => new Date(a.date) - new Date(b.date))
-          .slice(0, 5);
-        
-        setUpcomingSessions(upcoming);
-      }
-
-      // Load stats
-      const [subjectsRes, availabilitiesRes, constraintsRes, profileRes] = await Promise.all([
-        apiClient.get('/api/v1/subjects'),
-        apiClient.get('/api/v1/availabilities'),
-        apiClient.get('/api/v1/constraints'),
-        apiClient.get('/api/v1/profile').catch(() => ({ data: null })) // Profile might not exist yet
-      ]);
-
-      setStats({
-        totalSubjects: subjectsRes.data?.subjects?.length || 0,
-        totalAvailabilities: availabilitiesRes.data?.availabilities?.length || 0,
-        totalConstraints: constraintsRes.data?.constraints?.length || 0,
-        weeklyGoal: profileRes.data?.weekly_study_goal || 0
-      });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeString) => {
-    return timeString.substring(0, 5);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
+  const loading = academicLoading || planLoading;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-        <p className="mt-2 text-gray-600">Vue d'ensemble de votre planning d'étude</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+
+      {/* ── Header with Streak Counter ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-1.5">
+            Hello{academicProfile?.cursus_name ? `, ${academicProfile.cursus_name}` : ''}!
+          </h1>
+          <p className="text-white/40 text-sm">
+            Here is the progress of your academic success.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 bg-violet-500/10 border border-violet-500/20 px-4 py-2.5 rounded-2xl shadow-glow-sm">
+          <span className="text-2xl animate-bounce">🔥</span>
+          <div>
+            <p className="text-xs text-white/50 font-medium leading-none">Study Streak</p>
+            <p className="text-base font-bold text-white mt-1">{streak} day{streak > 1 ? 's' : ''}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <div className="flex items-center">
-            <div className="flex-shrink-0 bg-blue-100 rounded-lg p-3">
-              <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Matières</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalSubjects}</p>
-            </div>
-          </div>
-        </Card>
+      {/* ── Onboarding Setup Banner ── */}
+      {!setupLoading && setupStatus && !setupStatus.is_complete && (
+        <SetupProgressBanner
+          hasProfile={setupStatus.has_profile}
+          hasCourses={setupStatus.has_courses}
+          hasAvailabilities={setupStatus.has_availabilities}
+          hasPlan={setupStatus.has_plan}
+        />
+      )}
 
-        <Card>
-          <div className="flex items-center">
-            <div className="flex-shrink-0 bg-green-100 rounded-lg p-3">
-              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Disponibilités</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalAvailabilities}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center">
-            <div className="flex-shrink-0 bg-yellow-100 rounded-lg p-3">
-              <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Contraintes</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalConstraints}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center">
-            <div className="flex-shrink-0 bg-purple-100 rounded-lg p-3">
-              <svg className="w-8 h-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Objectif hebdo</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.weeklyGoal}h</p>
-            </div>
-          </div>
-        </Card>
+      {/* ── Main Widgets Grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 stagger-children">
+        <ECTSProgressWidget />
+        <RiskSubjectsWidget />
+        <UpcomingExamsWidget />
+        <WeekPlanWidget />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Current Plan */}
-        <Card>
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Plan actuel</h2>
-          </div>
-          {currentPlan ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-600">Semaine du</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {formatDate(currentPlan.week_start_date)}
-                  </p>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  currentPlan.status === 'active' ? 'bg-green-100 text-green-800' :
-                  currentPlan.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {currentPlan.status === 'active' ? 'Actif' :
-                   currentPlan.status === 'completed' ? 'Terminé' : 'Brouillon'}
-                </span>
+      {/* ── Secondary Grid (Plan Summary + Gamification) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Weekly plan quick look */}
+        <Card className="lg:col-span-2 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-bold text-white">Your Weekly Plan</h2>
+              <Link to="/planner" className="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+                Manage Study Plan →
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="space-y-3">
+                <Skeleton height="2rem" />
+                <Skeleton height="2rem" />
+                <Skeleton height="2rem" />
               </div>
-              
-              <div className="pt-4 border-t border-gray-200">
+            ) : currentPlan ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm text-white/60">
+                  <span>Status: <span className="text-emerald-400 font-bold">Active</span></span>
+                  <span>{currentPlan.sessions?.length || 0} sessions scheduled</span>
+                </div>
+                <div className="divider my-2" />
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Heures totales</p>
-                    <p className="text-2xl font-bold text-gray-900">{currentPlan.total_hours}h</p>
+                  <div className="bg-white/5 p-4 rounded-xl text-center border border-white/5">
+                    <p className="text-2xl font-bold text-white">{currentPlan.total_hours}h</p>
+                    <p className="text-xs text-white/40 mt-1">Total Study Hours</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Sessions</p>
-                    <p className="text-2xl font-bold text-gray-900">{currentPlan.session_count}</p>
+                  <div className="bg-white/5 p-4 rounded-xl text-center border border-white/5">
+                    <p className="text-2xl font-bold text-white">
+                      {currentPlan.sessions?.filter((s) => s.completed)?.length || 0}
+                    </p>
+                    <p className="text-xs text-white/40 mt-1">Completed Sessions</p>
                   </div>
                 </div>
               </div>
-
-              <div className="pt-4">
-                <Link
-                  to="/planner"
-                  className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  Voir le planning
-                </Link>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-sm text-white/50 mb-4">
+                  {setupStatus?.has_courses
+                    ? 'You have not generated a study plan for this week yet.'
+                    : 'Complete your setup above to generate your first AI study plan.'}
+                </p>
+                {setupStatus?.has_courses && setupStatus?.has_availabilities ? (
+                  <Link
+                    to="/planner"
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 text-white text-sm font-semibold shadow-glow-sm hover:shadow-glow-violet transition-all"
+                  >
+                    Generate My AI Plan
+                  </Link>
+                ) : (
+                  <Link
+                    to={setupStatus?.has_courses ? '/availabilities' : '/subjects'}
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-semibold hover:bg-white/10 transition-all"
+                  >
+                    {setupStatus?.has_courses ? 'Set My Availabilities' : 'Select My Courses'} →
+                  </Link>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun plan</h3>
-              <p className="mt-1 text-sm text-gray-500">Créez votre premier planning d'étude</p>
-              <div className="mt-6">
-                <Link
-                  to="/planner"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  Créer un plan
-                </Link>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Upcoming Sessions */}
-        <Card>
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Prochaines sessions</h2>
+            )}
           </div>
-          {upcomingSessions.length > 0 ? (
-            <div className="space-y-3">
-              {upcomingSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex items-start p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex-shrink-0 mt-1">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <p className="text-sm font-medium text-gray-900">{session.subject_name}</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {formatDate(session.date)}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatTime(session.start_time)} - {formatTime(session.end_time)}
-                      {' '}({session.duration_hours}h)
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune session</h3>
-              <p className="mt-1 text-sm text-gray-500">Vos prochaines sessions apparaîtront ici</p>
-            </div>
-          )}
         </Card>
+
+        {/* Gamification column */}
+        <div className="flex flex-col gap-6">
+          <StreakCounter streak={streak} />
+          <BadgeDisplay badges={badges} />
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Actions rapides</h2>
+      {/* ── Quick Actions ── */}
+      <div>
+        <h2 className="text-lg font-bold text-white mb-4">Quick Shortcuts</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            to="/subjects"
-            className="flex items-center p-4 bg-white rounded-lg shadow border border-gray-200 hover:border-blue-500 transition-colors"
-          >
-            <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <div className="ml-4">
-              <p className="font-medium text-gray-900">Ajouter une matière</p>
-              <p className="text-sm text-gray-600">Gérer vos matières</p>
-            </div>
-          </Link>
-
-          <Link
-            to="/availabilities"
-            className="flex items-center p-4 bg-white rounded-lg shadow border border-gray-200 hover:border-blue-500 transition-colors"
-          >
-            <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="ml-4">
-              <p className="font-medium text-gray-900">Définir disponibilités</p>
-              <p className="text-sm text-gray-600">Configurer vos horaires</p>
-            </div>
-          </Link>
-
-          <Link
-            to="/planner"
-            className="flex items-center p-4 bg-white rounded-lg shadow border border-gray-200 hover:border-blue-500 transition-colors"
-          >
-            <svg className="w-8 h-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <div className="ml-4">
-              <p className="font-medium text-gray-900">Générer un plan</p>
-              <p className="text-sm text-gray-600">Créer votre planning</p>
-            </div>
-          </Link>
+          {QUICK_ACTIONS.map((action) => (
+            <Link
+              key={action.id}
+              id={`quick-action-${action.id}`}
+              to={action.href}
+              className="flex items-center gap-4 p-5 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1"
+            >
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center text-white flex-shrink-0 shadow-glow-sm`}>
+                {action.icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{action.label}</p>
+                <p className="text-xs text-white/40 mt-0.5">{action.description}</p>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
     </div>

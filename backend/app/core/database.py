@@ -26,9 +26,14 @@ def get_db():
     """
     Dependency for getting database session.
     Yields a database session and ensures it's closed after use.
+    Always rolls back any open transaction before closing so the connection
+    is returned to the pool in a clean state (prevents InFailedSqlTransaction).
     """
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

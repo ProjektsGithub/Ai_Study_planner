@@ -4,450 +4,240 @@ import apiClient from '../api/client';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
 
 const ProfilePage = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
-  
-  const [formData, setFormData] = useState({
-    cursus: '',
-    academic_level: '',
-    weekly_study_goal: 20,
-    semester_start_date: '',
-    semester_end_date: '',
-    exam_period_start: '',
-    total_course_hours_per_week: '',
-    other_commitments_hours: '',
-    preferred_study_time: '',
-    preferred_session_duration: '',
-    study_pace: '',
-    preferences: {}
+  const [loading, setLoading] = useState(false);
+  const [updatingAccount, setUpdatingAccount] = useState(false);
+  const [accountMessage, setAccountMessage] = useState(null);
+
+  const [accountData, setAccountData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
   });
-  
-  const [errors, setErrors] = useState({});
 
-  const cursusOptions = [
-    'Computer Science',
-    'Mathematics',
-    'Physics',
-    'Engineering',
-    'Business',
-    'Medicine',
-    'Law',
-    'Other'
-  ];
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState(null);
+  const [passwordErrors, setPasswordErrors] = useState({});
 
-  const academicLevelOptions = [
-    'Bachelor',
-    'Master',
-    'PhD',
-    'Other'
+  // Mock avatar selection
+  const [avatarIndex, setAvatarIndex] = useState(() => {
+    return parseInt(localStorage.getItem('user_avatar_idx') || '0');
+  });
+
+  const avatars = [
+    '✦', '🚀', '🧠', '🎓', '🎨', '💻', '⚡', '🌟'
   ];
 
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      const response = await apiClient.get('/api/v1/profile');
-      if (response.data) {
-        setFormData({
-          cursus: response.data.cursus || '',
-          academic_level: response.data.academic_level || '',
-          weekly_study_goal: response.data.weekly_study_goal || 20,
-          semester_start_date: response.data.semester_start_date || '',
-          semester_end_date: response.data.semester_end_date || '',
-          exam_period_start: response.data.exam_period_start || '',
-          total_course_hours_per_week: response.data.total_course_hours_per_week || '',
-          other_commitments_hours: response.data.other_commitments_hours || '',
-          preferred_study_time: response.data.preferred_study_time || '',
-          preferred_session_duration: response.data.preferred_session_duration || '',
-          study_pace: response.data.study_pace || '',
-          preferences: response.data.preferences || {}
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
-      setLoading(false);
+    if (user) {
+      setAccountData({
+        name: user.name || '',
+        email: user.email || '',
+      });
     }
-  };
+  }, [user]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    const numericFields = ['weekly_study_goal', 'total_course_hours_per_week', 'other_commitments_hours', 'preferred_session_duration'];
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: numericFields.includes(name) ? (value === '' ? '' : parseFloat(value)) : value
-    }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.cursus) {
-      newErrors.cursus = 'Cursus requis';
-    }
-
-    if (!formData.academic_level) {
-      newErrors.academic_level = 'Niveau académique requis';
-    }
-
-    if (!formData.weekly_study_goal) {
-      newErrors.weekly_study_goal = 'Objectif hebdomadaire requis';
-    } else if (formData.weekly_study_goal < 1 || formData.weekly_study_goal > 168) {
-      newErrors.weekly_study_goal = 'L\'objectif doit être entre 1 et 168 heures';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
+  const handleAccountSubmit = async (e) => {
     e.preventDefault();
+    setUpdatingAccount(true);
+    setAccountMessage(null);
+    try {
+      await apiClient.put('/api/v1/auth/update-profile', {
+        name: accountData.name,
+        email: accountData.email,
+      });
+      setAccountMessage({ type: 'success', text: 'Account details updated successfully!' });
+      
+      // Update local storage avatar choice
+      localStorage.setItem('user_avatar_idx', avatarIndex.toString());
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (err) {
+      console.error('Account update error:', err);
+      setAccountMessage({ type: 'error', text: err.response?.data?.detail || 'Error updating account details.' });
+    } finally {
+      setUpdatingAccount(false);
+    }
+  };
 
-    if (!validateForm()) {
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordErrors({});
+    setPasswordMessage(null);
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordErrors({ confirmPassword: 'Passwords do not match' });
       return;
     }
-
-    setSaving(true);
-    setMessage(null);
-
+    
+    if (passwordData.newPassword.length < 8) {
+      setPasswordErrors({ newPassword: 'Password must be at least 8 characters long' });
+      return;
+    }
+    
+    setUpdatingPassword(true);
     try {
-      const cleanedData = { ...formData };
-      
-      // Convert empty strings to null for optional fields
-      const optionalFields = [
-        'semester_start_date', 'semester_end_date', 'exam_period_start',
-        'total_course_hours_per_week', 'other_commitments_hours',
-        'preferred_study_time', 'preferred_session_duration', 'study_pace'
-      ];
-      
-      optionalFields.forEach(field => {
-        if (cleanedData[field] === '') {
-          cleanedData[field] = null;
-        }
+      await apiClient.put('/api/v1/auth/change-password', {
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
       });
-
-      await apiClient.post('/api/v1/profile', cleanedData);
-      setMessage({ type: 'success', text: 'Profil enregistré avec succès !' });
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.detail || 'Erreur lors de la sauvegarde'
-      });
+      setPasswordMessage({ type: 'success', text: 'Password updated successfully!' });
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      console.error('Password change error:', err);
+      setPasswordMessage({ type: 'error', text: err.response?.data?.detail || 'Error changing password.' });
     } finally {
-      setSaving(false);
+      setUpdatingPassword(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Mon Profil</h1>
-        <p className="mt-2 text-gray-600">
-          Configurez votre profil étudiant pour personnaliser vos plans d'étude
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-500 flex items-center justify-center text-2xl font-bold text-white shadow-glow-sm">
+            {avatars[avatarIndex]}
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <span>Student Profile</span>
+              <Badge variant="violet">Account</Badge>
+            </h1>
+            <p className="text-white/40 text-sm">{user?.email}</p>
+          </div>
+        </div>
+        <p className="text-white/40 text-sm">
+          Manage your personal details, profile picture representation, and security credentials.
         </p>
       </div>
 
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* User info */}
-          <div className="pb-6 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Informations utilisateur
-            </h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="text"
-                  value={user?.email || ''}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                />
+      <div className="space-y-8">
+        {/* Account Details & Profile Icon */}
+        <form onSubmit={handleAccountSubmit}>
+          <Card className="p-6 border border-white/10 bg-white/[0.03] backdrop-blur-md">
+            <h3 className="form-section-title text-violet-400">Account Settings</h3>
+            
+            {/* Profile Avatar Selector */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-white/70 mb-2">
+                Choose Profile Avatar
+              </label>
+              <div className="flex flex-wrap gap-2.5">
+                {avatars.map((av, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setAvatarIndex(idx)}
+                    className={`w-11 h-11 rounded-xl text-lg font-bold transition-all border flex items-center justify-center ${
+                      avatarIndex === idx
+                        ? 'bg-violet-600 border-violet-500 text-white shadow-glow-sm scale-110'
+                        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {av}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
 
-          {/* Academic info */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Informations académiques
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="cursus" className="block text-sm font-medium text-gray-700 mb-1">
-                  Cursus *
-                </label>
-                <select
-                  id="cursus"
-                  name="cursus"
-                  value={formData.cursus}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.cursus ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  required
-                >
-                  <option value="">Sélectionner un cursus</option>
-                  {cursusOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                {errors.cursus && (
-                  <p className="mt-1 text-sm text-red-600">{errors.cursus}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="academic_level" className="block text-sm font-medium text-gray-700 mb-1">
-                  Niveau académique *
-                </label>
-                <select
-                  id="academic_level"
-                  name="academic_level"
-                  value={formData.academic_level}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.academic_level ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  required
-                >
-                  <option value="">Sélectionner un niveau</option>
-                  {academicLevelOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                {errors.academic_level && (
-                  <p className="mt-1 text-sm text-red-600">{errors.academic_level}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Study goals */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Objectifs d'étude
-            </h3>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Input
-                label="Objectif hebdomadaire (heures) *"
-                type="number"
-                name="weekly_study_goal"
-                value={formData.weekly_study_goal}
-                onChange={handleChange}
-                min="1"
-                max="168"
-                step="0.5"
-                error={errors.weekly_study_goal}
+                label="Full Name"
+                type="text"
+                name="name"
+                value={accountData.name}
+                onChange={(e) => setAccountData(prev => ({ ...prev, name: e.target.value }))}
                 required
               />
-              <p className="text-sm text-gray-600">
-                Nombre d'heures que vous souhaitez étudier par semaine (entre 1 et 168 heures)
-              </p>
-            </div>
-          </div>
-
-          {/* Semester context */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Contexte du semestre
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
-                label="Début du semestre"
-                type="date"
-                name="semester_start_date"
-                value={formData.semester_start_date}
-                onChange={handleChange}
-              />
-              <Input
-                label="Fin du semestre"
-                type="date"
-                name="semester_end_date"
-                value={formData.semester_end_date}
-                onChange={handleChange}
-              />
-              <Input
-                label="Début des examens"
-                type="date"
-                name="exam_period_start"
-                value={formData.exam_period_start}
-                onChange={handleChange}
+                label="Email Address"
+                type="email"
+                name="email"
+                value={accountData.email}
+                onChange={(e) => setAccountData(prev => ({ ...prev, email: e.target.value }))}
+                required
               />
             </div>
-          </div>
 
-          {/* Time commitments */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Engagements de temps
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Heures de cours par semaine"
-                type="number"
-                name="total_course_hours_per_week"
-                value={formData.total_course_hours_per_week}
-                onChange={handleChange}
-                min="0"
-                max="168"
-                step="0.5"
-                placeholder="Ex: 20"
-              />
-              <Input
-                label="Autres engagements (heures/semaine)"
-                type="number"
-                name="other_commitments_hours"
-                value={formData.other_commitments_hours}
-                onChange={handleChange}
-                min="0"
-                max="168"
-                step="0.5"
-                placeholder="Job, sport, associations..."
-              />
-            </div>
-          </div>
-
-          {/* Study preferences */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Préférences d'étude
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="preferred_study_time" className="block text-sm font-medium text-gray-700 mb-1">
-                  Moment préféré
-                </label>
-                <select
-                  id="preferred_study_time"
-                  name="preferred_study_time"
-                  value={formData.preferred_study_time}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionner</option>
-                  <option value="morning">Matin</option>
-                  <option value="afternoon">Après-midi</option>
-                  <option value="evening">Soir</option>
-                  <option value="flexible">Flexible</option>
-                </select>
+            {accountMessage && (
+              <div className={`mt-4 rounded-xl p-4 flex items-center gap-3 border shadow-lg ${
+                accountMessage.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                  : 'bg-red-500/10 border-red-500/20 text-red-300'
+              }`}>
+                <p className="text-sm font-semibold">{accountMessage.text}</p>
               </div>
+            )}
 
-              <div>
-                <label htmlFor="preferred_session_duration" className="block text-sm font-medium text-gray-700 mb-1">
-                  Durée de session (minutes)
-                </label>
-                <select
-                  id="preferred_session_duration"
-                  name="preferred_session_duration"
-                  value={formData.preferred_session_duration}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionner</option>
-                  <option value="45">45 min</option>
-                  <option value="60">1 heure</option>
-                  <option value="90">1h30</option>
-                  <option value="120">2 heures</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="study_pace" className="block text-sm font-medium text-gray-700 mb-1">
-                  Rythme d'étude
-                </label>
-                <select
-                  id="study_pace"
-                  name="study_pace"
-                  value={formData.study_pace}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sélectionner</option>
-                  <option value="intensive">Intensif</option>
-                  <option value="balanced">Équilibré</option>
-                  <option value="relaxed">Relax</option>
-                </select>
-              </div>
+            <div className="flex justify-end mt-6">
+              <Button type="submit" variant="primary" loading={updatingAccount} disabled={updatingAccount}>
+                Save Account Details
+              </Button>
             </div>
-          </div>
-
-          {/* Message */}
-          {message && (
-            <div className={`rounded-md p-4 ${
-              message.type === 'success' ? 'bg-green-50' : 'bg-red-50'
-            }`}>
-              <div className="flex">
-                <svg
-                  className={`h-5 w-5 ${
-                    message.type === 'success' ? 'text-green-400' : 'text-red-400'
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  {message.type === 'success' ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  )}
-                </svg>
-                <div className="ml-3">
-                  <p className={`text-sm ${
-                    message.type === 'success' ? 'text-green-700' : 'text-red-700'
-                  }`}>
-                    {message.text}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Submit */}
-          <div className="flex justify-end space-x-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={loadProfile}
-              disabled={saving}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={saving}
-              disabled={saving}
-            >
-              Enregistrer
-            </Button>
-          </div>
+          </Card>
         </form>
-      </Card>
+
+        {/* Change Password */}
+        <form onSubmit={handlePasswordSubmit}>
+          <Card className="p-6 border border-white/10 bg-white/[0.03] backdrop-blur-md">
+            <h3 className="form-section-title text-violet-400">Change Password</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+              <Input
+                label="Current Password"
+                type="password"
+                name="currentPassword"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                required
+              />
+              <Input
+                label="New Password"
+                type="password"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                error={passwordErrors.newPassword}
+                required
+              />
+              <Input
+                label="Confirm New Password"
+                type="password"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                error={passwordErrors.confirmPassword}
+                required
+              />
+            </div>
+
+            {passwordMessage && (
+              <div className={`mt-4 rounded-xl p-4 flex items-center gap-3 border shadow-lg ${
+                passwordMessage.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                  : 'bg-red-500/10 border-red-500/20 text-red-300'
+              }`}>
+                <p className="text-sm font-semibold">{passwordMessage.text}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-6">
+              <Button type="submit" variant="primary" loading={updatingPassword} disabled={updatingPassword}>
+                Update Password
+              </Button>
+            </div>
+          </Card>
+        </form>
+      </div>
     </div>
   );
 };

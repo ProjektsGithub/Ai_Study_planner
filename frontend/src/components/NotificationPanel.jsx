@@ -16,7 +16,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       const response = await apiClient.get('/api/v1/notifications?limit=20');
-      setNotifications(response.data || []);
+      setNotifications(response.data?.notifications || []);
     } catch (error) {
       console.error('Error loading notifications:', error);
     } finally {

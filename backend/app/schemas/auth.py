@@ -44,3 +44,16 @@ class UserResponse(BaseModel):
 class MessageResponse(BaseModel):
     """Schema for simple message response"""
     message: str = Field(..., description="Response message")
+
+
+class UserUpdate(BaseModel):
+    """Schema for updating basic user information"""
+    name: Optional[str] = Field(None, min_length=1, max_length=100, description="User full name")
+    email: Optional[EmailStr] = Field(None, description="User email address")
+
+
+class PasswordChange(BaseModel):
+    """Schema for password change request"""
+    current_password: str = Field(..., description="Current password")
+    new_password: str = Field(..., min_length=8, max_length=100, description="New password")
+

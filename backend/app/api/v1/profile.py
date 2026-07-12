@@ -40,6 +40,14 @@ async def create_or_update_profile(
         existing_profile.academic_level = profile_data.academic_level
         existing_profile.weekly_study_goal = profile_data.weekly_study_goal
         existing_profile.preferences = profile_data.preferences
+        existing_profile.semester_start_date = profile_data.semester_start_date
+        existing_profile.semester_end_date = profile_data.semester_end_date
+        existing_profile.exam_period_start = profile_data.exam_period_start
+        existing_profile.total_course_hours_per_week = profile_data.total_course_hours_per_week
+        existing_profile.other_commitments_hours = profile_data.other_commitments_hours
+        existing_profile.preferred_study_time = profile_data.preferred_study_time
+        existing_profile.preferred_session_duration = profile_data.preferred_session_duration
+        existing_profile.study_pace = profile_data.study_pace
         existing_profile.updated_at = datetime.now(timezone.utc)
         
         db.commit()
@@ -54,6 +62,14 @@ async def create_or_update_profile(
             academic_level=profile_data.academic_level,
             weekly_study_goal=profile_data.weekly_study_goal,
             preferences=profile_data.preferences,
+            semester_start_date=profile_data.semester_start_date,
+            semester_end_date=profile_data.semester_end_date,
+            exam_period_start=profile_data.exam_period_start,
+            total_course_hours_per_week=profile_data.total_course_hours_per_week,
+            other_commitments_hours=profile_data.other_commitments_hours,
+            preferred_study_time=profile_data.preferred_study_time,
+            preferred_session_duration=profile_data.preferred_session_duration,
+            study_pace=profile_data.study_pace,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )

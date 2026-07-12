@@ -20,6 +20,8 @@ from app.schemas.auth import (
     TokenRefresh,
     UserResponse,
     MessageResponse,
+    UserUpdate,
+    PasswordChange,
 )
 from app.models.user import User
 
@@ -131,9 +133,30 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user.failed_login_attempts = 0
     db.commit()
     
-    # Create tokens (sub must be string per JWT spec)
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+    # Get user roles for token payload
+    from app.models.user_role import UserRole
+    from app.models.admin_role import AdminRole
+    
+    user_roles = db.query(UserRole).filter(
+        UserRole.user_id == user.id
+    ).join(AdminRole).filter(
+        AdminRole.is_active == True
+    ).all()
+    
+    # Prepare role data for JWT payload
+    roles = []
+    for user_role in user_roles:
+        roles.append({
+            "role_id": user_role.role_id,
+            "role_name": user_role.role.name,
+            "role_display_name": user_role.role.display_name,
+            "university_id": user_role.university_id,
+            "program_id": user_role.program_id
+        })
+    
+    # Create tokens with role information (sub must be string per JWT spec)
+    access_token = create_access_token(data={"sub": str(user.id)}, roles=roles)
+    refresh_token = create_refresh_token(data={"sub": str(user.id)}, roles=roles)
     
     return {
         "access_token": access_token,
@@ -168,11 +191,21 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
         )
     
     # Get user ID
-    user_id = payload.get("sub")
-    if user_id is None:
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Convert user_id to integer
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -185,9 +218,30 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create new tokens
-    access_token = create_access_token(data={"sub": str(user.id)})
-    new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
+    # Get user roles for token payload
+    from app.models.user_role import UserRole
+    from app.models.admin_role import AdminRole
+    
+    user_roles = db.query(UserRole).filter(
+        UserRole.user_id == user.id
+    ).join(AdminRole).filter(
+        AdminRole.is_active == True
+    ).all()
+    
+    # Prepare role data for JWT payload
+    roles = []
+    for user_role in user_roles:
+        roles.append({
+            "role_id": user_role.role_id,
+            "role_name": user_role.role.name,
+            "role_display_name": user_role.role.display_name,
+            "university_id": user_role.university_id,
+            "program_id": user_role.program_id
+        })
+    
+    # Create new tokens with role information
+    access_token = create_access_token(data={"sub": str(user.id)}, roles=roles)
+    new_refresh_token = create_refresh_token(data={"sub": str(user.id)}, roles=roles)
     
     return {
         "access_token": access_token,
@@ -216,3 +270,62 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     Requires valid JWT access token in Authorization header.
     """
     return current_user
+
+
+@router.put("/update-profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update authenticated user's profile details (name, email).
+    """
+    if profile_data.email is not None and profile_data.email != current_user.email:
+        # Check if email is already taken
+        existing_user = db.query(User).filter(User.email == profile_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        current_user.email = profile_data.email
+        
+    if profile_data.name is not None:
+        current_user.name = profile_data.name
+        
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.put("/change-password", response_model=MessageResponse)
+async def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Change authenticated user's password.
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+        
+    # Validate new password strength
+    is_valid, error_message = validate_password_strength(password_data.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_message
+        )
+        
+    # Update password
+    current_user.password_hash = get_password_hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
+

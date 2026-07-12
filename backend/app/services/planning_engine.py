@@ -3,13 +3,20 @@ Deterministic Planning Engine
 
 This service constructs valid time slots, calculates subject priorities,
 and eliminates conflicts before AI generation.
+
+Task 28.1: Extended to enrich planning_data with academic context
+(failed courses, ECTS progression, priority scores, upcoming exams)
+from AIContextService before passing to AIService.
 """
-from typing import List, Dict, Any, Tuple
+import logging
+from typing import List, Dict, Any, Optional
 from datetime import datetime, date, time, timedelta
 from sqlalchemy.orm import Session
 from app.models.subject import Subject
 from app.models.availability import Availability
 from app.models.constraint import Constraint
+
+logger = logging.getLogger(__name__)
 
 
 class TimeSlot:
@@ -324,41 +331,90 @@ class PlanningEngine:
         
         return constraint_info
     
-    def generate_planning_data(self) -> Dict[str, Any]:
+    def generate_planning_data(self, db: Optional[Session] = None) -> Dict[str, Any]:
         """
         Generate complete planning data for AI generation.
-        
+
         This is the main method that orchestrates all steps:
         1. Load user data
         2. Construct valid slots
         3. Calculate priorities
         4. Validate constraints
-        
+        5. [NEW Task 28.1] Enrich with academic context from AIContextService
+
+        Args:
+            db: Optional SQLAlchemy session. When provided, the planning data is
+                enriched with academic context (failed courses, ECTS progression,
+                priority scores, upcoming exams) for richer AI generation.
+                When None, runs in legacy mode (backward compatible).
+
         Returns:
             Dictionary with all planning data ready for AI
         """
         # Load data
         self.load_user_data()
-        
+
         # Validate we have subjects
         if not self.subjects:
             raise ValueError("No subjects defined. Please add subjects first.")
-        
+
         # Construct valid slots
         valid_slots = self.construct_valid_slots()
-        
+
         # Calculate priorities
         priorities = self.calculate_priorities()
-        
+
         # Validate constraints
         constraint_info = self.validate_constraints()
-        
-        # Prepare output
-        return {
+
+        # Prepare base output (backward-compatible)
+        planning_data = {
             "valid_slots": [slot.to_dict() for slot in valid_slots],
             "subject_priorities": [p.to_dict() for p in priorities],
             "constraints": constraint_info,
             "total_subjects": len(self.subjects),
             "total_slots": len(valid_slots),
-            "total_slot_hours": sum(s.duration_minutes for s in valid_slots) / 60
+            "total_slot_hours": sum(s.duration_minutes for s in valid_slots) / 60,
         }
+
+        # Task 28.1: Enrich with academic context when a DB session is provided
+        if db is not None:
+            academic_ctx = self._fetch_academic_context(db)
+            if academic_ctx is not None:
+                planning_data["academic_context"] = academic_ctx
+                logger.info(
+                    "[PlanningEngine] Enriched planning_data with academic context "
+                    "for user_id=%d",
+                    self.user_id,
+                )
+
+        return planning_data
+
+    def _fetch_academic_context(self, db: Session) -> Optional[Dict[str, Any]]:
+        """
+        Fetch the academic context from AIContextService for this user.
+
+        Returns a serializable dict, or None if the context cannot be built
+        (e.g. no student profile, missing data).
+
+        Requirements: 13.1, 14.1, 18.3, 18.4
+        """
+        try:
+            from app.services.ai_context_service import ai_context_service
+            ctx = ai_context_service.build_context(db, self.user_id)
+            # Convert Pydantic model to plain dict for JSON serialisation
+            return ctx.model_dump()
+        except Exception as exc:
+            logger.warning(
+                "[PlanningEngine] Could not fetch academic context for user_id=%d: %s",
+                self.user_id,
+                exc,
+            )
+            # ⚠️ CRITICAL: if a sub-query inside build_context failed, the session
+            # is now in InFailedSqlTransaction state. We MUST rollback so that
+            # subsequent queries (student_profiles, etc.) don't cascade-fail.
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            return None

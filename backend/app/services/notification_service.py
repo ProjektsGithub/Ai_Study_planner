@@ -43,10 +43,20 @@ class NotificationService:
         Returns:
             Created notification
         """
+        # Calculate total hours from sessions
+        total_hours = 0
+        for session in plan.sessions:
+            from datetime import datetime, date
+            duration = (
+                datetime.combine(date.today(), session.end_time) -
+                datetime.combine(date.today(), session.start_time)
+            ).total_seconds() / 3600
+            total_hours += duration
+        
         message = (
             f"Votre plan d'étude pour la semaine du "
-            f"{plan.week_start_date.strftime('%d/%m/%Y')} a été généré avec succès. "
-            f"Total: {plan.total_hours:.1f} heures."
+            f"{plan.week_start.strftime('%d/%m/%Y')} a été généré avec succès. "
+            f"Total: {total_hours:.1f} heures."
         )
         
         notification = Notification(

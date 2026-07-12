@@ -186,7 +186,7 @@ class ExportService:
         elements.append(title)
         
         # Week info
-        week_start = plan.week_start_date
+        week_start = plan.week_start
         week_end = week_start + timedelta(days=6)
         subtitle = Paragraph(
             f"Semaine du {week_start.strftime('%d/%m/%Y')} au {week_end.strftime('%d/%m/%Y')}",

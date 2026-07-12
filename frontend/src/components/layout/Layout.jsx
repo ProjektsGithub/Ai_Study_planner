@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
+import { Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import Header from './Header';
 import Footer from './Footer';
+import Sidebar from './Sidebar';
+import BottomNav from './BottomNav';
+import Breadcrumbs from './Breadcrumbs';
 import NotificationPanel from '../NotificationPanel';
+import ChatBot from '../ChatBot';
 import apiClient from '../../api/client';
+import { useGamification } from '../../context/GamificationContext';
+import CelebrationAnimation from '../gamification/CelebrationAnimation';
 
 const Layout = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { activeCelebration, clearCelebration } = useGamification();
 
   useEffect(() => {
     loadUnreadCount();
@@ -37,28 +46,49 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header 
-        onNotificationClick={handleNotificationClick}
-        unreadCount={unreadCount}
-      />
+    <div className="min-h-screen flex flex-col pb-16 md:pb-0" style={{ background: 'var(--color-bg-primary)' }}>
+      <div className="flex flex-1 relative overflow-hidden h-screen">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Header 
+            onNotificationClick={handleNotificationClick}
+            unreadCount={unreadCount}
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          />
+          
+          <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 w-full">
+            <Breadcrumbs />
+            {/* Support both: legacy children prop and nested route Outlet */}
+            {children ?? <Outlet />}
+          </main>
+        </div>
+      </div>
       
-      <main className="flex-1">
-        {children}
-      </main>
-      
-      <Footer />
+      <BottomNav />
+      <Footer className="hidden md:block" />
       
       <NotificationPanel 
         isOpen={showNotifications}
         onClose={handleCloseNotifications}
       />
+
+      {activeCelebration && (
+        <CelebrationAnimation
+          trigger={activeCelebration.type}
+          message={activeCelebration.message}
+          onClose={clearCelebration}
+        />
+      )}
+
+      {/* AI Chatbot — floating bubble bottom-right */}
+      <ChatBot />
     </div>
   );
 };
 
 Layout.propTypes = {
-  children: PropTypes.node.isRequired
+  children: PropTypes.node,
 };
 
 export default Layout;

@@ -1,337 +1,321 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
-/**
- * WeeklyCalendarView Component
- * Displays study sessions in a weekly calendar grid with day columns and time slot rows
- */
-const WeeklyCalendarView = ({ 
-  sessions = [], 
-  availabilities = [], 
-  constraints = [],
+// ── Task type config ─────────────────────────────────────────────────────────
+const TASK_CONFIG = {
+  lecture_review:    { label: 'Cours',    icon: '📖', solid: '#6366f1', dark: '#4338ca' },
+  exercise_practice: { label: 'Exercice', icon: '✏️', solid: '#f97316', dark: '#c2410c' },
+  exam_preparation:  { label: 'Exam',     icon: '📝', solid: '#ef4444', dark: '#b91c1c' },
+  project_work:      { label: 'Projet',   icon: '🔧', solid: '#10b981', dark: '#047857' },
+  reading:           { label: 'Lecture',  icon: '📚', solid: '#3b82f6', dark: '#1d4ed8' },
+};
+
+const DAY_LABELS = {
+  Monday: 'Lun', Tuesday: 'Mar', Wednesday: 'Mer',
+  Thursday: 'Jeu', Friday: 'Ven', Saturday: 'Sam', Sunday: 'Dim',
+};
+
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  return d;
+}
+
+const WeeklyCalendarView = ({
+  sessions = [],
+  availabilities = [],
   onSessionClick,
-  weekStartDate 
+  onSessionComplete,
+  weekStartDate,
 }) => {
-  const [currentWeekStart, setCurrentWeekStart] = useState(
-    weekStartDate || getMonday(new Date())
-  );
+  const [weekStart, setWeekStart] = useState(weekStartDate || getMonday(new Date()));
 
-  // Days of the week
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  
-  // Time slots (30-minute increments from 00:00 to 23:30)
-  const timeSlots = useMemo(() => {
-    const slots = [];
-    for (let hour = 0; hour < 24; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        slots.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
-      }
-    }
-    return slots;
-  }, []);
+  const weekDates = useMemo(() =>
+    DAYS.map((_, i) => { const d = new Date(weekStart); d.setDate(d.getDate() + i); return d; }),
+  [weekStart]);
 
-  // Generate dates for the current week
-  const weekDates = useMemo(() => {
-    return daysOfWeek.map((_, index) => {
-      const date = new Date(currentWeekStart);
-      date.setDate(date.getDate() + index);
-      return date;
-    });
-  }, [currentWeekStart]);
-
-  // Subject colors mapping
-  const subjectColors = useMemo(() => {
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
-      'bg-yellow-500', 'bg-indigo-500', 'bg-red-500', 'bg-teal-500',
-      'bg-orange-500', 'bg-cyan-500'
-    ];
-    const colorMap = {};
-    sessions.forEach((session, index) => {
-      if (!colorMap[session.subject_id]) {
-        colorMap[session.subject_id] = colors[Object.keys(colorMap).length % colors.length];
-      }
-    });
-    return colorMap;
+  // Smart hour range
+  const hours = useMemo(() => {
+    const allH = sessions.flatMap(s => [
+      parseInt(s.start_time), parseInt(s.end_time)
+    ]);
+    const min = allH.length ? Math.max(6, Math.min(...allH) - 1) : 7;
+    const max = allH.length ? Math.min(22, Math.max(...allH) + 1) : 21;
+    return Array.from({ length: max - min + 1 }, (_, i) => min + i);
   }, [sessions]);
 
-  // Check if a time slot has availability
-  const hasAvailability = (dayIndex, timeSlot) => {
-    const dayName = daysOfWeek[dayIndex];
-    return availabilities.some(avail => 
-      avail.day_of_week === dayName &&
-      timeSlot >= avail.start_time &&
-      timeSlot < avail.end_time
-    );
-  };
-
-  // Check if a time slot has constraints
-  const hasConstraint = (dayIndex, timeSlot) => {
-    const dayName = daysOfWeek[dayIndex];
-    return constraints.some(constraint => {
-      if (!constraint.is_active) return false;
-      
-      if (constraint.constraint_type === 'forbidden_slot') {
-        const params = constraint.parameters;
-        return params.day_of_week === dayName &&
-               timeSlot >= params.start_time &&
-               timeSlot < params.end_time;
-      }
-      return false;
+  const getSlotSessions = (dayIndex, hour) => {
+    const dayName = DAYS[dayIndex];
+    const slotStart = `${String(hour).padStart(2,'0')}:00`;
+    const slotEnd   = `${String(hour + 1).padStart(2,'0')}:00`;
+    return sessions.filter(s => {
+      const d = s.day || s.day_of_week;
+      return d === dayName && s.start_time < slotEnd && s.end_time > slotStart;
     });
   };
 
-  // Get sessions for a specific day and time slot
-  const getSessionsForSlot = (dayIndex, timeSlot) => {
-    const dayName = daysOfWeek[dayIndex];
-    return sessions.filter(session => 
-      session.day_of_week === dayName &&
-      timeSlot >= session.start_time &&
-      timeSlot < session.end_time
-    );
-  };
+  const isFirstSlot = (session, hour) =>
+    parseInt(session.start_time) === hour;
 
-  // Calculate session span (how many 30-min slots it occupies)
-  const calculateSessionSpan = (session) => {
-    const [startHour, startMin] = session.start_time.split(':').map(Number);
-    const [endHour, endMin] = session.end_time.split(':').map(Number);
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    return Math.ceil((endMinutes - startMinutes) / 30);
-  };
+  const todayStr = new Date().toDateString();
+  const ROW_H = 60; // px per hour
 
-  // Check if this is the first slot of a session
-  const isFirstSlotOfSession = (session, timeSlot) => {
-    return session.start_time === timeSlot;
-  };
-
-  // Navigation handlers
-  const goToPreviousWeek = () => {
-    const newDate = new Date(currentWeekStart);
-    newDate.setDate(newDate.getDate() - 7);
-    setCurrentWeekStart(newDate);
-  };
-
-  const goToNextWeek = () => {
-    const newDate = new Date(currentWeekStart);
-    newDate.setDate(newDate.getDate() + 7);
-    setCurrentWeekStart(newDate);
-  };
-
-  const goToCurrentWeek = () => {
-    setCurrentWeekStart(getMonday(new Date()));
-  };
-
-  // Format date for display
-  const formatDate = (date) => {
-    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-  };
-
-  // Empty state
   if (sessions.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <div className="text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune session planifiée</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Générez un plan d'étude pour voir votre calendrier hebdomadaire.
-          </p>
-        </div>
+      <div style={{ padding: 64, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+        <p style={{ color: '#6b7280', fontSize: 15 }}>
+          Génère un plan IA pour voir ton emploi du temps.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      {/* Header with navigation */}
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Calendrier Hebdomadaire
-            </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Semaine du {formatDate(weekDates[0])} au {formatDate(weekDates[6])}
-            </p>
+    <div style={{ fontFamily: 'Inter, system-ui, sans-serif', background: '#fff', borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+
+      {/* ── HEADER ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 16px',
+        borderBottom: '2px solid #e5e7eb',
+        background: '#f9fafb',
+      }}>
+        {/* Title + Legend */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
+            {weekDates[0].toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          </span>
+          <span style={{
+            fontSize: 12, color: '#6b7280',
+            background: '#e5e7eb', borderRadius: 20, padding: '2px 10px',
+          }}>
+            {weekDates[0].toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} –{' '}
+            {weekDates[6].toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})}
+          </span>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {Object.entries(TASK_CONFIG).map(([key, cfg]) => (
+              <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#374151', fontWeight: 500 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: cfg.solid, display: 'inline-block', flexShrink: 0 }} />
+                {cfg.label}
+              </span>
+            ))}
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={goToPreviousWeek}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              aria-label="Semaine précédente"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={goToCurrentWeek}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
-            >
-              Aujourd'hui
-            </button>
-            <button
-              onClick={goToNextWeek}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              aria-label="Semaine suivante"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+        </div>
+
+        {/* Nav buttons */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {[
+            { label: '‹', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); } },
+            { label: "Auj.", fn: () => setWeekStart(getMonday(new Date())) },
+            { label: '›', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); } },
+          ].map(({ label, fn }) => (
+            <button key={label} onClick={fn} style={{
+              background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+              padding: label === "Auj." ? '5px 10px' : '5px 10px',
+              fontSize: label === "Auj." ? 12 : 16, fontWeight: 700,
+              color: '#374151', cursor: 'pointer', lineHeight: 1,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >{label}</button>
+          ))}
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full align-middle">
-          <div className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              {/* Header with days */}
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="w-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                    Heure
-                  </th>
-                  {daysOfWeek.map((day, index) => (
-                    <th
-                      key={day}
-                      className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
-                    >
-                      <div>{day}</div>
-                      <div className="text-gray-400 font-normal mt-1">
-                        {formatDate(weekDates[index])}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+      {/* ── GRID ── */}
+      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '72vh' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `52px repeat(7, minmax(90px, 1fr))`,
+          minWidth: 680,
+        }}>
 
-              {/* Time slots */}
-              <tbody className="bg-white divide-y divide-gray-200">
-                {timeSlots.map((timeSlot) => (
-                  <tr key={timeSlot} className="h-12">
-                    {/* Time column */}
-                    <td className="px-3 py-2 text-xs text-gray-500 border-r border-gray-200 whitespace-nowrap">
-                      {timeSlot}
-                    </td>
+          {/* ── Day headers ── */}
+          <div style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }} />
+          {DAYS.map((day, i) => {
+            const isToday = weekDates[i].toDateString() === todayStr;
+            return (
+              <div key={day} style={{
+                padding: '10px 6px 8px',
+                textAlign: 'center',
+                background: isToday ? '#eef2ff' : '#f9fafb',
+                borderLeft: '1px solid #e5e7eb',
+                borderBottom: `2px solid ${isToday ? '#6366f1' : '#e5e7eb'}`,
+              }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, letterSpacing: 1,
+                  color: isToday ? '#4f46e5' : '#9ca3af',
+                  textTransform: 'uppercase', marginBottom: 4,
+                }}>
+                  {DAY_LABELS[day]}
+                </div>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: 30, height: 30, borderRadius: '50%', fontSize: 14, fontWeight: 700,
+                  background: isToday ? '#6366f1' : 'transparent',
+                  color: isToday ? '#fff' : '#1f2937',
+                }}>
+                  {weekDates[i].getDate()}
+                </div>
+              </div>
+            );
+          })}
 
-                    {/* Day columns */}
-                    {daysOfWeek.map((day, dayIndex) => {
-                      const sessionsInSlot = getSessionsForSlot(dayIndex, timeSlot);
-                      const hasAvail = hasAvailability(dayIndex, timeSlot);
-                      const hasConstr = hasConstraint(dayIndex, timeSlot);
+          {/* ── Time rows ── */}
+          {hours.map(hour => (
+            <React.Fragment key={hour}>
+              {/* Hour label */}
+              <div key={`h-${hour}`} style={{
+                height: ROW_H, padding: '4px 8px 0 4px',
+                textAlign: 'right', borderBottom: '1px solid #f3f4f6',
+                background: '#fafafa', flexShrink: 0,
+                position: 'sticky', left: 0, zIndex: 1,
+              }}>
+                <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>
+                  {String(hour).padStart(2,'0')}:00
+                </span>
+              </div>
+
+              {/* Day cells */}
+              {DAYS.map((day, dayIndex) => {
+                const slotSessions = getSlotSessions(dayIndex, hour);
+                const isToday = weekDates[dayIndex].toDateString() === todayStr;
+
+                return (
+                  <div key={`${day}-${hour}`} style={{
+                    position: 'relative', height: ROW_H,
+                    borderLeft: '1px solid #e5e7eb',
+                    borderBottom: '1px solid #f3f4f6',
+                    background: isToday ? 'rgba(99,102,241,0.03)' : '#fff',
+                  }}>
+                    {slotSessions.map(session => {
+                      if (!isFirstSlot(session, hour)) return null;
+
+                      const [sh, sm] = session.start_time.split(':').map(Number);
+                      const [eh, em] = session.end_time.split(':').map(Number);
+                      const durMin = (eh * 60 + em) - (sh * 60 + sm);
+                      const heightPx = (durMin / 60) * ROW_H;
+                      const topPx = (sm / 60) * ROW_H;
+                      const cfg = TASK_CONFIG[session.task_type] || TASK_CONFIG.lecture_review;
+                      const done = session.completed;
 
                       return (
-                        <td
-                          key={`${day}-${timeSlot}`}
-                          className={`relative px-1 py-1 border-r border-gray-200 last:border-r-0 ${
-                            hasAvail ? 'bg-green-50' : ''
-                          } ${hasConstr ? 'bg-red-50' : ''}`}
+                        <div
+                          key={session.id}
+                          onClick={() => onSessionClick?.(session)}
+                          style={{
+                            position: 'absolute',
+                            top: topPx + 2, left: 3, right: 3,
+                            height: Math.max(heightPx - 4, 22),
+                            borderRadius: 7,
+                            background: done ? '#e5e7eb' : cfg.solid,
+                            borderLeft: `3px solid ${done ? '#9ca3af' : cfg.dark}`,
+                            cursor: 'pointer',
+                            zIndex: 10,
+                            padding: '4px 6px',
+                            overflow: 'hidden',
+                            boxShadow: done ? 'none' : '0 1px 6px rgba(0,0,0,0.18)',
+                            opacity: done ? 0.75 : 1,
+                            transition: 'transform 0.12s, box-shadow 0.12s',
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.transform = 'scale(1.025)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.22)';
+                            e.currentTarget.style.zIndex = 20;
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = done ? 'none' : '0 1px 6px rgba(0,0,0,0.18)';
+                            e.currentTarget.style.zIndex = 10;
+                          }}
                         >
-                          {sessionsInSlot.map((session) => {
-                            // Only render the session in its first slot
-                            if (!isFirstSlotOfSession(session, timeSlot)) {
-                              return null;
-                            }
+                          {/* ✓ badge */}
+                          {done && (
+                            <span style={{
+                              position: 'absolute', top: 3, right: 4,
+                              background: '#10b981', color: '#fff',
+                              borderRadius: '50%', width: 13, height: 13,
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 8, fontWeight: 900,
+                            }}>✓</span>
+                          )}
 
-                            const span = calculateSessionSpan(session);
-                            const color = subjectColors[session.subject_id];
+                          {/* Subject */}
+                          <div style={{
+                            fontSize: 11, fontWeight: 700, color: '#fff',
+                            textDecoration: done ? 'line-through' : 'none',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            lineHeight: 1.2,
+                            textShadow: '0 1px 3px rgba(0,0,0,0.35)',
+                            paddingRight: done ? 14 : 0,
+                          }}>
+                            {session.subject_name}
+                          </div>
 
-                            return (
-                              <div
-                                key={session.id}
-                                className={`absolute inset-x-1 ${color} text-white rounded px-2 py-1 text-xs cursor-pointer hover:opacity-90 transition-opacity overflow-hidden`}
-                                style={{
-                                  height: `calc(${span * 3}rem - 0.5rem)`,
-                                  zIndex: 5
-                                }}
-                                onClick={() => onSessionClick && onSessionClick(session)}
-                                title={`${session.subject_name} - ${session.task_type}\n${session.start_time} - ${session.end_time}`}
-                              >
-                                <div className="font-semibold truncate">
-                                  {session.subject_name}
-                                </div>
-                                <div className="text-xs opacity-90 truncate">
-                                  {session.task_type}
-                                </div>
-                                <div className="text-xs opacity-75">
-                                  {session.start_time} - {session.end_time}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </td>
+                          {/* Times */}
+                          {heightPx >= 36 && (
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.9)', marginTop: 1, fontWeight: 500 }}>
+                              {session.start_time.slice(0,5)}–{session.end_time.slice(0,5)}
+                            </div>
+                          )}
+
+                          {/* Type badge */}
+                          {heightPx >= 52 && (
+                            <div style={{
+                              marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3,
+                              background: 'rgba(0,0,0,0.25)', borderRadius: 10,
+                              padding: '1px 5px', fontSize: 9, color: '#fff', fontWeight: 600,
+                            }}>
+                              {cfg.icon} {cfg.label}
+                            </div>
+                          )}
+
+                          {/* ✓ Fait hover button */}
+                          {onSessionComplete && !done && (
+                            <button
+                              onClick={e => { e.stopPropagation(); onSessionComplete(session); }}
+                              style={{
+                                position: 'absolute', bottom: 3, right: 3,
+                                background: '#10b981', border: 'none', borderRadius: 5,
+                                padding: '2px 5px', fontSize: 9,
+                                color: '#fff', cursor: 'pointer', fontWeight: 700,
+                                display: 'none',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.display = 'block'}
+                              ref={el => {
+                                if (el) {
+                                  el.closest('.cal-card')?.addEventListener('mouseenter', () => el.style.display = 'block');
+                                  el.closest('.cal-card')?.addEventListener('mouseleave', () => el.style.display = 'none');
+                                }
+                              }}
+                            >
+                              ✓ Fait
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-        <div className="flex items-center space-x-6 text-xs">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-50 border border-green-200 rounded mr-2"></div>
-            <span className="text-gray-600">Disponibilité</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-red-50 border border-red-200 rounded mr-2"></div>
-            <span className="text-gray-600">Contrainte</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-            <span className="text-gray-600">Session d'étude</span>
-          </div>
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
         </div>
       </div>
     </div>
   );
 };
 
-// Helper function to get Monday of the current week
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  return new Date(d.setDate(diff));
-}
-
 WeeklyCalendarView.propTypes = {
-  sessions: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.number.isRequired,
-      subject_id: PropTypes.number.isRequired,
-      subject_name: PropTypes.string.isRequired,
-      day_of_week: PropTypes.string.isRequired,
-      start_time: PropTypes.string.isRequired,
-      end_time: PropTypes.string.isRequired,
-      task_type: PropTypes.string.isRequired,
-    })
-  ),
-  availabilities: PropTypes.arrayOf(
-    PropTypes.shape({
-      day_of_week: PropTypes.string.isRequired,
-      start_time: PropTypes.string.isRequired,
-      end_time: PropTypes.string.isRequired,
-    })
-  ),
-  constraints: PropTypes.arrayOf(
-    PropTypes.shape({
-      constraint_type: PropTypes.string.isRequired,
-      is_active: PropTypes.bool.isRequired,
-      parameters: PropTypes.object.isRequired,
-    })
-  ),
+  sessions: PropTypes.array,
+  availabilities: PropTypes.array,
+  constraints: PropTypes.array,
   onSessionClick: PropTypes.func,
+  onSessionComplete: PropTypes.func,
   weekStartDate: PropTypes.instanceOf(Date),
 };
 

@@ -43,7 +43,7 @@ class StudyPlanService:
         self._cache_ttl = timedelta(minutes=5)
         self._max_cache_size = 100
     
-    def generate_plan(
+    async def generate_plan(
         self,
         user_id: int,
         week_start: date,
@@ -114,14 +114,7 @@ class StudyPlanService:
                 "constraints": constraint_info
             }
             
-            # Run async AI service call
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
+            # Prepare profile context for AI
             profile_context = {
                 "semester_start_date": profile.semester_start_date.isoformat() if profile.semester_start_date else None,
                 "semester_end_date": profile.semester_end_date.isoformat() if profile.semester_end_date else None,
@@ -133,14 +126,13 @@ class StudyPlanService:
                 "study_pace": profile.study_pace
             }
             
-            ai_result = loop.run_until_complete(
-                self.ai_service.generate_study_plan(
-                    planning_data=planning_data,
-                    weekly_study_goal=profile.weekly_study_goal,
-                    user_preferences=profile.preferences or {},
-                    user_id=user_id,
-                    profile_context=profile_context
-                )
+            # Run async AI service call
+            ai_result = await self.ai_service.generate_study_plan(
+                planning_data=planning_data,
+                weekly_study_goal=profile.weekly_study_goal,
+                user_preferences=profile.preferences or {},
+                user_id=user_id,
+                profile_context=profile_context
             )
             
             if not ai_result["success"]:
@@ -561,7 +553,14 @@ class StudyPlanService:
                 )
                 
                 self.db.add(session)
-            
+
+            # ── Ensure week_start is a real date object (not a string) ─────
+            # Pydantic/JSON can pass it as a string; PostgreSQL date column
+            # refuses comparison with VARCHAR → explicit cast needed.
+            from datetime import date as _date_type
+            if isinstance(week_start, str):
+                week_start = _date_type.fromisoformat(week_start)
+
             # Mark previous plans as superseded
             self.db.query(StudyPlan).filter(
                 and_(
@@ -570,8 +569,8 @@ class StudyPlanService:
                     StudyPlan.status == "generated",
                     StudyPlan.id != study_plan.id
                 )
-            ).update({"status": "superseded"})
-            
+            ).update({"status": "superseded"}, synchronize_session="fetch")
+
             self.db.commit()
             
             # Create notification for plan generation
@@ -586,6 +585,15 @@ class StudyPlanService:
             
         except Exception as e:
             self.db.rollback()
+            # Log l'erreur complète pour debug
+            import traceback
+            print(f"\n[STUDY_PLAN_SERVICE ERROR] Failed to save plan:")
+            print(f"Error: {str(e)}")
+            print(f"Traceback:")
+            traceback.print_exc()
+            print(f"Plan data: {plan_data}")
+            print("")
+            
             return {
                 "success": False,
                 "error": "database_error",

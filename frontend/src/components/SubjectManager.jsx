@@ -4,6 +4,25 @@ import Button from './ui/Button';
 import Modal from './ui/Modal';
 import Input from './ui/Input';
 
+/* ── Star rating display ── */
+const StarBar = ({ value, max = 5, color = 'violet' }) => {
+  const colors = {
+    violet: 'bg-violet-500',
+    amber: 'bg-amber-500',
+    cyan: 'bg-cyan-500',
+  };
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: max }).map((_, i) => (
+        <div
+          key={i}
+          className={`h-1.5 flex-1 rounded-full transition-all ${i < value ? colors[color] : 'bg-white/10'}`}
+        />
+      ))}
+    </div>
+  );
+};
+
 const SubjectManager = () => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,14 +41,12 @@ const SubjectManager = () => {
     validation_status: 'in_progress',
     weekly_class_hours: '',
     current_progress: 0,
-    weak_topics: []
+    weak_topics: [],
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadSubjects();
-  }, []);
+  useEffect(() => { loadSubjects(); }, []);
 
   const loadSubjects = async () => {
     try {
@@ -42,28 +59,24 @@ const SubjectManager = () => {
     }
   };
 
+  const defaultForm = {
+    name: '', priority: 3, difficulty: 3, target_weekly_hours: 3,
+    exam_date: '', exam_type: '', ects_credits: '', coefficient: '',
+    is_mandatory: true, validation_status: 'in_progress',
+    weekly_class_hours: '', current_progress: 0, weak_topics: [],
+  };
+
   const handleAdd = () => {
     setEditingSubject(null);
-    setFormData({
-      name: '',
-      priority: 3,
-      difficulty: 3,
-      target_weekly_hours: 3,
-      exam_date: '',
-      exam_type: '',
-      ects_credits: '',
-      coefficient: '',
-      is_mandatory: true,
-      validation_status: 'in_progress',
-      weekly_class_hours: '',
-      current_progress: 0,
-      weak_topics: []
-    });
+    setFormData(defaultForm);
     setErrors({});
     setIsModalOpen(true);
   };
 
   const handleEdit = (subject) => {
+    console.log('📝 Editing subject:', subject);
+    console.log('📝 validation_status from DB:', subject.validation_status);
+    
     setEditingSubject(subject);
     setFormData({
       name: subject.name,
@@ -78,20 +91,23 @@ const SubjectManager = () => {
       validation_status: subject.validation_status || 'in_progress',
       weekly_class_hours: subject.weekly_class_hours || '',
       current_progress: subject.current_progress || 0,
-      weak_topics: subject.weak_topics || []
+      weak_topics: subject.weak_topics || [],
     });
+    
+    console.log('📝 Form data set to:', {
+      name: subject.name,
+      validation_status: subject.validation_status || 'in_progress'
+    });
+    
     setErrors({});
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette matière ?')) {
-      return;
-    }
-
+    if (!window.confirm('Supprimer cette matière ?')) return;
     try {
       await apiClient.delete(`/api/v1/subjects/${id}`);
-      setSubjects(prev => prev.filter(s => s.id !== id));
+      setSubjects((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
       alert(error.response?.data?.detail || 'Erreur lors de la suppression');
     }
@@ -100,87 +116,51 @@ const SubjectManager = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const numericFields = ['priority', 'difficulty', 'target_weekly_hours', 'ects_credits', 'coefficient', 'weekly_class_hours', 'current_progress'];
-    
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : (numericFields.includes(name) ? (value === '' ? '' : parseFloat(value)) : value)
+      [name]: type === 'checkbox' ? checked : (numericFields.includes(name) ? (value === '' ? '' : parseFloat(value)) : value),
     }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const handleAddWeakTopic = () => {
-    const topic = prompt('Enter weak topic:');
-    if (topic && topic.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        weak_topics: [...prev.weak_topics, topic.trim()]
-      }));
+    const topic = prompt('Entrer un point faible :');
+    if (topic?.trim()) {
+      setFormData((prev) => ({ ...prev, weak_topics: [...prev.weak_topics, topic.trim()] }));
     }
   };
 
   const handleRemoveWeakTopic = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      weak_topics: prev.weak_topics.filter((_, i) => i !== index)
-    }));
+    setFormData((prev) => ({ ...prev, weak_topics: prev.weak_topics.filter((_, i) => i !== index) }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.name || formData.name.length < 1 || formData.name.length > 100) {
-      newErrors.name = 'Le nom doit contenir entre 1 et 100 caractères';
-    }
-
-    if (formData.priority < 1 || formData.priority > 5) {
-      newErrors.priority = 'La priorité doit être entre 1 et 5';
-    }
-
-    if (formData.difficulty < 1 || formData.difficulty > 5) {
-      newErrors.difficulty = 'La difficulté doit être entre 1 et 5';
-    }
-
-    if (formData.target_weekly_hours < 0.5 || formData.target_weekly_hours > 168) {
-      newErrors.target_weekly_hours = 'Les heures doivent être entre 0.5 et 168';
-    }
-
+    if (!formData.name || formData.name.length < 1) newErrors.name = 'Nom requis';
+    if (formData.priority < 1 || formData.priority > 5) newErrors.priority = 'Entre 1 et 5';
+    if (formData.difficulty < 1 || formData.difficulty > 5) newErrors.difficulty = 'Entre 1 et 5';
+    if (formData.target_weekly_hours < 0.5) newErrors.target_weekly_hours = 'Min 0.5h';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setSaving(true);
-
     try {
       const cleanedData = { ...formData };
-      
-      // Convert empty strings to null for optional fields
-      const optionalFields = [
-        'ects_credits', 'coefficient', 'exam_type', 'exam_date',
-        'weekly_class_hours', 'weak_topics'
-      ];
-      
-      optionalFields.forEach(field => {
-        if (cleanedData[field] === '' || (Array.isArray(cleanedData[field]) && cleanedData[field].length === 0)) {
-          cleanedData[field] = null;
+      ['ects_credits', 'coefficient', 'exam_type', 'exam_date', 'weekly_class_hours', 'weak_topics'].forEach((f) => {
+        if (cleanedData[f] === '' || (Array.isArray(cleanedData[f]) && cleanedData[f].length === 0)) {
+          cleanedData[f] = null;
         }
       });
-
       if (editingSubject) {
-        const response = await apiClient.put(`/api/v1/subjects/${editingSubject.id}`, cleanedData);
-        setSubjects(prev => prev.map(s => s.id === editingSubject.id ? response.data : s));
+        const res = await apiClient.put(`/api/v1/subjects/${editingSubject.id}`, cleanedData);
+        setSubjects((prev) => prev.map((s) => s.id === editingSubject.id ? res.data : s));
       } else {
-        const response = await apiClient.post('/api/v1/subjects', cleanedData);
-        setSubjects(prev => [...prev, response.data]);
+        const res = await apiClient.post('/api/v1/subjects', cleanedData);
+        setSubjects((prev) => [...prev, res.data]);
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -190,72 +170,112 @@ const SubjectManager = () => {
     }
   };
 
+  const statusColors = {
+    in_progress: 'badge-violet',
+    validated: 'badge-success',
+    not_started: 'badge-cyan',
+    failed: 'bg-red-500/15 text-red-400 border border-red-500/25',
+  };
+  const statusLabels = {
+    in_progress: 'En cours',
+    validated: 'Validé',
+    not_started: 'Non commencé',
+    failed: 'À repasser',
+  };
+
   if (loading) {
-    return <div className="text-center py-8">Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
+      </div>
+    );
   }
 
   return (
     <div>
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Mes Matières</h2>
-          <p className="text-gray-600 mt-1">{subjects.length} matière(s)</p>
+          <h2 className="text-2xl font-bold text-white">Mes Matières</h2>
+          <p className="text-white/40 text-sm mt-1">{subjects.length} matière(s) enregistrée(s)</p>
         </div>
-        <Button onClick={handleAdd} disabled={subjects.length >= 100}>
+        <Button onClick={handleAdd} disabled={subjects.length >= 100} size="md">
           + Ajouter une matière
         </Button>
       </div>
 
+      {/* Empty */}
       {subjects.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune matière</h3>
-          <p className="mt-1 text-sm text-gray-500">Commencez par ajouter vos matières.</p>
+        <div className="empty-state">
+          <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h3 className="text-white/60 font-medium mb-1">Aucune matière</h3>
+          <p className="text-white/30 text-sm">Commencez par ajouter vos matières.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.map(subject => (
-            <div key={subject.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">{subject.name}</h3>
-                <div className="flex space-x-2">
+          {subjects.map((subject) => (
+            <div
+              key={subject.id}
+              className="relative rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-md p-5 hover:border-violet-500/30 hover:-translate-y-1 transition-all duration-300"
+            >
+              {/* Top bar */}
+              <div className="absolute top-0 left-5 right-5 h-0.5 rounded-b-full bg-gradient-to-r from-violet-500 to-indigo-500 opacity-50" />
+
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="text-base font-semibold text-white pr-2 leading-snug">{subject.name}</h3>
+                <div className="flex gap-1.5 flex-shrink-0">
                   <button
                     onClick={() => handleEdit(subject)}
-                    className="text-blue-600 hover:text-blue-700"
+                    className="p-1.5 rounded-lg text-white/30 hover:text-violet-400 hover:bg-violet-500/10 transition-all"
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
                   <button
                     onClick={() => handleDelete(subject.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all"
                   >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Priorité:</span>
-                  <span className="font-medium">{'⭐'.repeat(subject.priority)}</span>
+
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="flex justify-between text-xs text-white/40 mb-1">
+                    <span>Priorité</span>
+                    <span>{subject.priority}/5</span>
+                  </div>
+                  <StarBar value={subject.priority} color="violet" />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Difficulté:</span>
-                  <span className="font-medium">{'📊'.repeat(subject.difficulty)}</span>
+                <div>
+                  <div className="flex justify-between text-xs text-white/40 mb-1">
+                    <span>Difficulté</span>
+                    <span>{subject.difficulty}/5</span>
+                  </div>
+                  <StarBar value={subject.difficulty} color="amber" />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Heures/semaine:</span>
-                  <span className="font-medium">{subject.target_weekly_hours}h</span>
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                  <span className="text-white/40 text-xs">{subject.target_weekly_hours}h / semaine</span>
+                  <span className={`badge text-xs ${statusColors[subject.validation_status] || 'badge-violet'}`}>
+                    {statusLabels[subject.validation_status] || subject.validation_status}
+                  </span>
                 </div>
+
                 {subject.exam_date && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Examen:</span>
-                    <span className="font-medium">{new Date(subject.exam_date).toLocaleDateString('fr-FR')}</span>
+                  <div className="flex items-center gap-2 text-xs text-cyan-400/70">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Examen : {new Date(subject.exam_date).toLocaleDateString('fr-FR')}
                   </div>
                 )}
               </div>
@@ -264,12 +284,14 @@ const SubjectManager = () => {
         </div>
       )}
 
+      {/* Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingSubject ? 'Modifier la matière' : 'Nouvelle matière'}
+        size="lg"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <Input
             label="Nom de la matière *"
             name="name"
@@ -278,210 +300,97 @@ const SubjectManager = () => {
             error={errors.name}
             required
             maxLength={100}
+            placeholder="Ex: Mathématiques, Physique..."
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="ECTS Credits"
-              type="number"
-              name="ects_credits"
-              value={formData.ects_credits}
-              onChange={handleChange}
-              min="0"
-              max="30"
-              step="0.5"
-              placeholder="Ex: 6"
-            />
-
-            <Input
-              label="Coefficient"
-              type="number"
-              name="coefficient"
-              value={formData.coefficient}
-              onChange={handleChange}
-              min="0"
-              max="10"
-              step="0.5"
-              placeholder="Ex: 2"
-            />
+            <Input label="Crédits ECTS" type="number" name="ects_credits" value={formData.ects_credits} onChange={handleChange} min="0" max="30" step="0.5" placeholder="Ex: 6" />
+            <Input label="Coefficient" type="number" name="coefficient" value={formData.coefficient} onChange={handleChange} min="0" max="10" step="0.5" placeholder="Ex: 2" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="is_mandatory"
-                  checked={formData.is_mandatory}
-                  onChange={handleChange}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Mandatory subject</span>
-              </label>
-            </div>
-
-            <div>
-              <label htmlFor="validation_status" className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                id="validation_status"
-                name="validation_status"
-                value={formData.validation_status}
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Type d'examen</label>
+              <select 
+                name="exam_type" 
+                value={formData.exam_type} 
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
               >
-                <option value="not_started">Not started</option>
-                <option value="in_progress">In progress</option>
-                <option value="validated">Validated</option>
-                <option value="failed">Failed (Retake)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="exam_type" className="block text-sm font-medium text-gray-700 mb-1">
-                Exam Type
-              </label>
-              <select
-                id="exam_type"
-                name="exam_type"
-                value={formData.exam_type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select type</option>
-                <option value="written_exam">Written Exam</option>
+                <option value="">Sélectionner</option>
+                <option value="written_exam">Écrit</option>
                 <option value="oral">Oral</option>
-                <option value="project">Project</option>
-                <option value="continuous_assessment">Continuous Assessment</option>
-                <option value="mixed">Mixed</option>
+                <option value="project">Projet</option>
+                <option value="continuous_assessment">Contrôle continu</option>
+                <option value="mixed">Mixte</option>
               </select>
             </div>
-
-            <Input
-              label="Exam Date"
-              type="date"
-              name="exam_date"
-              value={formData.exam_date}
-              onChange={handleChange}
-              error={errors.exam_date}
-            />
+            <Input label="Date d'examen" type="date" name="exam_date" value={formData.exam_date} onChange={handleChange} error={errors.exam_date} />
           </div>
-
-          <Input
-            label="Weekly class hours"
-            type="number"
-            name="weekly_class_hours"
-            value={formData.weekly_class_hours}
-            onChange={handleChange}
-            min="0"
-            max="168"
-            step="0.5"
-            placeholder="Total CM + TD + TP"
-          />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Priority (1-5) *"
-              type="number"
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              min="1"
-              max="5"
-              error={errors.priority}
-              required
-            />
-
-            <Input
-              label="Difficulty (1-5) *"
-              type="number"
-              name="difficulty"
-              value={formData.difficulty}
-              onChange={handleChange}
-              min="1"
-              max="5"
-              error={errors.difficulty}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1.5">Statut</label>
+              <select 
+                name="validation_status" 
+                value={formData.validation_status} 
+                onChange={handleChange}
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+              >
+                <option value="not_started">Non commencé</option>
+                <option value="in_progress">En cours</option>
+                <option value="validated">Validé</option>
+                <option value="failed">À repasser</option>
+              </select>
+            </div>
+            <Input label="Heures de cours/semaine" type="number" name="weekly_class_hours" value={formData.weekly_class_hours} onChange={handleChange} min="0" max="168" step="0.5" placeholder="CM + TD + TP" />
           </div>
 
-          <Input
-            label="Target hours/week *"
-            type="number"
-            name="target_weekly_hours"
-            value={formData.target_weekly_hours}
-            onChange={handleChange}
-            min="0.5"
-            max="168"
-            step="0.5"
-            error={errors.target_weekly_hours}
-            required
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Priorité (1-5) *" type="number" name="priority" value={formData.priority} onChange={handleChange} min="1" max="5" error={errors.priority} required />
+            <Input label="Difficulté (1-5) *" type="number" name="difficulty" value={formData.difficulty} onChange={handleChange} min="1" max="5" error={errors.difficulty} required />
+          </div>
+
+          <Input label="Objectif heures/semaine *" type="number" name="target_weekly_hours" value={formData.target_weekly_hours} onChange={handleChange} min="0.5" max="168" step="0.5" error={errors.target_weekly_hours} required />
 
           <div>
-            <label htmlFor="current_progress" className="block text-sm font-medium text-gray-700 mb-1">
-              Current Progress: {formData.current_progress}%
+            <label className="block text-sm font-medium text-white/70 mb-2">
+              Progression actuelle : <span className="text-violet-400 font-bold">{formData.current_progress}%</span>
             </label>
             <input
               type="range"
-              id="current_progress"
               name="current_progress"
               value={formData.current_progress}
               onChange={handleChange}
-              min="0"
-              max="100"
-              step="5"
-              className="w-full"
+              min="0" max="100" step="5"
             />
           </div>
 
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <input type="checkbox" name="is_mandatory" checked={formData.is_mandatory} onChange={handleChange} />
+            <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors">Matière obligatoire</span>
+          </label>
+
+          {/* Weak topics */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Weak Topics
-            </label>
+            <label className="block text-sm font-medium text-white/70 mb-2">Points faibles</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.weak_topics.map((topic, index) => (
-                <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
+                <span key={index} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-red-500/15 text-red-300 border border-red-500/25">
                   {topic}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveWeakTopic(index)}
-                    className="ml-2 text-red-600 hover:text-red-800"
-                  >
-                    ×
-                  </button>
+                  <button type="button" onClick={() => handleRemoveWeakTopic(index)} className="text-red-400 hover:text-red-200 transition-colors">×</button>
                 </span>
               ))}
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleAddWeakTopic}
-              className="text-sm"
-            >
-              + Add weak topic
+            <Button type="button" variant="outline" size="sm" onClick={handleAddWeakTopic}>
+              + Ajouter un point faible
             </Button>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsModalOpen(false)}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={saving}
-              disabled={saving}
-            >
-              {editingSubject ? 'Update' : 'Add'}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>Annuler</Button>
+            <Button type="submit" variant="primary" loading={saving} disabled={saving}>
+              {editingSubject ? 'Mettre à jour' : 'Ajouter'}
             </Button>
           </div>
         </form>

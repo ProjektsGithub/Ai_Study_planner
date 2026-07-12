@@ -24,6 +24,18 @@ from app.models import (
     StudySession,
     GenerationLog,
     Notification,
+    AuditLog,
+    AdminRole,
+    AdminPermission,
+    UserRole,
+    University,
+    Campus,
+    StudyProgram,
+    AcademicTrack,
+    Semester,
+    TeachingUnit,
+    Course,
+    ValidationRule,
 )
 
 # this is the Alembic Config object, which provides

@@ -3,25 +3,33 @@ import { useAuth } from '../context/AuthContext';
 
 /**
  * HomeRedirect Component
- * Redirects to dashboard if authenticated, otherwise to login
+ * Redirects to the correct dashboard based on the user's role:
+ * - super_admin / university_admin / program_coordinator → /admin/dashboard
+ * - students and unauthenticated users → /dashboard or /login
  */
-const HomeRedirect = () => {
-  const { isAuthenticated, loading } = useAuth();
+const ADMIN_ROLES = ['super_admin', 'university_admin', 'program_coordinator'];
 
-  // Show nothing while checking auth status
+const HomeRedirect = () => {
+  const { isAuthenticated, loading, hasRole } = useAuth();
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Chargement...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-violet-500"></div>
+          <p className="mt-4 text-white/40">Chargement...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect based on authentication status
-  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Admin roles → admin dashboard
+  const isAdmin = ADMIN_ROLES.some((role) => hasRole(role));
+  return <Navigate to={isAdmin ? '/admin/dashboard' : '/dashboard'} replace />;
 };
 
 export default HomeRedirect;

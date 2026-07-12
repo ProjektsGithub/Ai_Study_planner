@@ -17,10 +17,15 @@ def get_db() -> Generator[Session, None, None]:
     """
     Dependency for getting database session.
     Yields a database session and ensures it's closed after use.
+    Always rolls back on exception so the connection is returned to the pool
+    in a clean state (prevents InFailedSqlTransaction on next request).
     """
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -31,13 +36,16 @@ async def get_current_user(
 ) -> User:
     """
     Dependency for getting current authenticated user from JWT token.
+    Includes role information in the user object.
+    
+    Requirements: 11.1-11.9, 15.3
     
     Args:
         credentials: HTTP Bearer credentials
         db: Database session
         
     Returns:
-        Current authenticated user
+        Current authenticated user with roles attached as a dynamic attribute
         
     Raises:
         HTTPException: If token is invalid or user not found
@@ -84,6 +92,28 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
+    
+    # Load user roles from database and attach to user object
+    # This ensures fresh role data even if token contains outdated roles
+    from app.models.user_role import UserRole
+    from app.models.admin_role import AdminRole
+    
+    user_roles = db.query(UserRole).filter(
+        UserRole.user_id == user.id
+    ).join(AdminRole).filter(
+        AdminRole.is_active == True
+    ).all()
+    
+    # Attach role information as a dynamic attribute
+    user.roles = []
+    for user_role in user_roles:
+        user.roles.append({
+            "role_id": user_role.role_id,
+            "role_name": user_role.role.name,
+            "role_display_name": user_role.role.display_name,
+            "university_id": user_role.university_id,
+            "program_id": user_role.program_id
+        })
     
     return user
 

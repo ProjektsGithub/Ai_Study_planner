@@ -33,7 +33,7 @@ class SessionEditService:
     
     def add_session(
         self,
-        plan_id: int,
+        plan_id: str,  # UUID string
         user_id: int,
         session_data: Dict[str, Any]
     ) -> Tuple[bool, Dict[str, Any]]:
@@ -41,17 +41,17 @@ class SessionEditService:
         Add a new session to a study plan.
         
         Args:
-            plan_id: Study plan ID
+            plan_id: Study plan UUID
             user_id: User ID (for authorization)
             session_data: Session data (subject_id, day, start_time, end_time, task_type, notes)
         
         Returns:
             Tuple of (success, result_or_error)
         """
-        # Get plan
+        # Get plan by UUID
         plan = self.db.query(StudyPlan).filter(
             and_(
-                StudyPlan.id == plan_id,
+                StudyPlan.plan_id == plan_id,
                 StudyPlan.user_id == user_id
             )
         ).first()
@@ -61,7 +61,7 @@ class SessionEditService:
         
         # Check session limit
         session_count = self.db.query(StudySession).filter(
-            StudySession.study_plan_id == plan_id
+            StudySession.study_plan_id == plan.id  # Use internal ID
         ).count()
         
         if session_count >= self.MAX_SESSIONS_PER_PLAN:
@@ -74,7 +74,7 @@ class SessionEditService:
         is_valid, validation_result = self._validate_session(
             user_id=user_id,
             session_data=session_data,
-            plan_id=plan_id,
+            plan_id=plan.id,  # Use internal ID for validation
             exclude_session_id=None
         )
         
@@ -87,7 +87,7 @@ class SessionEditService:
             end_time = datetime.strptime(session_data["end_time"], "%H:%M:%S").time()
             
             session = StudySession(
-                study_plan_id=plan_id,
+                study_plan_id=plan.id,  # Use internal ID
                 subject_id=session_data["subject_id"],
                 day=session_data["day"],
                 start_time=start_time,
@@ -131,7 +131,7 @@ class SessionEditService:
     
     def update_session(
         self,
-        plan_id: int,
+        plan_id: str,  # UUID string
         session_id: int,
         user_id: int,
         update_data: Dict[str, Any]
@@ -140,7 +140,7 @@ class SessionEditService:
         Update an existing session.
         
         Args:
-            plan_id: Study plan ID
+            plan_id: Study plan UUID
             session_id: Session ID
             user_id: User ID (for authorization)
             update_data: Fields to update
@@ -148,10 +148,10 @@ class SessionEditService:
         Returns:
             Tuple of (success, result_or_error)
         """
-        # Get plan and session
+        # Get plan by UUID
         plan = self.db.query(StudyPlan).filter(
             and_(
-                StudyPlan.id == plan_id,
+                StudyPlan.plan_id == plan_id,
                 StudyPlan.user_id == user_id
             )
         ).first()
@@ -162,7 +162,7 @@ class SessionEditService:
         session = self.db.query(StudySession).filter(
             and_(
                 StudySession.id == session_id,
-                StudySession.study_plan_id == plan_id
+                StudySession.study_plan_id == plan.id  # Use internal ID
             )
         ).first()
         
@@ -183,7 +183,7 @@ class SessionEditService:
         is_valid, validation_result = self._validate_session(
             user_id=user_id,
             session_data=session_data,
-            plan_id=plan_id,
+            plan_id=plan.id,  # Use internal ID
             exclude_session_id=session_id
         )
         
@@ -238,7 +238,7 @@ class SessionEditService:
     
     def delete_session(
         self,
-        plan_id: int,
+        plan_id: str,  # UUID string
         session_id: int,
         user_id: int
     ) -> Tuple[bool, Dict[str, Any]]:
@@ -246,17 +246,17 @@ class SessionEditService:
         Delete a session from a study plan.
         
         Args:
-            plan_id: Study plan ID
+            plan_id: Study plan UUID
             session_id: Session ID
             user_id: User ID (for authorization)
         
         Returns:
             Tuple of (success, result_or_error)
         """
-        # Get plan and session
+        # Get plan by UUID
         plan = self.db.query(StudyPlan).filter(
             and_(
-                StudyPlan.id == plan_id,
+                StudyPlan.plan_id == plan_id,
                 StudyPlan.user_id == user_id
             )
         ).first()
@@ -267,7 +267,7 @@ class SessionEditService:
         session = self.db.query(StudySession).filter(
             and_(
                 StudySession.id == session_id,
-                StudySession.study_plan_id == plan_id
+                StudySession.study_plan_id == plan.id  # Use internal ID
             )
         ).first()
         

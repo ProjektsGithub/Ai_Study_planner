@@ -4,24 +4,20 @@ import Button from './ui/Button';
 import Modal from './ui/Modal';
 import Input from './ui/Input';
 
-const DAYS_OF_WEEK = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday'
-];
-
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAY_LABELS = {
-  'Monday': 'Lundi',
-  'Tuesday': 'Mardi',
-  'Wednesday': 'Mercredi',
-  'Thursday': 'Jeudi',
-  'Friday': 'Vendredi',
-  'Saturday': 'Samedi',
-  'Sunday': 'Dimanche'
+  Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday',
+  Thursday: 'Thursday', Friday: 'Friday', Saturday: 'Saturday', Sunday: 'Sunday',
+};
+const DAY_ABBR = {
+  Monday: 'Mo', Tuesday: 'Tu', Wednesday: 'We',
+  Thursday: 'Th', Friday: 'Fr', Saturday: 'Sa', Sunday: 'Su',
+};
+
+const ENERGY_CONFIG = {
+  high: { label: 'High', color: 'text-emerald-400', dot: 'bg-emerald-400' },
+  medium: { label: 'Medium', color: 'text-amber-400', dot: 'bg-amber-400' },
+  low: { label: 'Low', color: 'text-red-400', dot: 'bg-red-400' },
 };
 
 const AvailabilityManager = () => {
@@ -29,12 +25,7 @@ const AvailabilityManager = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(null);
-  const [formData, setFormData] = useState({
-    day_of_week: 'Monday',
-    start_time: '09:00',
-    end_time: '17:00',
-    energy_level: ''
-  });
+  const [formData, setFormData] = useState({ day_of_week: 'Monday', start_time: '09:00', end_time: '17:00', energy_level: '' });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -49,261 +40,219 @@ const AvailabilityManager = () => {
     }
   };
 
-  useEffect(() => {
-    loadAvailabilities();
-  }, []);
+  useEffect(() => { loadAvailabilities(); }, []);
 
   const handleAdd = () => {
     setEditingAvailability(null);
-    setFormData({
-      day_of_week: 'Monday',
-      start_time: '09:00',
-      end_time: '17:00',
-      energy_level: ''
-    });
+    setFormData({ day_of_week: 'Monday', start_time: '09:00', end_time: '17:00', energy_level: '' });
     setErrors({});
     setIsModalOpen(true);
   };
 
-  const handleEdit = (availability) => {
-    setEditingAvailability(availability);
+  const handleEdit = (av) => {
+    setEditingAvailability(av);
     setFormData({
-      day_of_week: availability.day_of_week,
-      start_time: availability.start_time.substring(0, 5),
-      end_time: availability.end_time.substring(0, 5),
-      energy_level: availability.energy_level || ''
+      day_of_week: av.day_of_week,
+      start_time: av.start_time.substring(0, 5),
+      end_time: av.end_time.substring(0, 5),
+      energy_level: av.energy_level || '',
     });
     setErrors({});
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette disponibilité ?')) {
-      return;
-    }
-
+    if (!window.confirm('Delete this availability slot?')) return;
     try {
       await apiClient.delete(`/api/v1/availabilities/${id}`);
-      setAvailabilities(prev => prev.filter(a => a.id !== id));
+      setAvailabilities((prev) => prev.filter((a) => a.id !== id));
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erreur lors de la suppression');
+      alert(error.response?.data?.detail || 'Error deleting availability slot');
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    // Validate time range
-    if (formData.start_time >= formData.end_time) {
-      newErrors.end_time = 'L\'heure de fin doit être après l\'heure de début';
-    }
-
+    if (formData.start_time >= formData.end_time) newErrors.end_time = 'End time must be after start time';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setSaving(true);
-
     try {
       const payload = {
         day_of_week: formData.day_of_week,
         start_time: formData.start_time + ':00',
         end_time: formData.end_time + ':00',
-        energy_level: formData.energy_level === '' ? null : formData.energy_level
+        energy_level: formData.energy_level === '' ? null : formData.energy_level,
       };
-
       if (editingAvailability) {
-        const response = await apiClient.put(`/api/v1/availabilities/${editingAvailability.id}`, payload);
-        setAvailabilities(prev => prev.map(a => a.id === editingAvailability.id ? response.data : a));
+        const res = await apiClient.put(`/api/v1/availabilities/${editingAvailability.id}`, payload);
+        setAvailabilities((prev) => prev.map((a) => a.id === editingAvailability.id ? res.data : a));
       } else {
-        const response = await apiClient.post('/api/v1/availabilities', payload);
-        setAvailabilities(prev => [...prev, response.data]);
+        const res = await apiClient.post('/api/v1/availabilities', payload);
+        setAvailabilities((prev) => [...prev, res.data]);
       }
       setIsModalOpen(false);
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erreur lors de la sauvegarde');
+      alert(error.response?.data?.detail || 'Error saving availability');
     } finally {
       setSaving(false);
     }
   };
 
-  // Group availabilities by day
-  const groupedAvailabilities = DAYS_OF_WEEK.reduce((acc, day) => {
-    acc[day] = availabilities.filter(a => a.day_of_week === day);
+  const grouped = DAYS_OF_WEEK.reduce((acc, day) => {
+    acc[day] = availabilities.filter((a) => a.day_of_week === day);
     return acc;
   }, {});
 
+  const totalHours = availabilities.reduce((sum, a) => {
+    const [sh, sm] = a.start_time.split(':').map(Number);
+    const [eh, em] = a.end_time.split(':').map(Number);
+    return sum + (eh + em / 60 - sh - sm / 60);
+  }, 0);
+
   if (loading) {
-    return <div className="text-center py-8">Chargement...</div>;
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
+      </div>
+    );
   }
 
   return (
     <div>
+      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Mes Disponibilités</h2>
-          <p className="text-gray-600 mt-1">{availabilities.length} créneau(x) défini(s)</p>
+          <h2 className="text-2xl font-bold text-white">My Availabilities</h2>
+          <p className="text-white/40 text-sm mt-1">
+            {availabilities.length} slot(s) · <span className="text-cyan-400">{totalHours.toFixed(1)}h</span> available / week
+          </p>
         </div>
-        <Button onClick={handleAdd}>
-          + Ajouter une disponibilité
-        </Button>
+        <Button onClick={handleAdd}>+ Add Availability</Button>
       </div>
 
       {availabilities.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune disponibilité</h3>
-          <p className="mt-1 text-sm text-gray-500">Définissez vos créneaux horaires disponibles pour étudier.</p>
+        <div className="empty-state">
+          <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-white/60 font-medium mb-1">No availabilities defined</h3>
+          <p className="text-white/30 text-sm">Define your available study time slots.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {DAYS_OF_WEEK.map(day => (
-            <div key={day} className="bg-white rounded-lg shadow border border-gray-200">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">{DAY_LABELS[day]}</h3>
-              </div>
-              <div className="p-4">
-                {groupedAvailabilities[day].length === 0 ? (
-                  <p className="text-gray-500 text-sm">Aucune disponibilité</p>
-                ) : (
-                  <div className="space-y-2">
-                    {groupedAvailabilities[day].map(availability => (
-                      <div key={availability.id} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {DAYS_OF_WEEK.map((day) => {
+            const slots = grouped[day];
+            if (slots.length === 0) return null;
+            return (
+              <div key={day} className="rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-md overflow-hidden hover:border-violet-500/20 transition-all duration-300">
+                {/* Day header */}
+                <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                      <span className="text-xs font-bold text-violet-400">{DAY_ABBR[day]}</span>
+                    </div>
+                    <span className="font-semibold text-white text-sm">{DAY_LABELS[day]}</span>
+                  </div>
+                  <span className="text-xs text-white/30">{slots.length} slot{slots.length > 1 ? 's' : ''}</span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {slots.map((av) => {
+                    const energy = ENERGY_CONFIG[av.energy_level];
+                    return (
+                      <div key={av.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/5 group transition-all">
+                        <div className="flex items-center gap-2.5">
+                          <svg className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="font-medium text-gray-900">
-                            {availability.start_time.substring(0, 5)} - {availability.end_time.substring(0, 5)}
-                          </span>
+                          <div>
+                            <span className="text-xs font-semibold text-white">
+                              {av.start_time.substring(0, 5)} – {av.end_time.substring(0, 5)}
+                            </span>
+                            {energy && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <div className={`w-1.5 h-1.5 rounded-full ${energy.dot}`} />
+                                <span className={`text-[10px] ${energy.color}`}>{energy.label}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleEdit(availability)}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEdit(av)} className="p-1 rounded text-white/30 hover:text-violet-400 hover:bg-violet-500/10 transition-all" aria-label="Edit">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
-                          <button
-                            onClick={() => handleDelete(availability.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <button onClick={() => handleDelete(av.id)} className="p-1 rounded text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all" aria-label="Delete">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </div>
+            );
+          })}
+
+          {/* Days with no slots — show faded */}
+          {DAYS_OF_WEEK.filter((day) => grouped[day].length === 0).map((day) => (
+            <div
+              key={day}
+              onClick={handleAdd}
+              className="rounded-2xl border border-dashed border-white/8 bg-white/[0.02] p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-violet-500/30 hover:bg-white/[0.04] transition-all min-h-[100px] group"
+            >
+              <span className="text-xs text-white/20 group-hover:text-violet-400/60 transition-colors font-medium">{DAY_LABELS[day]}</span>
+              <span className="text-xs text-white/15 group-hover:text-white/30 transition-colors">+ Add Slot</span>
             </div>
           ))}
         </div>
       )}
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingAvailability ? 'Modifier la disponibilité' : 'Nouvelle disponibilité'}
-      >
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingAvailability ? 'Edit Availability Slot' : 'New Availability Slot'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Jour de la semaine *
-            </label>
-            <select
-              name="day_of_week"
-              value={formData.day_of_week}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              {DAYS_OF_WEEK.map(day => (
-                <option key={day} value={day}>{DAY_LABELS[day]}</option>
-              ))}
+            <label className="block text-sm font-medium text-white/70 mb-1.5">Day of the Week *</label>
+            <select name="day_of_week" value={formData.day_of_week} onChange={handleChange} required>
+              {DAYS_OF_WEEK.map((day) => <option key={day} value={day}>{DAY_LABELS[day]}</option>)}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Heure de début *"
-              type="time"
-              name="start_time"
-              value={formData.start_time}
-              onChange={handleChange}
-              error={errors.start_time}
-              required
-            />
-
-            <Input
-              label="Heure de fin *"
-              type="time"
-              name="end_time"
-              value={formData.end_time}
-              onChange={handleChange}
-              error={errors.end_time}
-              required
-            />
+            <Input label="Start Time *" type="time" name="start_time" value={formData.start_time} onChange={handleChange} error={errors.start_time} required />
+            <Input label="End Time *" type="time" name="end_time" value={formData.end_time} onChange={handleChange} error={errors.end_time} required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Energy Level
-            </label>
-            <select
-              name="energy_level"
-              value={formData.energy_level}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Not specified</option>
+            <label className="block text-sm font-medium text-white/70 mb-1.5">Energy Level</label>
+            <select name="energy_level" value={formData.energy_level} onChange={handleChange}>
+              <option value="">Unspecified</option>
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">Your typical energy level during this time</p>
+            <p className="text-xs text-white/30 mt-1">Your typical energy level during this time slot</p>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setIsModalOpen(false)}
-              disabled={saving}
-            >
-              Annuler
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              loading={saving}
-              disabled={saving}
-            >
-              {editingAvailability ? 'Modifier' : 'Ajouter'}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>Cancel</Button>
+            <Button type="submit" variant="primary" loading={saving} disabled={saving}>
+              {editingAvailability ? 'Save' : 'Add'}
             </Button>
           </div>
         </form>

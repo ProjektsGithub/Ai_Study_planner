@@ -27,12 +27,12 @@ const SessionEditor = ({
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const taskTypes = [
-    { value: 'lecture', label: 'Cours magistral' },
-    { value: 'exercise', label: 'Exercices' },
-    { value: 'revision', label: 'Révision' },
-    { value: 'project', label: 'Projet' },
-    { value: 'reading', label: 'Lecture' },
-    { value: 'practice', label: 'Pratique' }
+    { value: 'lecture', label: 'Lecture' },
+    { value: 'exercise', label: 'Exercises' },
+    { value: 'revision', label: 'Revision' },
+    { value: 'project', label: 'Project' },
+    { value: 'reading', label: 'Reading' },
+    { value: 'practice', label: 'Practice' }
   ];
 
   // Initialize form with session data if editing
@@ -79,25 +79,25 @@ const SessionEditor = ({
     const newErrors = {};
 
     if (!formData.subject_id) {
-      newErrors.subject_id = 'Veuillez sélectionner une matière';
+      newErrors.subject_id = 'Please select a subject';
     }
 
     if (!formData.start_time) {
-      newErrors.start_time = 'Heure de début requise';
+      newErrors.start_time = 'Start time is required';
     }
 
     if (!formData.end_time) {
-      newErrors.end_time = 'Heure de fin requise';
+      newErrors.end_time = 'End time is required';
     }
 
     // Validate time format (HH:MM)
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (formData.start_time && !timeRegex.test(formData.start_time)) {
-      newErrors.start_time = 'Format invalide (HH:MM)';
+      newErrors.start_time = 'Invalid format (HH:MM)';
     }
 
     if (formData.end_time && !timeRegex.test(formData.end_time)) {
-      newErrors.end_time = 'Format invalide (HH:MM)';
+      newErrors.end_time = 'Invalid format (HH:MM)';
     }
 
     // Validate start_time < end_time
@@ -108,7 +108,7 @@ const SessionEditor = ({
       const endMinutes = endHour * 60 + endMin;
 
       if (startMinutes >= endMinutes) {
-        newErrors.end_time = 'L\'heure de fin doit être après l\'heure de début';
+        newErrors.end_time = 'End time must be after start time';
       }
     }
 
@@ -126,14 +126,28 @@ const SessionEditor = ({
     setIsSubmitting(true);
 
     try {
-      await onSave({
-        ...formData,
-        subject_id: parseInt(formData.subject_id)
-      });
+      // Ensure time format is HH:MM:SS
+      const dataToSend = {
+        subject_id: parseInt(formData.subject_id),
+        day: formData.day,
+        start_time: formData.start_time.includes(':') && formData.start_time.split(':').length === 2 
+          ? `${formData.start_time}:00` 
+          : formData.start_time,
+        end_time: formData.end_time.includes(':') && formData.end_time.split(':').length === 2 
+          ? `${formData.end_time}:00` 
+          : formData.end_time,
+        task_type: formData.task_type,
+        notes: formData.notes || ''
+      };
+      
+      console.log('📤 Sending session update:', dataToSend);
+      
+      await onSave(dataToSend);
       onClose();
     } catch (error) {
+      console.error('❌ Session save error:', error);
       setErrors({
-        submit: error.message || 'Une erreur est survenue lors de la sauvegarde'
+        submit: error.message || 'An error occurred during save'
       });
     } finally {
       setIsSubmitting(false);
@@ -143,14 +157,14 @@ const SessionEditor = ({
   const handleDelete = async () => {
     if (!session?.id) return;
 
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) {
+    if (window.confirm('Are you sure you want to delete this study session?')) {
       setIsSubmitting(true);
       try {
         await onDelete(session.id);
         onClose();
       } catch (error) {
         setErrors({
-          submit: error.message || 'Une erreur est survenue lors de la suppression'
+          submit: error.message || 'An error occurred during delete'
         });
       } finally {
         setIsSubmitting(false);
@@ -165,7 +179,7 @@ const SessionEditor = ({
       {/* Backdrop */}
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div 
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm transition-opacity" 
           aria-hidden="true"
           onClick={onClose}
         ></div>
@@ -174,18 +188,18 @@ const SessionEditor = ({
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="inline-block align-bottom bg-slate-900 border border-white/10 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <form onSubmit={handleSubmit}>
             {/* Header */}
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <div className="bg-slate-950/40 px-6 py-4 border-b border-white/5">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900" id="modal-title">
-                  {session ? 'Modifier la session' : 'Nouvelle session'}
+                <h3 className="text-lg font-bold text-white" id="modal-title">
+                  {session ? 'Edit Session' : 'New Session'}
                 </h3>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-500 transition-colors"
+                  className="text-white/40 hover:text-white transition-colors"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -195,45 +209,45 @@ const SessionEditor = ({
             </div>
 
             {/* Body */}
-            <div className="bg-white px-6 py-4 space-y-4">
+            <div className="px-6 py-5 space-y-5 bg-slate-900">
               {/* Subject */}
               <div>
-                <label htmlFor="subject_id" className="block text-sm font-medium text-gray-700 mb-1">
-                  Matière *
+                <label htmlFor="subject_id" className="block text-sm font-semibold text-white/60 mb-1.5">
+                  Subject *
                 </label>
                 <select
                   id="subject_id"
                   name="subject_id"
                   value={formData.subject_id}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.subject_id ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-3.5 py-2.5 bg-white/5 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all ${
+                    errors.subject_id ? 'border-red-500/50 focus:ring-red-500/30' : 'border-white/10'
                   }`}
                   required
                 >
-                  <option value="">Sélectionner une matière</option>
-                  {subjects.map(subject => (
+                  <option value="">Select a subject</option>
+                  {Array.isArray(subjects) && subjects.map(subject => (
                     <option key={subject.id} value={subject.id}>
                       {subject.name}
                     </option>
                   ))}
                 </select>
                 {errors.subject_id && (
-                  <p className="mt-1 text-sm text-red-600">{errors.subject_id}</p>
+                  <p className="mt-1.5 text-xs text-red-400">{errors.subject_id}</p>
                 )}
               </div>
 
               {/* Day of week */}
               <div>
-                <label htmlFor="day_of_week" className="block text-sm font-medium text-gray-700 mb-1">
-                  Jour de la semaine *
+                <label htmlFor="day_of_week" className="block text-sm font-semibold text-white/60 mb-1.5">
+                  Day of the Week *
                 </label>
                 <select
                   id="day_of_week"
                   name="day_of_week"
                   value={formData.day_of_week}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
                   required
                 >
                   {daysOfWeek.map(day => (
@@ -245,8 +259,8 @@ const SessionEditor = ({
               {/* Time range */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-1">
-                    Heure de début *
+                  <label htmlFor="start_time" className="block text-sm font-semibold text-white/60 mb-1.5">
+                    Start Time *
                   </label>
                   <input
                     type="time"
@@ -254,19 +268,19 @@ const SessionEditor = ({
                     name="start_time"
                     value={formData.start_time}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.start_time ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-3.5 py-2.5 bg-white/5 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all ${
+                      errors.start_time ? 'border-red-500/50 focus:ring-red-500/30' : 'border-white/10'
                     }`}
                     required
                   />
                   {errors.start_time && (
-                    <p className="mt-1 text-sm text-red-600">{errors.start_time}</p>
+                    <p className="mt-1.5 text-xs text-red-400">{errors.start_time}</p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-1">
-                    Heure de fin *
+                  <label htmlFor="end_time" className="block text-sm font-semibold text-white/60 mb-1.5">
+                    End Time *
                   </label>
                   <input
                     type="time"
@@ -274,28 +288,28 @@ const SessionEditor = ({
                     name="end_time"
                     value={formData.end_time}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.end_time ? 'border-red-500' : 'border-gray-300'
+                    className={`w-full px-3.5 py-2.5 bg-white/5 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all ${
+                      errors.end_time ? 'border-red-500/50 focus:ring-red-500/30' : 'border-white/10'
                     }`}
                     required
                   />
                   {errors.end_time && (
-                    <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>
+                    <p className="mt-1.5 text-xs text-red-400">{errors.end_time}</p>
                   )}
                 </div>
               </div>
 
               {/* Task type */}
               <div>
-                <label htmlFor="task_type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Type de tâche *
+                <label htmlFor="task_type" className="block text-sm font-semibold text-white/60 mb-1.5">
+                  Task Type *
                 </label>
                 <select
                   id="task_type"
                   name="task_type"
                   value={formData.task_type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
                   required
                 >
                   {taskTypes.map(type => (
@@ -308,8 +322,8 @@ const SessionEditor = ({
 
               {/* Notes */}
               <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optionnel)
+                <label htmlFor="notes" className="block text-sm font-semibold text-white/60 mb-1.5">
+                  Notes (optional)
                 </label>
                 <textarea
                   id="notes"
@@ -317,30 +331,30 @@ const SessionEditor = ({
                   value={formData.notes}
                   onChange={handleChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ajouter des notes..."
+                  className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                  placeholder="Add notes..."
                 />
               </div>
 
               {/* Submit error */}
               {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-sm text-red-600">{errors.submit}</p>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                  <p className="text-sm text-red-400">{errors.submit}</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="bg-slate-950/40 px-6 py-4 border-t border-white/5 flex items-center justify-between">
               <div>
                 {session && (
                   <button
                     type="button"
                     onClick={handleDelete}
                     disabled={isSubmitting}
-                    className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 text-sm font-semibold text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
                   >
-                    Supprimer
+                    Delete
                   </button>
                 )}
               </div>
@@ -349,16 +363,16 @@ const SessionEditor = ({
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-white/70 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 disabled:opacity-50 transition-all"
                 >
-                  Annuler
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-500 rounded-xl shadow-glow-sm hover:shadow-glow-violet hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>

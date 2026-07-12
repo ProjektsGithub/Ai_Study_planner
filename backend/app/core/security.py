@@ -60,13 +60,16 @@ def get_password_hash(password: str) -> str:
     return hashed.decode('utf-8')
 
 
-def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None, roles: Optional[list] = None) -> str:
     """
-    Create a JWT access token.
+    Create a JWT access token with optional role information.
+    
+    Requirements: 11.1-11.9, 15.3
     
     Args:
-        data: Data to encode in the token
+        data: Data to encode in the token (must include 'sub' for user ID)
         expires_delta: Optional expiration time delta
+        roles: Optional list of role dictionaries with role details (defaults to empty list)
         
     Returns:
         Encoded JWT token
@@ -79,16 +82,23 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire, "type": "access"})
+    
+    # Add role information to token payload (default to empty list if not provided)
+    to_encode["roles"] = roles if roles is not None else []
+    
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(data: Dict[str, Any]) -> str:
+def create_refresh_token(data: Dict[str, Any], roles: Optional[list] = None) -> str:
     """
-    Create a JWT refresh token.
+    Create a JWT refresh token with optional role information.
+    
+    Requirements: 11.1-11.9, 15.3
     
     Args:
-        data: Data to encode in the token
+        data: Data to encode in the token (must include 'sub' for user ID)
+        roles: Optional list of role dictionaries with role details (defaults to empty list)
         
     Returns:
         Encoded JWT refresh token
@@ -96,6 +106,10 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
+    
+    # Add role information to token payload (default to empty list if not provided)
+    to_encode["roles"] = roles if roles is not None else []
+    
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
