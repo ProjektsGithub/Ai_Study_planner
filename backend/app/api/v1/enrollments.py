@@ -45,6 +45,9 @@ async def get_my_semester_courses(
     Return all courses for the student's current semester from the admin catalog,
     enriched with the student's enrollment status if they have already enrolled.
 
+    Also returns courses from any retake semesters (German Wiederholung system)
+    stored in profile.retake_semesters.
+
     Requires the student to have an academic profile with cursus_id and current_semester set.
     """
     # 1. Load student profile
@@ -64,7 +67,7 @@ async def get_my_semester_courses(
             detail="Please set your academic track (cursus) and current semester in Preferences first.",
         )
 
-    # 2. Resolve semester: cursus_id = academic_track.id, current_semester = semester_number
+    # 2. Resolve current semester
     semester = (
         db.query(Semester)
         .filter(
@@ -84,7 +87,7 @@ async def get_my_semester_courses(
             ),
         )
 
-    # 3. Load all courses for this semester (with teaching unit)
+    # 3. Load all courses for the current semester (with teaching unit)
     courses = (
         db.query(Course)
         .options(joinedload(Course.teaching_unit))
@@ -96,7 +99,39 @@ async def get_my_semester_courses(
         .all()
     )
 
-    # 4. Load student enrollments for these course IDs
+    # 4. Load retake semester courses (German Wiederholung system)
+    retake_semester_numbers = profile.retake_semesters or []
+    # course_id -> retake_semester_number mapping
+    retake_course_map: dict[int, int] = {}
+
+    if retake_semester_numbers:
+        retake_semesters_db = (
+            db.query(Semester)
+            .filter(
+                Semester.academic_track_id == profile.cursus_id,
+                Semester.semester_number.in_(retake_semester_numbers),
+                Semester.is_deleted == False,
+            )
+            .all()
+        )
+        for retake_sem in retake_semesters_db:
+            retake_courses = (
+                db.query(Course)
+                .options(joinedload(Course.teaching_unit))
+                .filter(
+                    Course.semester_id == retake_sem.id,
+                    Course.is_deleted == False,
+                )
+                .order_by(Course.teaching_unit_id, Course.name)
+                .all()
+            )
+            for rc in retake_courses:
+                # Avoid duplicates (if a course appears in both current and retake)
+                if not any(c.id == rc.id for c in courses):
+                    retake_course_map[rc.id] = retake_sem.semester_number
+                    courses.append(rc)
+
+    # 5. Load student enrollments for all course IDs
     course_ids = [c.id for c in courses]
     enrollments = {}
     if course_ids:
@@ -110,11 +145,13 @@ async def get_my_semester_courses(
         )
         enrollments = {e.course_id: e for e in rows}
 
-    # 5. Build response
+    # 6. Build response
     course_responses = []
     for c in courses:
         enrollment = enrollments.get(c.id)
         tu = c.teaching_unit
+        is_retake = c.id in retake_course_map
+        retake_sem_num = retake_course_map.get(c.id)
 
         course_responses.append(
             CatalogCourseResponse(
@@ -136,6 +173,8 @@ async def get_my_semester_courses(
                 enrollment_status=enrollment.status if enrollment else None,
                 priority_override=enrollment.priority_override if enrollment else None,
                 personal_notes=enrollment.personal_notes if enrollment else None,
+                is_retake=is_retake,
+                retake_semester_number=retake_sem_num,
             )
         )
 
@@ -151,6 +190,7 @@ async def get_my_semester_courses(
         total_courses=len(courses),
         enrolled_courses=len(enrollments),
         courses=course_responses,
+        retake_semesters=retake_semester_numbers,
     )
 
 

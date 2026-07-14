@@ -79,32 +79,32 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
   const nextStep = STEPS[nextStepIndex];
 
   return (
-    <div className="mb-8 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-600/10 via-indigo-600/5 to-transparent p-6 relative overflow-hidden">
+    <div className="mb-8 rounded-2xl border border-violet-200 dark:border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-indigo-500/5 to-transparent p-6 relative overflow-hidden">
       {/* Background glow */}
-      <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-violet-600/10 blur-3xl" />
+      <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-violet-500/10 blur-3xl" />
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">🚀</span>
-            <h2 className="text-lg font-bold text-white">Get started in 4 steps</h2>
+            <span className="text-lg animate-bounce">🚀</span>
+            <h2 className="text-lg font-bold text-slate-850 dark:text-white">Get started in 4 steps</h2>
           </div>
-          <p className="text-sm text-white/45">
+          <p className="text-sm text-slate-500 dark:text-white/45">
             Complete your setup so the AI can generate a personalized study plan for you.
           </p>
         </div>
         {/* Progress indicator */}
         <div className="flex-shrink-0 text-right">
-          <p className="text-2xl font-bold text-white">{completedCount}<span className="text-white/30 text-base font-normal">/4</span></p>
-          <p className="text-xs text-white/35 mt-0.5">steps done</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-white">{completedCount}<span className="text-slate-400 dark:text-white/30 text-base font-normal">/4</span></p>
+          <p className="text-xs text-slate-400 dark:text-white/35 mt-0.5">steps done</p>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 bg-white/5 rounded-full mb-5 overflow-hidden">
+      <div className="h-1.5 bg-slate-100 dark:bg-white/5 rounded-full mb-5 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-violet-500 to-indigo-400 rounded-full transition-all duration-700"
+          className="h-full bg-gradient-to-r from-violet-550 to-indigo-500 rounded-full transition-all duration-700"
           style={{ width: `${(completedCount / 4) * 100}%` }}
         />
       </div>
@@ -123,10 +123,10 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
               className={`
                 group relative flex flex-col gap-2.5 p-4 rounded-xl border transition-all duration-200
                 ${done
-                  ? 'border-emerald-500/20 bg-emerald-500/5 cursor-default pointer-events-none'
+                  ? 'border-emerald-100 bg-emerald-50/30 dark:border-emerald-500/20 dark:bg-emerald-500/5 cursor-default pointer-events-none'
                   : isNext
-                    ? 'border-violet-500/40 bg-violet-500/10 hover:bg-violet-500/15 hover:border-violet-400/60 hover:-translate-y-0.5 shadow-glow-sm'
-                    : 'border-white/8 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15 opacity-60'
+                    ? 'border-violet-200 bg-violet-50/50 hover:bg-violet-50 hover:border-violet-300 dark:border-violet-500/40 dark:bg-violet-500/10 dark:hover:bg-violet-500/15 hover:-translate-y-0.5 shadow-sm'
+                    : 'border-slate-100 bg-slate-50/30 hover:bg-slate-50 dark:border-white/8 dark:bg-white/[0.02] dark:hover:bg-white/[0.05] hover:border-slate-200 opacity-60'
                 }
               `}
             >
@@ -135,10 +135,10 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
                 <div className={`
                   w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
                   ${done
-                    ? 'bg-emerald-500/20 text-emerald-400'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
                     : isNext
-                      ? 'bg-violet-500/25 text-violet-300'
-                      : 'bg-white/5 text-white/30'
+                      ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/25 dark:text-violet-300'
+                      : 'bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-white/30'
                   }
                 `}>
                   {done ? (
@@ -148,25 +148,25 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
                   ) : step.icon}
                 </div>
                 {isNext && (
-                  <span className="text-[10px] font-bold text-violet-300 bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-500/30">
+                  <span className="text-[10px] font-bold text-violet-750 bg-violet-100 dark:text-violet-300 dark:bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-200 dark:border-violet-500/30">
                     NEXT
                   </span>
                 )}
                 {done && (
-                  <span className="text-[10px] font-bold text-emerald-300">DONE</span>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">DONE</span>
                 )}
               </div>
 
               <div>
-                <p className={`text-xs font-semibold leading-snug ${done ? 'text-emerald-300' : isNext ? 'text-white' : 'text-white/50'}`}>
+                <p className={`text-xs font-semibold leading-snug ${done ? 'text-emerald-750 dark:text-emerald-300' : isNext ? 'text-slate-800 dark:text-white' : 'text-slate-500 dark:text-white/50'}`}>
                   {step.title}
                 </p>
-                <p className="text-[11px] text-white/30 mt-0.5 leading-snug">{step.description}</p>
+                <p className={`text-[11px] mt-0.5 leading-snug ${done ? 'text-emerald-650/80 dark:text-emerald-300/60' : 'text-slate-400 dark:text-white/30'}`}>{step.description}</p>
               </div>
 
               {/* Arrow for active step */}
               {isNext && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-400/50 group-hover:text-violet-300 transition-colors">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-500/50 group-hover:text-violet-650 transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>

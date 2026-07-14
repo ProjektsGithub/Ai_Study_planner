@@ -44,21 +44,21 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
       <div
         className={`
           relative w-full ${sizeClasses[size]}
-          bg-space-800 border border-white/10
-          rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.6)]
+          bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10
+          rounded-2xl shadow-xl dark:shadow-[0_24px_80px_rgba(0,0,0,0.6)]
           animate-slide-up overflow-hidden
         `}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
-            <h3 className="text-base font-semibold text-white" id="modal-title">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/8">
+            <h3 className="text-base font-semibold text-slate-800 dark:text-white" id="modal-title">
               {title}
             </h3>
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/8 transition-all"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/8 transition-all"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

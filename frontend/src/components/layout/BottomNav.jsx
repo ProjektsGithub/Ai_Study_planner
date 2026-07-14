@@ -43,7 +43,7 @@ const BottomNav = () => {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 border-t border-white/10 backdrop-blur-lg flex justify-around items-center h-16 px-2 shadow-card"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/90 border-t border-slate-100 dark:border-white/10 backdrop-blur-lg flex justify-around items-center h-16 px-2 shadow-card"
     >
       {mobileNavItems.map((item) => {
         const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
@@ -53,10 +53,10 @@ const BottomNav = () => {
             to={item.path}
             className={`
               flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all duration-200
-              ${isActive ? 'text-violet-400 font-semibold' : 'text-white/40'}
+              ${isActive ? 'text-violet-600 dark:text-violet-400 font-semibold' : 'text-slate-500 dark:text-white/40'}
             `}
           >
-            <div className={`p-1.5 rounded-lg ${isActive ? 'bg-violet-500/10' : ''}`}>
+            <div className={`p-1.5 rounded-lg ${isActive ? 'bg-violet-50 dark:bg-violet-500/10' : ''}`}>
               {item.icon}
             </div>
             <span className="text-[10px] tracking-tight">{item.label}</span>

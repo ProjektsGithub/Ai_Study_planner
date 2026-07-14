@@ -73,9 +73,13 @@ class CatalogCourseResponse(BaseModel):
     priority_override: Optional[int] = None
     personal_notes: Optional[str] = None
 
+    # Retake info (German Wiederholung system)
+    is_retake: bool = False  # True if this course belongs to a retake semester
+    retake_semester_number: Optional[int] = None  # Which semester number is being retaken
+
 
 class SemesterCoursesResponse(BaseModel):
-    """All courses for the student's current semester, grouped by teaching unit."""
+    """All courses for the student's current semester + retake semesters, grouped by teaching unit."""
     semester_id: int
     semester_name: str
     semester_number: int
@@ -83,3 +87,4 @@ class SemesterCoursesResponse(BaseModel):
     total_courses: int
     enrolled_courses: int
     courses: List[CatalogCourseResponse]
+    retake_semesters: List[int] = []  # Semester numbers being retaken

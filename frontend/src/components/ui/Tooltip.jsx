@@ -23,8 +23,8 @@ const Tooltip = ({ content, children, placement = 'top', className = '' }) => {
       {visible && content && (
         <div
           className={`
-            absolute z-50 px-3 py-2 text-xs text-white/90
-            glass-strong rounded-xl shadow-card border border-white/10
+            absolute z-50 px-3 py-2 text-xs text-white
+            bg-slate-900 dark:bg-slate-950 rounded-xl shadow-md border border-slate-800 dark:border-white/10
             min-w-[150px] max-w-[250px] pointer-events-none animate-fade-in
             ${placementClasses[placement]}
           `}

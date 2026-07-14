@@ -92,6 +92,10 @@ class AcademicProfileUpdate(BaseModel):
         le=2100,
         description="Academic year of enrollment (e.g. 2024)"
     )
+    retake_semesters: Optional[List[int]] = Field(
+        None,
+        description="List of semester numbers being retaken (German Wiederholung). e.g. [2, 3]"
+    )
 
 
 class AcademicProfileResponse(BaseModel):
@@ -101,6 +105,7 @@ class AcademicProfileResponse(BaseModel):
     cursus_id: Optional[int] = None
     current_semester: Optional[int] = None
     academic_year: Optional[int] = None
+    retake_semesters: Optional[List[int]] = None
 
     # Resolved names (populated by service layer)
     university_name: Optional[str] = None

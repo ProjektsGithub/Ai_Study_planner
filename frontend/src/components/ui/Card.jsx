@@ -1,13 +1,14 @@
 import PropTypes from 'prop-types';
 
-const Card = ({ children, className = '', hover = true, gradient = false, padding = 'p-6' }) => {
+const Card = ({ children, className = '', hover = true, gradient = false, padding = 'p-6', onClick }) => {
   return (
     <div
+      onClick={onClick}
       className={`
-        relative rounded-2xl border border-white/10 backdrop-blur-md
-        bg-white/[0.05] shadow-card transition-all duration-300
-        ${hover ? 'hover:bg-white/[0.08] hover:border-violet-500/30 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.4),0_0_15px_rgba(139,92,246,0.1)]' : ''}
-        ${gradient ? 'bg-gradient-to-br from-violet-500/10 to-indigo-500/5' : ''}
+        relative rounded-2xl border border-slate-100 dark:border-white/10 backdrop-blur-md
+        bg-white dark:bg-white/[0.05] shadow-card transition-all duration-300
+        ${hover ? 'hover:shadow-md hover:-translate-y-1 hover:border-violet-500/20 dark:hover:border-violet-500/30' : ''}
+        ${gradient ? 'bg-gradient-to-br from-violet-500/5 to-indigo-500/5 dark:from-violet-500/10 dark:to-indigo-500/5' : ''}
         ${padding}
         ${className}
       `}
@@ -23,6 +24,7 @@ Card.propTypes = {
   hover: PropTypes.bool,
   gradient: PropTypes.bool,
   padding: PropTypes.string,
+  onClick: PropTypes.func,
 };
 
 export default Card;

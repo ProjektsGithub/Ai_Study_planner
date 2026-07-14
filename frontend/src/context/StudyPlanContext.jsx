@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import PropTypes from 'prop-types';
 import apiClient from '../api/client';
 import { useAuth } from './AuthContext';
+import { useCrossBrowserSync } from '../hooks/useCrossBrowserSync';
 
 const StudyPlanContext = createContext(null);
 
@@ -45,6 +46,16 @@ export const StudyPlanProvider = ({ children }) => {
       setLoading(false);
     }
   }, [isAuthenticated]);
+
+  // Cross-tab synchronization: Listen for updates from other tabs
+  const handleCrossTabMessage = useCallback((data) => {
+    if (data.action === 'STUDY_PLAN_UPDATED') {
+      console.log('📡 Received update notification from another tab, refreshing...');
+      fetchCurrentPlan();
+    }
+  }, [fetchCurrentPlan]);
+
+  const { broadcast } = useCrossBrowserSync('study_plan_sync', handleCrossTabMessage);
 
   const fetchPlanHistory = useCallback(async (page = 1) => {
     if (!isAuthenticated) return;
@@ -114,6 +125,9 @@ export const StudyPlanProvider = ({ children }) => {
             resultPlan = evt.plan;
             setGenerationProgress('done');
             await fetchCurrentPlan();
+            
+            // Notify other tabs
+            broadcast({ action: 'STUDY_PLAN_UPDATED' });
             return resultPlan;
           } else if (evt.type === 'error') {
             throw new Error(evt.message || 'AI generation failed');
@@ -155,6 +169,9 @@ export const StudyPlanProvider = ({ children }) => {
         session_id: sessionId
       });
       await fetchCurrentPlan();
+      
+      // Notify other tabs
+      broadcast({ action: 'STUDY_PLAN_UPDATED' });
     } catch (err) {
       console.error('Error completing session:', err);
       throw err;
@@ -165,6 +182,9 @@ export const StudyPlanProvider = ({ children }) => {
     try {
       const res = await apiClient.post(`/api/v1/study-plans/${planId}/sessions`, sessionData);
       await fetchCurrentPlan();
+      
+      // Notify other tabs
+      broadcast({ action: 'STUDY_PLAN_UPDATED' });
       return res.data;
     } catch (err) {
       console.error('Error adding session:', err);
@@ -176,6 +196,9 @@ export const StudyPlanProvider = ({ children }) => {
     try {
       const res = await apiClient.put(`/api/v1/study-plans/${planId}/sessions/${sessionId}`, sessionData);
       await fetchCurrentPlan();
+      
+      // Notify other tabs
+      broadcast({ action: 'STUDY_PLAN_UPDATED' });
       return res.data;
     } catch (err) {
       console.error('Error updating session:', err);
@@ -187,6 +210,9 @@ export const StudyPlanProvider = ({ children }) => {
     try {
       await apiClient.delete(`/api/v1/study-plans/${planId}/sessions/${sessionId}`);
       await fetchCurrentPlan();
+      
+      // Notify other tabs
+      broadcast({ action: 'STUDY_PLAN_UPDATED' });
     } catch (err) {
       console.error('Error deleting session:', err);
       throw err;

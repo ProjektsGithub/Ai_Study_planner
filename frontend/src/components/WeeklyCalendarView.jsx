@@ -109,11 +109,11 @@ const WeeklyCalendarView = ({
         {/* Nav buttons */}
         <div style={{ display: 'flex', gap: 4 }}>
           {[
-            { label: '‹', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); } },
-            { label: "Auj.", fn: () => setWeekStart(getMonday(new Date())) },
-            { label: '›', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); } },
-          ].map(({ label, fn }) => (
-            <button key={label} onClick={fn} style={{
+            { label: '‹', aria: 'Semaine précédente', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); } },
+            { label: "Auj.", aria: "Aujourd'hui", fn: () => setWeekStart(getMonday(new Date())) },
+            { label: '›', aria: 'Semaine suivante', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); } },
+          ].map(({ label, aria, fn }) => (
+            <button key={label} onClick={fn} aria-label={aria} style={{
               background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
               padding: label === "Auj." ? '5px 10px' : '5px 10px',
               fontSize: label === "Auj." ? 12 : 16, fontWeight: 700,

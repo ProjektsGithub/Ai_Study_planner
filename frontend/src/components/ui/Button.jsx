@@ -18,15 +18,15 @@ const Button = ({
     primary:
       'bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-glow-sm hover:shadow-glow-violet hover:-translate-y-0.5 focus:ring-violet-500 after:absolute after:inset-0 after:bg-white/10 after:opacity-0 hover:after:opacity-100 after:transition-opacity',
     secondary:
-      'glass text-white/80 hover:text-white hover:bg-white/10 hover:border-violet-500/50 focus:ring-violet-500',
+      'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-white/[0.05] dark:text-white/80 dark:hover:text-white dark:hover:bg-white/10 dark:border-white/10 border border-transparent focus:ring-violet-500',
     danger:
-      'bg-gradient-to-r from-red-600 to-red-500 text-white hover:shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:-translate-y-0.5 focus:ring-red-500',
+      'bg-gradient-to-r from-red-600 to-red-500 text-white hover:shadow-sm hover:-translate-y-0.5 focus:ring-red-500',
     success:
-      'bg-gradient-to-r from-emerald-600 to-green-500 text-white hover:shadow-[0_0_20px_rgba(52,211,153,0.4)] hover:-translate-y-0.5 focus:ring-green-500',
+      'bg-gradient-to-r from-emerald-600 to-green-500 text-white hover:shadow-sm hover:-translate-y-0.5 focus:ring-green-500',
     outline:
-      'border border-violet-500/50 text-violet-300 hover:bg-violet-500/10 hover:border-violet-400 hover:text-violet-200 focus:ring-violet-500',
+      'border border-violet-200 dark:border-violet-500/50 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:border-violet-300 focus:ring-violet-500',
     ghost:
-      'text-white/60 hover:text-white hover:bg-white/8 focus:ring-violet-500',
+      'text-slate-600 dark:text-white/60 hover:text-slate-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/8 focus:ring-violet-500',
   };
 
   const sizeClasses = {

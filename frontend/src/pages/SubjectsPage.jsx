@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 
@@ -56,16 +57,76 @@ const DifficultyStars = ({ level }) => (
   </span>
 );
 
-// ─── Status dropdown ──────────────────────────────────────────────────────────
+// ─── Status dropdown (Portal-based to escape overflow-hidden parents) ─────────
 const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => {
   const [open, setOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState({});
+  const btnRef = useRef(null);
   const cfg = currentStatus ? STATUS_CONFIG[currentStatus] : null;
+
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const menuHeight = 230; // approx height of the menu
+      const spaceBelow = viewportHeight - rect.bottom;
+      const showAbove = spaceBelow < menuHeight && rect.top > menuHeight;
+
+      setMenuStyle({
+        position: 'fixed',
+        minWidth: Math.max(rect.width, 210) + 'px',
+        right: (window.innerWidth - rect.right) + 'px',
+        ...(showAbove
+          ? { bottom: (window.innerHeight - rect.top + 4) + 'px' }
+          : { top: (rect.bottom + 4) + 'px' }
+        ),
+        zIndex: 9999,
+      });
+    }
+    setOpen((v) => !v);
+  };
+
+  const menu = open ? (
+    <>
+      {/* Backdrop to close on outside click */}
+      <div className="fixed inset-0" style={{ zIndex: 9998 }} onClick={() => setOpen(false)} />
+      <div
+        style={menuStyle}
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden"
+      >
+        {/* Not selected option */}
+        <button
+          onClick={() => { onStatusChange(courseId, null); setOpen(false); }}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+        >
+          <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20" />
+          Not selected
+          <span className="ml-auto text-slate-400 dark:text-white/20 text-[10px]">clear</span>
+        </button>
+        <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
+        {Object.entries(STATUS_CONFIG).map(([key, c]) => (
+          <button
+            key={key}
+            onClick={() => { onStatusChange(courseId, key); setOpen(false); }}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-white/5 transition-colors
+              ${currentStatus === key ? 'bg-slate-50 dark:bg-white/5' : ''}
+            `}
+          >
+            <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+            <span className={c.textColor}>{c.label}</span>
+            <span className="ml-auto text-slate-400 dark:text-white/25 text-[10px]">{c.aiHint}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  ) : null;
 
   return (
     <div className="relative">
       <button
+        ref={btnRef}
         id={`status-btn-${courseId}`}
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggle}
         disabled={saving}
         className={`
           flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold
@@ -86,36 +147,7 @@ const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => 
         </svg>
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[200px]">
-            {/* Not selected option */}
-            <button
-              onClick={() => { onStatusChange(courseId, null); setOpen(false); }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-            >
-              <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20" />
-              Not selected
-              <span className="ml-auto text-slate-400 dark:text-white/20 text-[10px]">clear</span>
-            </button>
-            <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
-            {Object.entries(STATUS_CONFIG).map(([key, c]) => (
-              <button
-                key={key}
-                onClick={() => { onStatusChange(courseId, key); setOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-white/5 transition-colors
-                  ${currentStatus === key ? 'bg-slate-50 dark:bg-white/5' : ''}
-                `}
-              >
-                <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-                <span className={c.textColor}>{c.label}</span>
-                <span className="ml-auto text-slate-400 dark:text-white/25 text-[10px]">{c.aiHint}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      {createPortal(menu, document.body)}
     </div>
   );
 };
@@ -150,6 +182,12 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
               {course.code}
             </span>
           )}
+          {/* Retake badge (German Wiederholung) */}
+          {course.is_retake && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              <span>⚠</span> Rattrapage S{course.retake_semester_number}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3 mt-1">
           <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">{course.ects_credits} ECTS</span>
@@ -177,11 +215,11 @@ const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, sa
   const enrolled = courses.filter((c) => c.enrollment_status).length;
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+    <div className="border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 shadow-sm">
       {/* Header */}
       <button
         onClick={() => setCollapsed((v) => !v)}
-        className="w-full flex items-center gap-3 px-5 py-4 bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-colors text-left"
+        className="w-full flex items-center gap-3 px-5 py-4 bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-colors text-left rounded-t-2xl"
       >
         <svg
           className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform flex-shrink-0 ${collapsed ? '-rotate-90' : ''}`}
@@ -218,7 +256,7 @@ const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, sa
 
       {/* Courses */}
       {!collapsed && (
-        <div className="p-2 space-y-1 bg-white dark:bg-slate-900/50">
+        <div className="p-2 space-y-1 bg-white dark:bg-slate-900/50 rounded-b-2xl">
           {courses.map((c) => (
             <CourseRow
               key={c.id}
@@ -310,18 +348,38 @@ const SubjectsPage = () => {
     return c.enrollment_status === filter;
   }) ?? [];
 
-  // Group by teaching unit
-  const groups = filteredCourses.reduce((acc, course) => {
-    const key = course.teaching_unit_id ?? '__none__';
-    if (!acc[key]) {
-      acc[key] = {
-        tu: course.teaching_unit,
-        courses: [],
-      };
-    }
-    acc[key].courses.push(course);
-    return acc;
-  }, {});
+  // Group by teaching unit — only NON-retake courses
+  const groups = filteredCourses
+    .filter(c => !c.is_retake)
+    .reduce((acc, course) => {
+      const key = course.teaching_unit_id ?? '__none__';
+      if (!acc[key]) {
+        acc[key] = { tu: course.teaching_unit, courses: [] };
+      }
+      acc[key].courses.push(course);
+      return acc;
+    }, {});
+
+  // Group retake courses by retake_semester_number
+  const retakeGroups = filteredCourses
+    .filter(c => c.is_retake)
+    .reduce((acc, course) => {
+      const semKey = `retake_s${course.retake_semester_number}`;
+      if (!acc[semKey]) {
+        acc[semKey] = {
+          semNumber: course.retake_semester_number,
+          tuGroups: {},
+        };
+      }
+      const tuKey = course.teaching_unit_id ?? '__none__';
+      if (!acc[semKey].tuGroups[tuKey]) {
+        acc[semKey].tuGroups[tuKey] = { tu: course.teaching_unit, courses: [] };
+      }
+      acc[semKey].tuGroups[tuKey].courses.push(course);
+      return acc;
+    }, {});
+
+  const hasRetakeCourses = Object.keys(retakeGroups).length > 0;
 
   // ── Stats ───────────────────────────────────────────────────────────────────
   const total = data?.total_courses ?? 0;
@@ -493,14 +551,15 @@ const SubjectsPage = () => {
         ))}
       </div>
 
-      {/* ── Course groups ── */}
-      {filteredCourses.length === 0 ? (
+      {/* ── Course groups (current semester) ── */}
+      {filteredCourses.filter(c => !c.is_retake).length === 0 && !hasRetakeCourses ? (
         <div className="text-center py-16 text-slate-500 dark:text-slate-400">
           <div className="text-4xl mb-3">🎯</div>
           <p className="font-semibold text-slate-700 dark:text-slate-300">No courses match this filter</p>
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Current semester courses */}
           {Object.entries(groups).map(([key, group]) => (
             <TeachingUnitGroup
               key={key}
@@ -512,6 +571,43 @@ const SubjectsPage = () => {
               savingId={savingId}
             />
           ))}
+
+          {/* Retake semester sections (German Wiederholung) */}
+          {hasRetakeCourses && (
+            <>
+              <div className="flex items-center gap-3 pt-4 pb-1">
+                <div className="h-px flex-1 bg-amber-500/20" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                  <span className="text-amber-400 text-xs">⚠</span>
+                  <span className="text-xs font-semibold text-amber-300">Semestres en Rattrapage (Wiederholung)</span>
+                </div>
+                <div className="h-px flex-1 bg-amber-500/20" />
+              </div>
+              {Object.entries(retakeGroups)
+                .sort((a, b) => a[1].semNumber - b[1].semNumber)
+                .map(([semKey, { semNumber, tuGroups }]) => (
+                  <div key={semKey} className="space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">S{semNumber} — Rattrapage</span>
+                      <div className="h-px flex-1 bg-amber-500/10" />
+                    </div>
+                    {Object.entries(tuGroups).map(([tuKey, group]) => (
+                      <div key={tuKey} className="border border-amber-500/20 rounded-2xl overflow-visible bg-amber-500/[0.02]">
+                        <TeachingUnitGroup
+                          tuName={group.tu?.name ?? 'Other Courses'}
+                          tuCode={group.tu?.code}
+                          tuEcts={group.tu?.ects_required}
+                          courses={group.courses}
+                          onStatusChange={handleStatusChange}
+                          savingId={savingId}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))
+              }
+            </>
+          )}
         </div>
       )}
     </div>

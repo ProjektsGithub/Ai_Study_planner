@@ -6,12 +6,12 @@ const ProgressBar = ({ value, max = 100, showLabel = true, className = '', label
   return (
     <div className={`w-full ${className}`}>
       {showLabel && (
-        <div className="flex justify-between items-center mb-1.5 text-xs text-white/50">
+        <div className="flex justify-between items-center mb-1.5 text-xs text-slate-500 dark:text-white/50">
           <span>{label}</span>
-          <span className="font-semibold text-white/80">{percentage}%</span>
+          <span className="font-semibold text-slate-700 dark:text-white/80">{percentage}%</span>
         </div>
       )}
-      <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+      <div className="w-full h-2.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200/40 dark:border-white/5 relative">
         <div
           className="h-full bg-gradient-to-r from-violet-600 to-indigo-500 rounded-full transition-all duration-1000 ease-out relative progress-animated"
           style={{ width: `${percentage}%`, '--progress-value': `${percentage}%` }}

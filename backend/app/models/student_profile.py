@@ -42,6 +42,7 @@ class StudentProfile(Base):
     cursus_id = Column(Integer, nullable=True)     # maps to academic_tracks.id
     current_semester = Column(Integer, nullable=True)
     academic_year = Column(Integer, nullable=True)
+    retake_semesters = Column(JSON, nullable=True)  # e.g. [2, 3] — German Wiederholung system
 
     # -----------------------------------------------------------------------
     # Relationships

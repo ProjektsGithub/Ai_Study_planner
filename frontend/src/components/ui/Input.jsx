@@ -19,17 +19,17 @@ const Input = ({
       {label && (
         <label
           htmlFor={name}
-          className="block text-sm font-medium text-white/70 mb-1.5"
+          className="block text-sm font-medium text-slate-700 dark:text-white/70 mb-1.5"
         >
           {label}
           {required && (
-            <span className="text-violet-400 ml-1">*</span>
+            <span className="text-violet-500 ml-1">*</span>
           )}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-white/30">
             {icon}
           </div>
         )}
@@ -43,15 +43,16 @@ const Input = ({
           required={required}
           disabled={disabled}
           className={`
-            w-full rounded-xl px-4 py-3 text-sm text-white
-            bg-white/5 border transition-all duration-300
-            placeholder:text-white/25
-            focus:outline-none focus:bg-white/8 focus:ring-0
+            w-full rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-white
+            bg-slate-50 focus:bg-white dark:bg-white/5 dark:focus:bg-white/8
+            border transition-all duration-300
+            placeholder:text-slate-400 dark:placeholder:text-white/25
+            focus:outline-none focus:ring-0
             disabled:opacity-40 disabled:cursor-not-allowed
             ${icon ? 'pl-10' : ''}
             ${error
               ? 'border-red-500/60 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.12)]'
-              : 'border-white/10 focus:border-violet-500/60 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.12)]'
+              : 'border-slate-200 dark:border-white/10 focus:border-violet-500/60 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.08)] dark:focus:shadow-[0_0_0_3px_rgba(139,92,246,0.12)]'
             }
             ${className}
           `}

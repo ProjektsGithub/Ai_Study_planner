@@ -109,7 +109,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}
     >
-      <div className="flex flex-col justify-between py-6 px-4">
+      <div className="flex-1 flex flex-col justify-between py-6 px-4">
         <div>
           {/* Logo Area */}
           <div className="flex items-center gap-3 px-4 mb-6">
@@ -117,7 +117,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               <span className="text-lg text-white font-bold">✦</span>
             </div>
             <div className="flex flex-col leading-none">
-              <span className="text-base font-bold text-slate-800 dark:text-white tracking-tight">STUDYPLAN AI</span>
+              <span className="text-base font-bold text-violet-600 dark:text-white tracking-tight">STUDYPLAN AI</span>
               <span className="text-[9px] text-slate-400 dark:text-white/40 font-medium tracking-tight mt-0.5">Your personalized study planner</span>
             </div>
           </div>
@@ -171,6 +171,23 @@ const Sidebar = ({ isOpen, onClose }) => {
               </div>
             ))}
           </nav>
+        </div>
+
+        {/* Tip Box at bottom */}
+        <div className="mt-auto pt-6 px-2">
+          <div className="relative overflow-hidden rounded-2xl border border-violet-100 bg-violet-50/50 p-4 dark:border-violet-500/10 dark:bg-violet-900/5">
+            <div className="absolute -right-6 -top-6 w-16 h-16 rounded-full bg-violet-500/5 blur-lg pointer-events-none" />
+            
+            <div className="relative z-10 flex items-start gap-2.5">
+              <span className="text-xl leading-none">💡</span>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-slate-800 dark:text-violet-200">Astuce d'étude</p>
+                <p className="text-[10px] text-slate-500 dark:text-white/50 mt-1 font-medium leading-relaxed">
+                  Essayez la méthode <strong>Pomodoro</strong> : 25 minutes de révision intense, puis 5 minutes de pause pour rester concentré !
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </aside>

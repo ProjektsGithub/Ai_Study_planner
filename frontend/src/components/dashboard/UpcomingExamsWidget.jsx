@@ -9,11 +9,11 @@ const UpcomingExamsWidget = () => {
 
   if (loading && upcomingExams.length === 0) {
     return (
-      <Card className="h-full animate-pulse bg-white/5 border border-white/10 p-5 rounded-2xl">
-        <div className="h-4 bg-white/10 rounded w-1/3 mb-4" />
+      <Card className="h-full animate-pulse bg-slate-50/50 dark:bg-white/5 border border-slate-100 dark:border-white/10 p-5 rounded-2xl">
+        <div className="h-4 bg-slate-200 dark:bg-white/10 rounded w-1/3 mb-4" />
         <div className="space-y-3">
-          <div className="h-8 bg-white/10 rounded w-full" />
-          <div className="h-8 bg-white/10 rounded w-full" />
+          <div className="h-8 bg-slate-200 dark:bg-white/10 rounded w-full" />
+          <div className="h-8 bg-slate-200 dark:bg-white/10 rounded w-full" />
         </div>
       </Card>
     );
@@ -38,8 +38,8 @@ const UpcomingExamsWidget = () => {
 
       <div>
         <div className="flex justify-between items-center mb-4">
-          <span className="text-xs text-white/40 font-semibold uppercase tracking-wider">Upcoming Exams</span>
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+          <span className="text-xs text-slate-400 dark:text-white/40 font-semibold uppercase tracking-wider">Upcoming Exams</span>
+          <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 flex items-center justify-center">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -57,13 +57,13 @@ const UpcomingExamsWidget = () => {
                   className={`
                     flex items-center justify-between p-2.5 rounded-xl border transition-colors
                     ${isUrgent
-                      ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10'
-                      : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]'}
+                      ? 'bg-red-50 border-red-100 hover:bg-red-100/50 dark:bg-red-500/5 dark:border-red-500/20'
+                      : 'bg-slate-50 border border-slate-100/50 hover:bg-slate-100 dark:bg-white/[0.02] dark:border-white/5'}
                   `}
                 >
                   <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-sm font-semibold text-white truncate">{exam.course_name}</span>
-                    <span className="text-[10px] text-white/40 mt-0.5">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-white truncate">{exam.course_name}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-white/40 mt-0.5">
                       {formatDate(exam.exam_date)} · {exam.exam_time ? exam.exam_time.slice(0, 5) : '08:00'}
                     </span>
                   </div>
@@ -76,8 +76,8 @@ const UpcomingExamsWidget = () => {
           </div>
         ) : (
           <div className="text-center py-5">
-            <p className="text-sm font-medium text-white/50">No exams scheduled</p>
-            <p className="text-xs text-white/30 mt-1">Plan your revisions.</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-white/50">No exams scheduled</p>
+            <p className="text-xs text-slate-400 dark:text-white/30 mt-1">Plan your revisions.</p>
           </div>
         )}
       </div>

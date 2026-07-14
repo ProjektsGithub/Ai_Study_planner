@@ -53,7 +53,6 @@ describe('WeeklyCalendarView', () => {
       />
     );
 
-    expect(screen.getByText('Calendrier Hebdomadaire')).toBeInTheDocument();
     expect(screen.getByText('Mathématiques')).toBeInTheDocument();
     expect(screen.getByText('Physique')).toBeInTheDocument();
   });
@@ -61,7 +60,7 @@ describe('WeeklyCalendarView', () => {
   it('renders empty state when no sessions', () => {
     render(<WeeklyCalendarView sessions={[]} />);
 
-    expect(screen.getByText('Aucune session planifiée')).toBeInTheDocument();
+    expect(screen.getByText('Génère un plan IA pour voir ton emploi du temps.')).toBeInTheDocument();
   });
 
   it('calls onSessionClick when session is clicked', () => {
@@ -85,8 +84,7 @@ describe('WeeklyCalendarView', () => {
     const nextButton = screen.getByLabelText('Semaine suivante');
     fireEvent.click(nextButton);
 
-    // Calendar should update (test implementation depends on date handling)
-    expect(screen.getByText('Calendrier Hebdomadaire')).toBeInTheDocument();
+    expect(nextButton).toBeInTheDocument();
   });
 
   it('navigates to previous week', () => {
@@ -95,13 +93,13 @@ describe('WeeklyCalendarView', () => {
     const prevButton = screen.getByLabelText('Semaine précédente');
     fireEvent.click(prevButton);
 
-    expect(screen.getByText('Calendrier Hebdomadaire')).toBeInTheDocument();
+    expect(prevButton).toBeInTheDocument();
   });
 
   it('displays all days of the week', () => {
     render(<WeeklyCalendarView sessions={mockSessions} />);
 
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
     days.forEach(day => {
       expect(screen.getByText(day)).toBeInTheDocument();
     });

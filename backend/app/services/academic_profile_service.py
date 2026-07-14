@@ -172,6 +172,7 @@ class AcademicProfileService:
             cursus_id=profile.cursus_id,
             current_semester=profile.current_semester,
             academic_year=profile.academic_year,
+            retake_semesters=profile.retake_semesters or [],
             university_name=university_name,
             filiere_name=filiere_name,
             cursus_name=cursus_name,

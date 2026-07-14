@@ -49,7 +49,7 @@ function TypingIndicator() {
         fontSize: 12, flexShrink: 0,
       }}>🤖</div>
       <div style={{
-        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+        background: '#f5f3ff', border: '1px solid #e9d5ff',
         borderRadius: '16px 16px 16px 4px', padding: '10px 14px',
         display: 'flex', gap: 5, alignItems: 'center',
       }}>
@@ -85,13 +85,13 @@ function MessageBubble({ msg }) {
         maxWidth: '78%',
         background: isUser
           ? 'linear-gradient(135deg, #7c3aed, #4f46e5)'
-          : 'rgba(255,255,255,0.06)',
-        border: isUser ? 'none' : '1px solid rgba(255,255,255,0.1)',
+          : '#f5f3ff',
+        border: isUser ? 'none' : '1px solid #e9d5ff',
         borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
         padding: '10px 14px',
         fontSize: 13.5,
         lineHeight: 1.55,
-        color: isUser ? '#fff' : 'rgba(255,255,255,0.9)',
+        color: isUser ? '#fff' : '#3b0764',
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
       }}>
@@ -235,11 +235,10 @@ const ChatBot = () => {
           style={{
             position: 'fixed', bottom: 92, right: 24, zIndex: 9999,
             width: 380, height: 520,
-            background: 'rgba(15,15,26,0.95)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(124,58,237,0.3)',
+            background: '#ffffff',
+            border: '1px solid #ede9fe',
             borderRadius: 20,
-            boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1)',
+            boxShadow: '0 12px 50px rgba(124,58,237,0.12), 0 0 0 1px rgba(124,58,237,0.05)',
             display: 'flex', flexDirection: 'column',
             animation: 'chatSlideUp 0.25s ease',
             overflow: 'hidden',
@@ -248,8 +247,8 @@ const ChatBot = () => {
           {/* Header */}
           <div style={{
             padding: '14px 18px',
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(79,70,229,0.2))',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            background: 'linear-gradient(135deg, #f5f3ff, #e0e7ff)',
+            borderBottom: '1px solid #e0e7ff',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
             <div style={{
@@ -258,8 +257,8 @@ const ChatBot = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             }}>🤖</div>
             <div>
-              <div style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>Assistant IA</div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }}>
+              <div style={{ color: '#1e1b4b', fontWeight: 700, fontSize: 14 }}>Assistant IA</div>
+              <div style={{ color: '#6366f1', fontSize: 11 }}>
                 Propulsé par Llama · {currentPlan ? `Plan actif ✅` : 'Aucun plan actif'}
               </div>
             </div>
@@ -290,12 +289,12 @@ const ChatBot = () => {
             <div style={{ padding: '4px 14px 6px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {suggestions.map((s, i) => (
                 <button key={i} onClick={() => setInput(s)} style={{
-                  background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)',
+                  background: '#f5f3ff', border: '1px solid #ddd6fe',
                   borderRadius: 20, padding: '5px 10px', fontSize: 11.5,
-                  color: '#a78bfa', cursor: 'pointer', transition: 'all 0.15s ease',
+                  color: '#6d28d9', cursor: 'pointer', transition: 'all 0.15s ease',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.28)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(124,58,237,0.15)'}
+                onMouseEnter={e => e.currentTarget.style.background = '#ede9fe'}
+                onMouseLeave={e => e.currentTarget.style.background = '#f5f3ff'}
                 >{s}</button>
               ))}
             </div>
@@ -304,7 +303,7 @@ const ChatBot = () => {
           {/* Input area */}
           <div style={{
             padding: '10px 12px',
-            borderTop: '1px solid rgba(255,255,255,0.07)',
+            borderTop: '1px solid #f1f5f9',
             display: 'flex', gap: 8, alignItems: 'flex-end',
           }}>
             <textarea
@@ -316,15 +315,15 @@ const ChatBot = () => {
               placeholder="Pose ta question... (Entrée pour envoyer)"
               rows={1}
               style={{
-                flex: 1, background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12,
-                padding: '9px 12px', color: '#fff', fontSize: 13, resize: 'none',
+                flex: 1, background: '#f8fafc',
+                border: '1px solid #e2e8f0', borderRadius: 12,
+                padding: '9px 12px', color: '#0f172a', fontSize: 13, resize: 'none',
                 outline: 'none', fontFamily: 'inherit', lineHeight: 1.4,
                 maxHeight: 90, overflowY: 'auto',
                 scrollbarWidth: 'thin',
               }}
-              onFocus={e => e.target.style.borderColor = 'rgba(124,58,237,0.6)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
+              onFocus={e => e.target.style.borderColor = '#7c3aed'}
+              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
             />
             <button
               id="chatbot-send-btn"
@@ -333,8 +332,9 @@ const ChatBot = () => {
               style={{
                 width: 38, height: 38, borderRadius: '50%', border: 'none',
                 background: !input.trim() || loading
-                  ? 'rgba(255,255,255,0.08)'
+                  ? '#f1f5f9'
                   : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                color: !input.trim() || loading ? '#94a3b8' : '#ffffff',
                 cursor: !input.trim() || loading ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 16, transition: 'all 0.2s ease', flexShrink: 0,

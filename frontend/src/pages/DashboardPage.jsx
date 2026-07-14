@@ -68,6 +68,20 @@ const DashboardPage = () => {
 
   const [setupStatus, setSetupStatus] = useState(null);
   const [setupLoading, setSetupLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchAllData(),
+        fetchCurrentPlan(),
+        fetchSetupStatus()
+      ]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const fetchSetupStatus = useCallback(async () => {
     setSetupLoading(true);
@@ -86,6 +100,13 @@ const DashboardPage = () => {
     fetchAllData();
     fetchCurrentPlan();
     fetchSetupStatus();
+
+    // Polling: Auto-refresh study plan every 30 seconds to catch updates from other tabs/pages
+    const interval = setInterval(() => {
+      fetchCurrentPlan();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, [fetchAllData, fetchCurrentPlan, fetchSetupStatus]);
 
   const loading = academicLoading || planLoading;
@@ -96,19 +117,40 @@ const DashboardPage = () => {
       {/* ── Header with Streak Counter ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1.5">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-1.5">
             Hello{academicProfile?.cursus_name ? `, ${academicProfile.cursus_name}` : ''}!
           </h1>
-          <p className="text-white/40 text-sm">
+          <p className="text-slate-500 dark:text-white/40 text-sm">
             Here is the progress of your academic success.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-violet-500/10 border border-violet-500/20 px-4 py-2.5 rounded-2xl shadow-glow-sm">
-          <span className="text-2xl animate-bounce">🔥</span>
-          <div>
-            <p className="text-xs text-white/50 font-medium leading-none">Study Streak</p>
-            <p className="text-base font-bold text-white mt-1">{streak} day{streak > 1 ? 's' : ''}</p>
+        <div className="flex items-center gap-3">
+          {/* Manual Refresh Button */}
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200/40 dark:bg-white/5 dark:border-white/10 hover:border-violet-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+            title="Refresh dashboard data"
+          >
+            <svg 
+              className={`w-5 h-5 text-slate-500 dark:text-white/60 group-hover:text-violet-650 dark:group-hover:text-violet-400 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+
+          {/* Streak Counter */}
+          <div className="flex items-center gap-3 bg-violet-50 border border-violet-100 dark:bg-violet-500/10 dark:border-violet-500/20 px-4 py-2.5 rounded-2xl shadow-sm">
+            <span className="text-2xl animate-bounce">🔥</span>
+            <div>
+              <p className="text-xs text-slate-500 dark:text-white/50 font-medium leading-none">Study Streak</p>
+              <p className="text-base font-bold text-violet-750 dark:text-white mt-1">{streak} day{streak > 1 ? 's' : ''}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -137,8 +179,8 @@ const DashboardPage = () => {
         <Card className="lg:col-span-2 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-bold text-white">Your Weekly Plan</h2>
-              <Link to="/planner" className="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Your Weekly Plan</h2>
+              <Link to="/planner" className="text-xs text-violet-600 hover:text-violet-750 dark:text-violet-400 dark:hover:text-violet-300 font-semibold transition-colors">
                 Manage Study Plan →
               </Link>
             </div>
@@ -151,27 +193,27 @@ const DashboardPage = () => {
               </div>
             ) : currentPlan ? (
               <div className="space-y-4">
-                <div className="flex justify-between items-center text-sm text-white/60">
-                  <span>Status: <span className="text-emerald-400 font-bold">Active</span></span>
+                <div className="flex justify-between items-center text-sm text-slate-600 dark:text-white/60">
+                  <span>Status: <span className="text-emerald-600 dark:text-emerald-400 font-bold">Active</span></span>
                   <span>{currentPlan.sessions?.length || 0} sessions scheduled</span>
                 </div>
                 <div className="divider my-2" />
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 p-4 rounded-xl text-center border border-white/5">
-                    <p className="text-2xl font-bold text-white">{currentPlan.total_hours}h</p>
-                    <p className="text-xs text-white/40 mt-1">Total Study Hours</p>
+                  <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl text-center border border-slate-100 dark:border-white/5">
+                    <p className="text-2xl font-bold text-slate-800 dark:text-white">{currentPlan.total_hours}h</p>
+                    <p className="text-xs text-slate-500 dark:text-white/40 mt-1">Total Study Hours</p>
                   </div>
-                  <div className="bg-white/5 p-4 rounded-xl text-center border border-white/5">
-                    <p className="text-2xl font-bold text-white">
+                  <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl text-center border border-slate-100 dark:border-white/5">
+                    <p className="text-2xl font-bold text-slate-800 dark:text-white">
                       {currentPlan.sessions?.filter((s) => s.completed)?.length || 0}
                     </p>
-                    <p className="text-xs text-white/40 mt-1">Completed Sessions</p>
+                    <p className="text-xs text-slate-500 dark:text-white/40 mt-1">Completed Sessions</p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-sm text-white/50 mb-4">
+                <p className="text-sm text-slate-500 dark:text-white/50 mb-4">
                   {setupStatus?.has_courses
                     ? 'You have not generated a study plan for this week yet.'
                     : 'Complete your setup above to generate your first AI study plan.'}
@@ -186,7 +228,7 @@ const DashboardPage = () => {
                 ) : (
                   <Link
                     to={setupStatus?.has_courses ? '/availabilities' : '/subjects'}
-                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm font-semibold hover:bg-white/10 transition-all"
+                    className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-white text-sm font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                   >
                     {setupStatus?.has_courses ? 'Set My Availabilities' : 'Select My Courses'} →
                   </Link>
@@ -205,21 +247,21 @@ const DashboardPage = () => {
 
       {/* ── Quick Actions ── */}
       <div>
-        <h2 className="text-lg font-bold text-white mb-4">Quick Shortcuts</h2>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Quick Shortcuts</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {QUICK_ACTIONS.map((action) => (
             <Link
               key={action.id}
               id={`quick-action-${action.id}`}
               to={action.href}
-              className="flex items-center gap-4 p-5 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1"
+              className="flex items-center gap-4 p-5 rounded-2xl border border-slate-100 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.07] hover:border-violet-500/20 dark:hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-md"
             >
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center text-white flex-shrink-0 shadow-glow-sm`}>
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center text-white flex-shrink-0 shadow-sm`}>
                 {action.icon}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">{action.label}</p>
-                <p className="text-xs text-white/40 mt-0.5">{action.description}</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-white">{action.label}</p>
+                <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">{action.description}</p>
               </div>
             </Link>
           ))}

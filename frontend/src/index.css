@@ -10,33 +10,33 @@
    ==================================================== */
 
 :root {
-  /* Light theme color tokens */
-  --color-bg-primary: #f4f6f8;
+  /* Light theme color tokens - Schoooli Style */
+  --color-bg-primary: #f8fafc;
   --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
 
-  --color-text-primary: #1f2937;
-  --color-text-secondary: #4b5563;
-  --color-text-muted: #9ca3af;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
 
-  --color-violet: #6366f1;
-  --color-violet-light: #818cf8;
+  --color-violet: #7c3aed;
+  --color-violet-light: #f3e8ff;
   --color-indigo: #4f46e5;
   --color-cyan: #06b6d4;
 
-  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-primary: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
   --gradient-accent: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
 
   /* Glassmorphism/Card styling in light mode */
   --glass-bg: #ffffff;
   --glass-bg-hover: #ffffff;
-  --glass-border: #e5e7eb;
-  --glass-border-hover: rgba(99, 102, 241, 0.5);
+  --glass-border: #f1f5f9;
+  --glass-border-hover: rgba(124, 58, 237, 0.3);
 
   /* Shadows */
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.1);
-  --shadow-glow-sm: 0 0 10px rgba(99, 102, 241, 0.05);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-glow: 0 0 25px rgba(124, 58, 237, 0.15);
+  --shadow-glow-sm: 0 0 12px rgba(124, 58, 237, 0.06);
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.02), 0 2px 8px rgba(0, 0, 0, 0.01);
 
   /* Spacing System */
   --spacing-1: 0.25rem;   /* 4px */
@@ -621,19 +621,19 @@ html:not(.dark) .bg-white\/\[0\.03\] {
   background-color: #ffffff !important;
 }
 html:not(.dark) .bg-white\/\[0\.05\] {
-  background-color: #f8fafc !important;
+  background-color: #ffffff !important;
 }
 html:not(.dark) .bg-white\/\[0\.08\] {
-  background-color: #f1f5f9 !important;
+  background-color: #f8fafc !important;
 }
 html:not(.dark) .bg-white\/5 {
-  background-color: #f1f5f9 !important;
+  background-color: #ffffff !important;
 }
 html:not(.dark) .bg-white\/8 {
-  background-color: #e2e8f0 !important;
+  background-color: #f1f5f9 !important;
 }
 html:not(.dark) .bg-white\/10 {
-  background-color: #f8fafc !important;
+  background-color: #ffffff !important;
 }
 
 /* Slate backgrounds in light mode */
@@ -674,22 +674,22 @@ html:not(.dark) .bg-violet-500\/10 {
 
 /* Borders */
 html:not(.dark) .border-white\/8 {
-  border-color: #e5e7eb !important;
+  border-color: #f1f5f9 !important;
 }
 html:not(.dark) .border-white\/10 {
-  border-color: #e5e7eb !important;
+  border-color: #f1f5f9 !important;
 }
 html:not(.dark) .border-white\/20 {
-  border-color: #d1d5db !important;
+  border-color: #e2e8f0 !important;
 }
 html:not(.dark) .border-white\/\[0\.07\] {
-  border-color: #e5e7eb !important;
+  border-color: #f1f5f9 !important;
 }
 html:not(.dark) .border-white\/5 {
-  border-color: #f3f4f6 !important;
+  border-color: #f8fafc !important;
 }
 html:not(.dark) .border-violet-500\/20 {
-  border-color: #c7d2fe !important;
+  border-color: #ddd6fe !important;
 }
 
 /* Divider */

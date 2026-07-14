@@ -12,10 +12,30 @@ const CONSTRAINT_TYPES = {
 };
 
 const CONSTRAINT_ICONS = {
-  forbidden_slot: { icon: '🚫', color: 'from-red-600/30 to-red-600/5', badge: 'bg-red-500/15 text-red-300 border border-red-500/25', topBar: 'from-red-500 to-red-400' },
-  max_daily_hours: { icon: '⏱', color: 'from-amber-600/30 to-amber-600/5', badge: 'bg-amber-500/15 text-amber-300 border border-amber-500/25', topBar: 'from-amber-500 to-amber-400' },
-  required_break: { icon: '☕', color: 'from-emerald-600/30 to-emerald-600/5', badge: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25', topBar: 'from-emerald-500 to-emerald-400' },
-  fixed_slot: { icon: '📌', color: 'from-blue-600/30 to-blue-600/5', badge: 'bg-blue-500/15 text-blue-300 border border-blue-500/25', topBar: 'from-blue-500 to-blue-400' },
+  forbidden_slot: {
+    icon: '🚫',
+    color: 'bg-red-50/50 dark:bg-red-500/5 border-red-100 dark:border-red-500/20 text-red-800 dark:text-red-300',
+    badge: 'bg-red-100/60 dark:bg-red-500/15 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-500/25',
+    topBar: 'from-red-500 to-red-400'
+  },
+  max_daily_hours: {
+    icon: '⏱',
+    color: 'bg-amber-50/50 dark:bg-amber-500/5 border-amber-100 dark:border-amber-500/20 text-amber-800 dark:text-amber-300',
+    badge: 'bg-amber-100/60 dark:bg-amber-500/15 text-amber-850 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25',
+    topBar: 'from-amber-500 to-amber-400'
+  },
+  required_break: {
+    icon: '☕',
+    color: 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300',
+    badge: 'bg-emerald-100/60 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/25',
+    topBar: 'from-emerald-500 to-emerald-400'
+  },
+  fixed_slot: {
+    icon: '📌',
+    color: 'bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 text-blue-800 dark:text-blue-300',
+    badge: 'bg-blue-100/60 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-500/25',
+    topBar: 'from-blue-500 to-blue-400'
+  },
 };
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -163,9 +183,9 @@ const ConstraintManager = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">My Constraints</h2>
-          <p className="text-white/40 text-sm mt-1">
-            {constraints.length} constraint(s) · <span className="text-emerald-400">{constraints.filter((c) => c.active).length} active</span>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">My Constraints</h2>
+          <p className="text-slate-400 dark:text-white/40 text-sm mt-1">
+            {constraints.length} constraint(s) · <span className="text-emerald-600 dark:text-emerald-400 font-bold">{constraints.filter((c) => c.active).length} active</span>
           </p>
         </div>
         <Button onClick={handleAdd}>+ Add Constraint</Button>
@@ -173,51 +193,51 @@ const ConstraintManager = () => {
 
       {constraints.length === 0 ? (
         <div className="empty-state">
-          <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4 text-2xl">⚙️</div>
-          <h3 className="text-white/60 font-medium mb-1">No constraints defined</h3>
-          <p className="text-white/30 text-sm">Add constraints to customize your study plan schedule.</p>
+          <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center mx-auto mb-4 text-2xl">⚙️</div>
+          <h3 className="text-slate-655 font-bold mb-1 dark:text-white/60">No constraints defined</h3>
+          <p className="text-slate-400 dark:text-white/30 text-sm">Add constraints to customize your study plan schedule.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {constraints.map((constraint) => {
             const cfg = CONSTRAINT_ICONS[constraint.constraint_type] || CONSTRAINT_ICONS.forbidden_slot;
             return (
               <div
                 key={constraint.id}
-                className={`relative rounded-2xl border border-white/10 bg-gradient-to-br ${cfg.color} backdrop-blur-md p-4 transition-all duration-300 hover:border-white/20 ${!constraint.active ? 'opacity-50' : ''}`}
+                className={`relative rounded-2xl border p-4 transition-all duration-300 shadow-sm flex flex-col justify-between ${cfg.color} ${!constraint.active ? 'opacity-50' : ''}`}
               >
                 <div className={`absolute top-0 left-5 right-5 h-0.5 rounded-b-full bg-gradient-to-r ${cfg.topBar} opacity-60`} />
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between h-full">
                   <div className="flex items-start gap-3">
                     <span className="text-xl mt-0.5">{cfg.icon}</span>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${cfg.badge}`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${cfg.badge}`}>
                           {CONSTRAINT_TYPES[constraint.constraint_type]}
                         </span>
                         {!constraint.active && (
-                          <span className="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/40">Disabled</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/40 font-bold">Disabled</span>
                         )}
                       </div>
-                      <p className="text-sm text-white/80 font-medium">{getDescription(constraint)}</p>
+                      <p className="text-sm text-slate-700 dark:text-white/80 font-semibold">{getDescription(constraint)}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1.5 ml-4">
+                  <div className="flex gap-1.5 ml-4 flex-shrink-0">
                     <button
                       onClick={() => toggleActive(constraint)}
                       title={constraint.active ? 'Disable' : 'Enable'}
-                      className={`p-1.5 rounded-lg transition-all ${constraint.active ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-white/30 hover:bg-white/8'}`}
+                      className={`p-1.5 rounded-lg transition-all ${constraint.active ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10' : 'text-slate-400 dark:text-white/30 hover:bg-slate-100 dark:hover:bg-white/8'}`}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </button>
-                    <button onClick={() => handleEdit(constraint)} className="p-1.5 rounded-lg text-white/30 hover:text-violet-400 hover:bg-violet-500/10 transition-all" aria-label="Edit">
+                    <button onClick={() => handleEdit(constraint)} className="p-1.5 rounded-lg text-slate-400 dark:text-white/30 hover:text-violet-600 hover:bg-violet-50 dark:hover:text-violet-400 dark:hover:bg-violet-500/10 transition-all" aria-label="Edit">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    <button onClick={() => handleDelete(constraint.id)} className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all" aria-label="Delete">
+                    <button onClick={() => handleDelete(constraint.id)} className="p-1.5 rounded-lg text-slate-400 dark:text-white/30 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-all" aria-label="Delete">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>

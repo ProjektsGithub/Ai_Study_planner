@@ -1,20 +1,33 @@
 import { useState, useEffect } from 'react';
 import WeeklyCalendarView from '../components/WeeklyCalendarView';
 import SessionEditor from '../components/SessionEditor';
+import { useStudyPlan } from '../context/StudyPlanContext';
 import apiClient from '../api/client';
 
 const PlannerPage = () => {
-  const [studyPlan, setStudyPlan] = useState(null);
-  const [sessions, setSessions] = useState([]);
+  // Use StudyPlanContext instead of local state
+  const {
+    currentPlan: studyPlan,
+    loading: planLoading,
+    generating,
+    generationProgress,
+    error: planError,
+    generatePlan,
+    addSession,
+    updateSession,
+    deleteSession
+  } = useStudyPlan();
+
   const [availabilities, setAvailabilities] = useState([]);
   const [constraints, setConstraints] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [generatingStatus, setGeneratingStatus] = useState(''); // 'pending' | 'running' | ''
   const [error, setError] = useState(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+
+  // Derive sessions from studyPlan
+  const sessions = studyPlan?.sessions || [];
 
   useEffect(() => { loadData(); }, []);
 
@@ -22,11 +35,8 @@ const PlannerPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const planRes = await apiClient.get('/api/v1/study-plans/current');
-      if (planRes.data) {
-        setStudyPlan(planRes.data);
-        setSessions(planRes.data.sessions || []);
-      }
+      // Note: studyPlan is now loaded via StudyPlanContext
+      // We only need to load availabilities, constraints, and subjects
       const [availRes, constRes, subRes] = await Promise.all([
         apiClient.get('/api/v1/availabilities'),
         apiClient.get('/api/v1/constraints'),
@@ -52,8 +62,6 @@ const PlannerPage = () => {
 
   const handleGeneratePlan = async () => {
     console.log('🚀 Starting plan generation (SSE streaming)...');
-    setGenerating(true);
-    setGeneratingStatus('preparing');
     setError(null);
 
     try {
@@ -64,74 +72,13 @@ const PlannerPage = () => {
       monday.setDate(today.getDate() + daysToMonday);
       const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
 
-      const token = localStorage.getItem('access_token');
-      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
-      // fetch() avec ReadableStream — la connexion reste ouverte sans timeout
-      const response = await fetch(`${baseURL}/api/v1/study-plans/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'text/event-stream',
-        },
-        body: JSON.stringify({ week_start: weekStart, force_regenerate: true }),
-      });
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => ({}));
-        throw new Error(errBody?.detail || `HTTP ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let tokenBuffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop(); // garder la ligne incomplète
-
-        for (const line of lines) {
-          if (!line.startsWith('data:')) continue;
-          const raw = line.slice(5).trim();
-          if (!raw) continue;
-
-          let evt;
-          try { evt = JSON.parse(raw); } catch { continue; }
-
-          if (evt.type === 'status') {
-            setGeneratingStatus(evt.status);
-            console.log(`📡 Status: ${evt.status}`);
-
-          } else if (evt.type === 'token') {
-            tokenBuffer += evt.text;
-            // Mise à jour du compteur de tokens toutes les 20 tokens
-            if (tokenBuffer.length % 100 === 0) {
-              setGeneratingStatus(`generating:${tokenBuffer.length}`);
-            }
-
-          } else if (evt.type === 'done') {
-            console.log('✅ Plan reçu :', evt.plan);
-            setStudyPlan(evt.plan);
-            setSessions(evt.plan?.sessions || []);
-            return; // succès
-
-          } else if (evt.type === 'error') {
-            throw new Error(evt.message || 'Erreur IA inconnue');
-          }
-        }
-      }
+      // Use Context's generatePlan method
+      await generatePlan(weekStart, true);
+      console.log('✅ Plan generated successfully');
     } catch (err) {
       console.error('❌ Error generating plan:', err);
       setError(err.message || 'Erreur lors de la génération du plan');
     } finally {
-      setGenerating(false);
-      setGeneratingStatus('');
       console.log('🏁 Plan generation finished');
     }
   };
@@ -149,32 +96,16 @@ const PlannerPage = () => {
       throw new Error("Plan ID is missing");
     }
     
-    const originalSessions = [...sessions];
-    const originalStudyPlan = { ...studyPlan };
-    
-    if (selectedSession) {
-      // Optimistic update for editing
-      const updatedSession = { ...selectedSession, ...sessionData };
-      setSessions((prev) => prev.map((s) => s.id === selectedSession.id ? updatedSession : s));
-      setStudyPlan((prev) => ({ ...prev, edited: true }));
-      
-      try {
-        const res = await apiClient.put(`/api/v1/study-plans/${planId}/sessions/${selectedSession.id}`, sessionData);
-        setSessions((prev) => prev.map((s) => s.id === selectedSession.id ? res.data : s));
-      } catch (err) {
-        setSessions(originalSessions);
-        setStudyPlan(originalStudyPlan);
-        throw new Error(err.response?.data?.detail || 'Erreur lors de la sauvegarde');
+    try {
+      if (selectedSession) {
+        // Update existing session via Context
+        await updateSession(planId, selectedSession.id, sessionData);
+      } else {
+        // Add new session via Context
+        await addSession(planId, sessionData);
       }
-    } else {
-      // For adding, we wait for the server response because we need the session ID generated by the DB.
-      try {
-        const res = await apiClient.post(`/api/v1/study-plans/${planId}/sessions`, sessionData);
-        setSessions((prev) => [...prev, res.data]);
-        setStudyPlan((prev) => ({ ...prev, edited: true }));
-      } catch (err) {
-        throw new Error(err.response?.data?.detail || 'Erreur lors de la sauvegarde');
-      }
+    } catch (err) {
+      throw new Error(err.response?.data?.detail || err.message || 'Erreur lors de la sauvegarde');
     }
   };
 
@@ -187,19 +118,10 @@ const PlannerPage = () => {
       throw new Error("Plan ID is missing");
     }
     
-    const originalSessions = [...sessions];
-    const originalStudyPlan = { ...studyPlan };
-    
-    // Optimistic update
-    setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-    setStudyPlan((prev) => ({ ...prev, edited: true }));
-    
     try {
-      await apiClient.delete(`/api/v1/study-plans/${planId}/sessions/${sessionId}`);
+      await deleteSession(planId, sessionId);
     } catch (err) {
-      setSessions(originalSessions);
-      setStudyPlan(originalStudyPlan);
-      throw new Error(err.response?.data?.detail || 'Erreur lors de la suppression');
+      throw new Error(err.response?.data?.detail || err.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -208,11 +130,11 @@ const PlannerPage = () => {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Study Planner</h1>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Study Planner</h1>
           {studyPlan && (
-            <p className="text-white/40 text-sm mt-1">
+            <p className="text-slate-400 dark:text-white/40 text-sm mt-1">
               Plan created on {new Date(studyPlan.created_at).toLocaleDateString('en-US')}
-              {studyPlan.edited && <span className="ml-2 text-violet-400">· edited</span>}
+              {studyPlan.edited && <span className="ml-2 text-violet-600 dark:text-violet-400">· edited</span>}
             </p>
           )}
         </div>
@@ -220,7 +142,7 @@ const PlannerPage = () => {
           <button
             onClick={handleAddSession}
             disabled={!studyPlan || loading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-semibold shadow-sm dark:border-emerald-500/40 dark:text-emerald-300 dark:bg-transparent dark:hover:bg-emerald-500/10"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -230,7 +152,7 @@ const PlannerPage = () => {
           <button
             onClick={handleGeneratePlan}
             disabled={generating || loading}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 text-white text-sm font-semibold shadow-glow-sm hover:shadow-glow-violet hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500 text-white text-sm font-semibold shadow-sm hover:shadow-glow-violet hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all"
           >
             {generating ? (
               <>
@@ -253,69 +175,62 @@ const PlannerPage = () => {
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
-          <svg className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      {(error || planError) && (
+        <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 flex items-start gap-3 dark:bg-red-500/10 dark:border-red-500/20">
+          <svg className="h-5 w-5 text-red-550 dark:text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-sm text-red-300">{error}</p>
+          <p className="text-sm text-red-805 dark:text-red-300">{error || planError}</p>
         </div>
       )}
 
       {/* AI Generation progress banner */}
       {generating && (
-        <div className="mb-6 rounded-xl border border-violet-500/30 bg-violet-500/10 backdrop-blur-md p-4">
+        <div className="mb-6 rounded-xl border border-violet-250 bg-violet-50 p-4 dark:border-violet-500/30 dark:bg-violet-500/10">
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
-              <div className="w-8 h-8 rounded-full border-2 border-violet-500/20 border-t-violet-400 animate-spin" />
+              <div className="w-8 h-8 rounded-full border-2 border-violet-200 border-t-violet-600 animate-spin dark:border-violet-500/20 dark:border-t-violet-400" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-xs">🧠</span>
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-violet-300">
-                {generatingStatus === 'preparing' && 'Préparation des données...'}
-                {(generatingStatus === 'generating' || generatingStatus.startsWith('generating:')) && "L'IA écrit votre planning en temps réel..."}
-                {generatingStatus === 'saving' && 'Sauvegarde du planning...'}
-                {generatingStatus === '' && 'Initialisation...'}
+              <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
+                {generationProgress === 'preparing' && 'Préparation des données...'}
+                {generationProgress === 'running' && "L'IA écrit votre planning en temps réel..."}
+                {generationProgress === 'saving' && 'Sauvegarde du planning...'}
+                {generationProgress === 'done' && 'Planning généré avec succès !'}
+                {!generationProgress && 'Initialisation...'}
               </p>
-              <p className="text-xs text-violet-400/70 mt-0.5">
-                {generatingStatus === 'preparing' && 'Chargement de vos matières, créneaux et contraintes.'}
-                {(generatingStatus === 'generating' || generatingStatus.startsWith('generating:')) && (
-                  <>
-                    Llama 3.1-8B génère sur A100
-                    {generatingStatus.startsWith('generating:') && (
-                      <span className="ml-1 font-mono text-violet-300">
-                        · {generatingStatus.split(':')[1]} tokens reçus
-                      </span>
-                    )}
-                  </>
-                )}
-                {generatingStatus === 'saving' && 'Enregistrement en base de données...'}
+              <p className="text-xs text-violet-650 dark:text-violet-400/70 mt-0.5">
+                {generationProgress === 'preparing' && 'Chargement de vos matières, créneaux et contraintes.'}
+                {generationProgress === 'running' && 'Llama 3.1-8B génère sur A100'}
+                {generationProgress === 'saving' && 'Enregistrement en base de données...'}
+                {generationProgress === 'done' && 'Le planning est maintenant disponible.'}
               </p>
             </div>
             <div className="flex gap-1 flex-shrink-0">
-              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-1.5 h-1.5 bg-violet-500 dark:bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-violet-500 dark:bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-violet-500 dark:bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         </div>
       )}
 
       {/* Loading */}
-      {loading && !studyPlan && (
+      {(loading || planLoading) && !studyPlan && (
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="w-12 h-12 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin mx-auto mb-4" />
-            <p className="text-white/40 text-sm">Loading study plan...</p>
+            <p className="text-slate-400 dark:text-white/40 text-sm">Loading study plan...</p>
           </div>
         </div>
       )}
 
       {/* Calendar */}
-      {!loading && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-md overflow-hidden mb-6">
+      {!loading && !planLoading && (
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden mb-6 dark:border-white/10 dark:bg-white/[0.03]">
           <WeeklyCalendarView
             sessions={sessions}
             availabilities={availabilities}
@@ -333,33 +248,33 @@ const PlannerPage = () => {
               label: 'Total Hours',
               value: `${studyPlan.total_hours?.toFixed(1) || '0.0'}h`,
               icon: '⏱',
-              gradient: 'from-violet-600/25 to-violet-600/5',
+              gradient: 'from-violet-50 to-violet-50/30 dark:from-violet-600/25 dark:to-violet-600/5',
               topBar: 'from-violet-500 to-violet-400',
             },
             {
               label: 'Sessions',
               value: sessions.length,
               icon: '📋',
-              gradient: 'from-cyan-600/25 to-cyan-600/5',
+              gradient: 'from-cyan-50 to-cyan-50/30 dark:from-cyan-600/25 dark:to-cyan-600/5',
               topBar: 'from-cyan-500 to-cyan-400',
             },
             {
               label: 'Subjects',
               value: new Set(sessions.map((s) => s.subject_id)).size,
               icon: '📚',
-              gradient: 'from-emerald-600/25 to-emerald-600/5',
+              gradient: 'from-emerald-50 to-emerald-50/30 dark:from-emerald-600/25 dark:to-emerald-600/5',
               topBar: 'from-emerald-500 to-emerald-400',
             },
           ].map((stat) => (
             <div
               key={stat.label}
-              className={`relative rounded-2xl border border-white/10 bg-gradient-to-br ${stat.gradient} backdrop-blur-md p-5 overflow-hidden`}
+              className={`relative rounded-2xl border border-slate-100 bg-gradient-to-br ${stat.gradient} p-5 overflow-hidden shadow-sm dark:border-white/10`}
             >
               <div className={`absolute top-0 left-4 right-4 h-0.5 rounded-b-full bg-gradient-to-r ${stat.topBar} opacity-60`} />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-white/40 mb-1.5">{stat.label}</p>
-                  <p className="text-3xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-slate-400 dark:text-white/40 mb-1.5">{stat.label}</p>
+                  <p className="text-3xl font-bold text-slate-800 dark:text-white">{stat.value}</p>
                 </div>
                 <span className="text-3xl opacity-60">{stat.icon}</span>
               </div>

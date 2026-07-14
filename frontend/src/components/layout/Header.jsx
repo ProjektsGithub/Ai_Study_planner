@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import PropTypes from 'prop-types';
@@ -22,12 +23,15 @@ NavLink.propTypes = {
 };
 
 const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, roles } = useAuth();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const userRole = roles && roles.length > 0 ? roles[0].role_display_name : 'Student';
 
   return (
     <header
-      className="sticky top-0 z-50 bg-white dark:bg-slate-900/95 border-b border-slate-200 dark:border-white/10"
-      style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 4px 20px rgba(0,0,0,0.05)' }}
+      className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-white/10"
+      style={{ boxShadow: '0 1px 0 rgba(0,0,0,0.01), 0 4px 30px rgba(0,0,0,0.015)' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -48,10 +52,43 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
             )}
           </div>
 
+          {/* Search Bar - Schoooli Style */}
+          {isAuthenticated && (
+            <div className="hidden md:flex items-center flex-1 max-w-sm ml-6 mr-auto">
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-violet-500">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search anything here"
+                  className="w-full pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border border-transparent dark:border-white/10 rounded-full transition-all duration-300 focus:outline-none focus:bg-white focus:border-violet-500/30 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.08)] placeholder:text-slate-450 dark:placeholder:text-white/20"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Right side */}
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
+                {/* Chat Bot Button / Trigger Indicator */}
+                <button
+                  id="header-chat-btn"
+                  className="relative p-2.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/8 transition-all duration-200"
+                  aria-label="Messages"
+                  onClick={() => {
+                    const chatTrigger = document.getElementById('chat-trigger-btn');
+                    if (chatTrigger) chatTrigger.click();
+                  }}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </button>
+
                 {/* Notifications */}
                 <button
                   id="notifications-btn"
@@ -67,21 +104,60 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                   )}
                 </button>
 
-                {/* User avatar + logout */}
-                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-glow-sm">
-                    {user?.email?.charAt(0).toUpperCase() || 'U'}
-                  </div>
+                {/* User avatar + logout dropdown */}
+                <div className="relative flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-white/10">
                   <button
-                    id="logout-btn"
-                    onClick={logout}
-                    className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/8 transition-all duration-200"
+                    onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                    className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-200"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                      {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="hidden sm:flex flex-col text-left leading-none">
+                      <span className="text-xs font-bold text-slate-800 dark:text-white">
+                        {user?.name || user?.email?.split('@')[0]}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-white/40 font-medium mt-0.5">
+                        {userRole}
+                      </span>
+                    </div>
+                    <svg className="w-3.5 h-3.5 text-slate-400 dark:text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                     </svg>
-                    Logout
                   </button>
+
+                  {/* Dropdown Menu */}
+                  {profileMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setProfileMenuOpen(false)} />
+                      <div className="absolute right-0 top-12 z-20 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-xl shadow-lg py-1.5 animate-slide-up">
+                        <Link
+                          to="/profile"
+                          onClick={() => setProfileMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                        >
+                          Profile
+                        </Link>
+                        <Link
+                          to="/preferences"
+                          onClick={() => setProfileMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                        >
+                          Preferences
+                        </Link>
+                        <div className="h-px bg-slate-100 dark:bg-white/10 my-1" />
+                        <button
+                          onClick={() => {
+                            setProfileMenuOpen(false);
+                            logout();
+                          }}
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-red-650 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             ) : (

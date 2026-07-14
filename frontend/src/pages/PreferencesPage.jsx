@@ -11,6 +11,16 @@ const SectionTitle = ({ children }) => (
   <h3 className="form-section-title text-violet-400">{children}</h3>
 );
 
+// German Wiederholung rules: which semesters can be retaken per current semester
+const RETAKE_RULES = {
+  1: [],
+  2: [],
+  3: [],
+  4: [2],
+  5: [1, 3],
+  6: [2, 3],
+};
+
 const PreferencesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -47,6 +57,7 @@ const PreferencesPage = () => {
     cursus_id: '',
     current_semester: 1,
     academic_year: new Date().getFullYear(),
+    retake_semesters: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -99,6 +110,7 @@ const PreferencesPage = () => {
           cursus_id: acad.cursus_id || '',
           current_semester: acad.current_semester || 1,
           academic_year: acad.academic_year || new Date().getFullYear(),
+          retake_semesters: acad.retake_semesters || [],
         });
 
         if (acad.university_id) {
@@ -177,8 +189,20 @@ const PreferencesPage = () => {
     const { name, value } = e.target;
     setAcademicData(prev => ({
       ...prev,
-      [name]: value === '' ? '' : parseInt(value)
+      [name]: value === '' ? '' : parseInt(value),
+      // Reset retake_semesters when semester changes (rules may change)
+      ...(name === 'current_semester' ? { retake_semesters: [] } : {}),
     }));
+  };
+
+  const handleRetakeSemesterToggle = (semNum) => {
+    setAcademicData(prev => {
+      const current = prev.retake_semesters || [];
+      const updated = current.includes(semNum)
+        ? current.filter(s => s !== semNum)
+        : [...current, semNum];
+      return { ...prev, retake_semesters: updated };
+    });
   };
 
   const handleChange = (e) => {
@@ -242,7 +266,8 @@ const PreferencesPage = () => {
           filiere_id: academicData.filiere_id,
           cursus_id: academicData.cursus_id,
           current_semester: academicData.current_semester,
-          academic_year: academicData.academic_year
+          academic_year: academicData.academic_year,
+          retake_semesters: academicData.retake_semesters || [],
         });
       }
 
@@ -386,6 +411,89 @@ const PreferencesPage = () => {
             </div>
           </div>
         </Card>
+
+        {/* Retake Semesters (German Wiederholung system) */}
+        {(() => {
+          const currentSem = parseInt(academicData.current_semester) || 1;
+          const allowedRetakes = RETAKE_RULES[currentSem] || [];
+          if (allowedRetakes.length === 0) return null;
+
+          return (
+            <Card className="p-6 border border-amber-200 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/[0.04]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-amber-800 dark:text-amber-450 text-sm font-bold">⚠</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300">Semestres en Rattrapage (Wiederholung)</h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-400/70 mt-0.5">
+                    En tant qu'étudiant de S{currentSem}, vous pouvez rattraper certains semestres antérieurs.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-amber-100/40 border border-amber-200/60 rounded-xl p-4 mb-4 dark:bg-amber-500/5 dark:border-amber-500/15">
+                <p className="text-xs text-amber-850 dark:text-amber-300/80 leading-relaxed">
+                  Sélectionnez les semestres dont vous rattrapez les cours. Ces cours apparaîtront dans votre 
+                  liste de matières avec un badge <span className="font-bold text-amber-900 dark:text-amber-300">Rattrapage</span> 
+                  et seront inclus dans votre planning IA avec haute priorité.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {allowedRetakes.map((semNum) => {
+                  const isChecked = (academicData.retake_semesters || []).includes(semNum);
+                  return (
+                    <label
+                      key={semNum}
+                      htmlFor={`retake-s${semNum}`}
+                      className={`
+                        flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-200 select-none
+                        ${isChecked
+                          ? 'bg-amber-100/60 border-amber-300 text-amber-900 dark:bg-amber-500/20 dark:border-amber-500/40 dark:text-amber-200'
+                          : 'bg-slate-50 border-slate-100/80 text-slate-650 hover:border-amber-300 hover:bg-amber-50/50 dark:bg-white/[0.03] dark:border-white/10 dark:text-white/60 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/5'
+                        }
+                      `}
+                    >
+                      <input
+                        type="checkbox"
+                        id={`retake-s${semNum}`}
+                        checked={isChecked}
+                        onChange={() => handleRetakeSemesterToggle(semNum)}
+                        className="sr-only"
+                      />
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all
+                        ${isChecked ? 'bg-amber-600 border-amber-500 dark:bg-amber-500 dark:border-amber-400' : 'border-slate-300 dark:border-white/20'}`}
+                      >
+                        {isChecked && (
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold">Semestre S{semNum}</span>
+                        <p className="text-xs text-slate-500 dark:text-white/40 mt-0.5">Rattrapage des cours de S{semNum}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {(academicData.retake_semesters || []).length > 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400/70 mt-3 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {(academicData.retake_semesters || []).length === 1
+                    ? `1 semestre en rattrapage sélectionné — les cours de S${academicData.retake_semesters[0]} seront ajoutés à vos matières.`
+                    : `${(academicData.retake_semesters || []).length} semestres en rattrapage sélectionnés.`
+                  }
+                </p>
+              )}
+            </Card>
+          );
+        })()}
 
         {/* Graduation Goals */}
         <Card className="p-6 border border-white/10 bg-white/[0.03] backdrop-blur-md">
