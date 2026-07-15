@@ -160,7 +160,7 @@ const PlannerPage = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {generatingStatus === 'running' ? 'IA en cours...' : 'En attente...'}
+                {generationProgress === 'running' ? 'AI in progress...' : 'Waiting...'}
               </>
             ) : (
               <>
@@ -196,17 +196,17 @@ const PlannerPage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
-                {generationProgress === 'preparing' && 'Préparation des données...'}
-                {generationProgress === 'running' && "L'IA écrit votre planning en temps réel..."}
-                {generationProgress === 'saving' && 'Sauvegarde du planning...'}
-                {generationProgress === 'done' && 'Planning généré avec succès !'}
-                {!generationProgress && 'Initialisation...'}
+                {generationProgress === 'preparing' && 'Preparing data...'}
+                {generationProgress === 'running' && "AI is writing your schedule in real-time..."}
+                {generationProgress === 'saving' && 'Saving schedule...'}
+                {generationProgress === 'done' && 'Schedule generated successfully!'}
+                {!generationProgress && 'Initializing...'}
               </p>
               <p className="text-xs text-violet-650 dark:text-violet-400/70 mt-0.5">
-                {generationProgress === 'preparing' && 'Chargement de vos matières, créneaux et contraintes.'}
-                {generationProgress === 'running' && 'Llama 3.1-8B génère sur A100'}
-                {generationProgress === 'saving' && 'Enregistrement en base de données...'}
-                {generationProgress === 'done' && 'Le planning est maintenant disponible.'}
+                {generationProgress === 'preparing' && 'Loading your subjects, time slots and constraints.'}
+                {generationProgress === 'running' && 'Llama 3.1-8B generating on A100'}
+                {generationProgress === 'saving' && 'Saving to database...'}
+                {generationProgress === 'done' && 'Your schedule is now available.'}
               </p>
             </div>
             <div className="flex gap-1 flex-shrink-0">

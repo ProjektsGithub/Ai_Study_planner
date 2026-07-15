@@ -270,9 +270,24 @@ Now generate the JSON study plan (JSON only, no other text):"""
         
         The AI might return JSON wrapped in markdown code blocks or with extra text.
         This method tries to extract clean JSON using multiple approaches.
+        
+        Common issues handled:
+        - Double braces: {{...}} → {...}
+        - Markdown blocks: ```json ... ```
+        - Extra whitespace and newlines
         """
         import re
         from datetime import datetime, time
+        
+        # PRE-PROCESSING: Clean common issues BEFORE parsing
+        # 1. Remove markdown code blocks
+        response_text = re.sub(r'```json\s*', '', response_text)
+        response_text = re.sub(r'```\s*', '', response_text)
+        
+        # 2. Fix double braces {{...}} → {...}
+        # This is aggressive: replaces ALL double braces, not just at start/end
+        # Llama sometimes outputs {{...}} instead of {...} throughout the JSON
+        response_text = response_text.replace('{{', '{').replace('}}', '}')
         
         def calculate_total_hours(plan_data: Dict[str, Any]) -> float:
             """Calculate total hours from sessions"""
@@ -307,37 +322,30 @@ Now generate the JSON study plan (JSON only, no other text):"""
             
             return plan_data
         
+        # Strategy 0: Try direct parsing after pre-processing (MOST COMMON CASE)
+        try:
+            result = json.loads(response_text)
+            if isinstance(result, dict) and 'sessions' in result:
+                print("[AI_SERVICE] ✅ Strategy 0: Direct parse after pre-processing succeeded")
+                return fix_plan_data(result)
+        except json.JSONDecodeError:
+            pass
+        
         # Strategy 1: Try to find JSON in ```json code blocks (PRIORITY)
-        if "```json" in response_text:
-            start = response_text.find("```json") + 7
-            end = response_text.find("```", start)
-            if end != -1:
-                json_str = response_text[start:end].strip()
+        if "```json" in response_text or "```" in response_text:
+            # Already cleaned by pre-processing, but try again with regex
+            match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+            if match:
+                json_str = match.group(1).strip()
                 try:
                     result = json.loads(json_str)
-                    # Validate it has expected structure for study plan
                     if isinstance(result, dict) and 'sessions' in result:
+                        print("[AI_SERVICE] ✅ Strategy 1: Markdown block extraction succeeded")
                         return fix_plan_data(result)
                 except json.JSONDecodeError:
                     pass
         
-        # Strategy 2: Try generic code blocks
-        if "```" in response_text:
-            start = response_text.find("```") + 3
-            end = response_text.find("```", start)
-            if end != -1:
-                json_str = response_text[start:end].strip()
-                # Remove language identifier if present
-                if json_str.startswith("json\n"):
-                    json_str = json_str[5:]
-                try:
-                    result = json.loads(json_str)
-                    if isinstance(result, dict) and 'sessions' in result:
-                        return fix_plan_data(result)
-                except json.JSONDecodeError:
-                    pass
-        
-        # Strategy 3: Find the largest valid JSON object in the response
+        # Strategy 2: Find the largest valid JSON object in the response
         brace_positions = [(m.start(), '{') for m in re.finditer(r'\{', response_text)]
         brace_positions += [(m.start(), '}') for m in re.finditer(r'\}', response_text)]
         brace_positions.sort()
@@ -358,12 +366,13 @@ Now generate the JSON study plan (JSON only, no other text):"""
                                 result = json.loads(json_str)
                                 # Validate it has expected structure
                                 if isinstance(result, dict) and 'sessions' in result:
+                                    print("[AI_SERVICE] ✅ Strategy 2: Brace matching succeeded")
                                     return fix_plan_data(result)
                             except json.JSONDecodeError:
                                 continue
                             break
         
-        # Strategy 4: Try simple extraction between first { and last }
+        # Strategy 3: Try simple extraction between first { and last }
         start_idx = response_text.find("{")
         end_idx = response_text.rfind("}") + 1
         
@@ -372,20 +381,13 @@ Now generate the JSON study plan (JSON only, no other text):"""
             try:
                 result = json.loads(json_str)
                 if isinstance(result, dict) and 'sessions' in result:
+                    print("[AI_SERVICE] ✅ Strategy 3: Simple extraction succeeded")
                     return fix_plan_data(result)
             except json.JSONDecodeError:
                 pass
         
-        # Strategy 5: Try parsing the whole response
-        try:
-            result = json.loads(response_text)
-            if isinstance(result, dict) and 'sessions' in result:
-                return fix_plan_data(result)
-        except json.JSONDecodeError:
-            pass
-        
-        # Strategy 6: Log the response for debugging and return None
-        print(f"[AI_SERVICE ERROR] Failed to extract JSON from response")
+        # Strategy 4: Last resort - log and return None
+        print(f"[AI_SERVICE] ❌ All extraction strategies failed")
         print(f"[AI_SERVICE ERROR] Response length: {len(response_text)} characters")
         print(f"[AI_SERVICE ERROR] Full response:")
         print("="*70)
