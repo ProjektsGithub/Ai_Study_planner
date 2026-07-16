@@ -25,6 +25,9 @@ aiohttp==3.9.1
 # PDF generation
 reportlab==4.0.9
 
+# Calendar export
+icalendar==5.0.12
+
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3

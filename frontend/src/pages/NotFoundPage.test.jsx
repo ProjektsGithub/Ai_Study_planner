@@ -41,9 +41,9 @@ describe('NotFoundPage', () => {
     );
 
     expect(screen.getByText('404')).toBeInTheDocument();
-    expect(screen.getByText('Seite nicht gefunden')).toBeInTheDocument();
-    expect(screen.getByText('Die gesuchte Seite existiert nicht oder wurde verschoben.')).toBeInTheDocument();
-    expect(screen.getByText('Zurück zur Startseite')).toBeInTheDocument();
+    expect(screen.getByText('Page Not Found')).toBeInTheDocument();
+    expect(screen.getByText('The page you are looking for does not exist or has been moved.')).toBeInTheDocument();
+    expect(screen.getByText('Back to Home')).toBeInTheDocument();
   });
 
   it('navigates to home when button is clicked', () => {
@@ -58,7 +58,7 @@ describe('NotFoundPage', () => {
       </LanguageProvider>
     );
 
-    const button = screen.getByText('Zurück zur Startseite');
+    const button = screen.getByText('Back to Home');
     fireEvent.click(button);
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });

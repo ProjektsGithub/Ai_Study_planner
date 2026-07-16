@@ -12,6 +12,75 @@ export const useLanguage = () => {
 };
 
 const translations = {
+  fr: {
+    // Navigation / Sidebar
+    'nav.dashboard': 'Tableau de bord',
+    'nav.universities': 'Universités',
+    'nav.programs': 'Programmes d\'études',
+    'nav.tracks': 'Parcours académiques',
+    'nav.rules': 'Règles de validation',
+    'nav.semesters': 'Semestres',
+    'nav.units': 'Unités d\'enseignement',
+    'nav.courses': 'Cours',
+    'nav.imports': 'Importation en masse',
+    'nav.reports': 'Rapports & Exports',
+    'nav.audit': 'Journaux d\'audit',
+    'nav.roles': 'Gestion des rôles',
+    'nav.settings': 'Paramètres système',
+    'nav.student_portal': 'Portail étudiant',
+    'nav.my_profile': 'Mon profil',
+    'nav.preferences': 'Préférences',
+    'nav.logout': 'Déconnexion',
+    'nav.group.overview': 'Aperçu',
+    'nav.group.planning': 'Planification',
+    'nav.group.settings': 'Paramètres',
+    'nav.group.account': 'Compte',
+    'nav.create_plan': 'Créer un plan',
+    'nav.my_study_plans': 'Mes plans d\'études',
+    'nav.manage_courses': 'Gérer les cours',
+    'nav.availabilities': 'Disponibilités',
+    'nav.off_days': 'Jours de repos',
+    'nav.recommendations': 'Recommandations',
+    'nav.logo_subtitle': "Votre planificateur d'études personnalisé",
+    'study_tip.title': "Astuce d'étude",
+    'study_tip.content': "Essayez la méthode Pomodoro : 25 minutes de révision intense, puis 5 minutes de pause pour rester concentré !",
+
+    // Buttons / Actions
+    'action.add': 'Ajouter',
+    'action.edit': 'Modifier',
+    'action.delete': 'Supprimer',
+    'action.save': 'Enregistrer',
+    'action.cancel': 'Annuler',
+    'action.reset': 'Réinitialiser',
+    'action.reload': 'Recharger',
+    'action.import': 'Importer',
+    'action.export': 'Exporter',
+    'action.rollback': 'Restaurer',
+    'action.details': 'Détails',
+
+    // Common labels
+    'label.search': 'Rechercher...',
+    'label.name': 'Nom',
+    'label.description': 'Description',
+    'label.country': 'Pays',
+    'label.ects': 'ECTS',
+    'label.level': 'Niveau',
+    'label.semester': 'Semestre',
+    'label.actions': 'Actions',
+    'label.timestamp': 'Horodatage',
+    'label.user': 'Utilisateur',
+    'label.operation': 'Opération',
+    'label.status': 'Statut',
+
+    // UI headers & details
+    'admin.platform': 'Plateforme d\'administration',
+    'shortcut.legend': 'Raccourcis clavier',
+    'error.404.title': 'Page non trouvée',
+    'error.404.subtitle': 'La page que vous recherchez n\'existe pas ou a été déplacée.',
+    'error.403.title': 'Accès refusé',
+    'error.403.subtitle': 'Vous n\'avez pas les permissions requises pour accéder à cette page.',
+    'error.back_home': 'Retour à l\'accueil',
+  },
   de: {
     // Navigation / Sidebar
     'nav.dashboard': 'Dashboard',
@@ -29,7 +98,21 @@ const translations = {
     'nav.settings': 'Systemeinstellungen',
     'nav.student_portal': 'Studentenportal',
     'nav.my_profile': 'Mein Profil',
+    'nav.preferences': 'Einstellungen',
     'nav.logout': 'Abmelden',
+    'nav.group.overview': 'Übersicht',
+    'nav.group.planning': 'Planung',
+    'nav.group.settings': 'Einstellungen',
+    'nav.group.account': 'Konto',
+    'nav.create_plan': 'Studienplan erstellen',
+    'nav.my_study_plans': 'Meine Studienpläne',
+    'nav.manage_courses': 'Kurse verwalten',
+    'nav.availabilities': 'Verfügbarkeiten',
+    'nav.off_days': 'Freie Tage',
+    'nav.recommendations': 'Empfehlungen',
+    'nav.logo_subtitle': "Ihr persönlicher Studienplaner",
+    'study_tip.title': "Studientipp",
+    'study_tip.content': "Probieren Sie die Pomodoro-Technik aus: 25 Minuten intensiv lernen, dann 5 Minuten Pause machen, um konzentriert zu bleiben!",
 
     // Buttons / Actions
     'action.add': 'Hinzufügen',
@@ -84,7 +167,21 @@ const translations = {
     'nav.settings': 'System Settings',
     'nav.student_portal': 'Student Portal',
     'nav.my_profile': 'My Profile',
+    'nav.preferences': 'Preferences',
     'nav.logout': 'Logout',
+    'nav.group.overview': 'Overview',
+    'nav.group.planning': 'Planning',
+    'nav.group.settings': 'Settings',
+    'nav.group.account': 'Account',
+    'nav.create_plan': 'Create a Plan',
+    'nav.my_study_plans': 'My Study Plans',
+    'nav.manage_courses': 'Manage Courses',
+    'nav.availabilities': 'Availabilities',
+    'nav.off_days': 'Off Days',
+    'nav.recommendations': 'Recommendations',
+    'nav.logo_subtitle': "Your personalized study planner",
+    'study_tip.title': "Study Tip",
+    'study_tip.content': "Try the Pomodoro technique: study intensely for 25 minutes, then take a 5-minute break to stay focused!",
 
     // Buttons / Actions
     'action.add': 'Add',
@@ -125,8 +222,8 @@ const translations = {
 };
 
 export const LanguageProvider = ({ children }) => {
-  // German is the primary language (as per Requirement 17.1), English secondary
-  const [lang, setLang] = useState(() => localStorage.getItem('ui_lang') || 'de');
+  // English is the primary language, German/French secondary
+  const [lang, setLang] = useState(() => localStorage.getItem('ui_lang') || 'en');
 
   const changeLanguage = (newLang) => {
     setLang(newLang);
@@ -134,17 +231,21 @@ export const LanguageProvider = ({ children }) => {
   };
 
   const t = (key) => {
-    return translations[lang]?.[key] || translations['de']?.[key] || key;
+    return translations[lang]?.[key] || translations['en']?.[key] || key;
   };
 
   const getLocalizedName = (entity) => {
     if (!entity) return '';
-    return lang === 'de' ? (entity.name_de || entity.name) : (entity.name || entity.name_de || '');
+    if (lang === 'de') return entity.name_de || entity.name;
+    if (lang === 'fr') return entity.name_fr || entity.name || entity.name_de;
+    return entity.name || entity.name_de || '';
   };
 
   const getLocalizedDescription = (entity) => {
     if (!entity) return '';
-    return lang === 'de' ? (entity.description_de || entity.description) : (entity.description || entity.description_de || '');
+    if (lang === 'de') return entity.description_de || entity.description;
+    if (lang === 'fr') return entity.description_fr || entity.description || entity.description_de;
+    return entity.description || entity.description_de || '';
   };
 
   const formatEuroDate = (date) => {

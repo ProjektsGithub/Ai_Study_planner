@@ -4,6 +4,8 @@ import { useAcademicData } from '../context/AcademicDataContext';
 import WeeklyCalendarView from '../components/WeeklyCalendarView';
 import SessionEditor from '../components/SessionEditor';
 import PlanProgressDashboard from '../components/PlanProgressDashboard';
+import CalendarExportMenu from '../components/CalendarExportMenu';
+import usePdfExport from '../hooks/usePdfExport';
 import apiClient from '../api/client';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -35,6 +37,7 @@ const AIPlanPage = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   // Local session list for optimistic completion updates
   const [localSessions, setLocalSessions] = useState([]);
+  const { exportPdf, exporting, exportError } = usePdfExport();
   
   // Local state for week start date (Monday of the selected week)
   const [weekStartDate, setWeekStartDate] = useState(() => getMonday(new Date()));
@@ -314,6 +317,41 @@ const AIPlanPage = () => {
             Add Session
           </Button>
 
+          {/* Bouton Export PDF */}
+          {currentPlan && (
+            <Button
+              id="export-pdf-btn"
+              variant="secondary"
+              onClick={() => exportPdf(currentPlan.plan_id, `plan_etude_semaine.pdf`)}
+              disabled={exporting || isLoading}
+              loading={exporting}
+            >
+              {exporting ? (
+                <>
+                  <svg className="animate-spin w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  PDF…
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exporter PDF
+                </>
+              )}
+            </Button>
+          )}
+
+          {/* Menu Export Calendrier */}
+          <CalendarExportMenu
+            planId={currentPlan?.plan_id}
+            sessions={sessions}
+            disabled={isLoading || !currentPlan}
+          />
+
           <Button
             variant="primary"
             onClick={() => currentPlan ? handleRegeneratePlan() : handleGeneratePlan()}
@@ -342,12 +380,14 @@ const AIPlanPage = () => {
       </div>
 
       {/* Error notification */}
-      {(error || planError) && (
+      {(error || planError || exportError) && (
         <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 p-4 flex items-start gap-3">
           <svg className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-sm text-red-300">{error || (typeof planError === 'string' ? planError : planError?.message) || 'An error occurred'}</p>
+          <p className="text-sm text-red-300">
+            {exportError || error || (typeof planError === 'string' ? planError : planError?.message) || 'An error occurred'}
+          </p>
         </div>
       )}
 

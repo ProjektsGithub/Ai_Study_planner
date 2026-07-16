@@ -41,9 +41,9 @@ describe('UnauthorizedPage', () => {
     );
 
     expect(screen.getByText('403')).toBeInTheDocument();
-    expect(screen.getByText('Zugriff verweigert')).toBeInTheDocument();
-    expect(screen.getByText('Sie haben keine Berechtigung, auf diese Seite zuzugreifen.')).toBeInTheDocument();
-    expect(screen.getByText('Zurück zur Startseite')).toBeInTheDocument();
+    expect(screen.getByText('Access Denied')).toBeInTheDocument();
+    expect(screen.getByText('You do not have the required permissions to access this page.')).toBeInTheDocument();
+    expect(screen.getByText('Back to Home')).toBeInTheDocument();
   });
 
   it('navigates to home when button is clicked', () => {
@@ -58,7 +58,7 @@ describe('UnauthorizedPage', () => {
       </LanguageProvider>
     );
 
-    const button = screen.getByText('Zurück zur Startseite');
+    const button = screen.getByText('Back to Home');
     fireEvent.click(button);
     expect(mockNavigate).toHaveBeenCalledWith('/');
   });

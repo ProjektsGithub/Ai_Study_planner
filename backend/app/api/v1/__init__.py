@@ -2,7 +2,7 @@
 API v1 routes
 """
 from fastapi import APIRouter
-from app.api.v1 import auth, profile, subjects, availabilities, constraints, study_plans, exports, notifications, chat
+from app.api.v1 import auth, profile, subjects, availabilities, constraints, study_plans, exports, notifications, chat, calendar
 from app.api.v1.admin import admin_router
 
 # NEW: Academic tracking routers
@@ -20,6 +20,7 @@ api_router.include_router(availabilities.router)
 api_router.include_router(constraints.router)
 api_router.include_router(study_plans.router)
 api_router.include_router(exports.router)
+api_router.include_router(calendar.router)          # /api/v1/calendar/...
 api_router.include_router(notifications.router)
 api_router.include_router(chat.router)             # /api/v1/chat
 

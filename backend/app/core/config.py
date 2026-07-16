@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 100
+
+    # Email / SMTP (mot de passe oublié)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@aiplanning.local"
+    FRONTEND_URL: str = "http://localhost:5173"
     
     @property
     def allowed_origins_list(self) -> List[str]:

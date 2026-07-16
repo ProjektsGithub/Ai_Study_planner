@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import PropTypes from 'prop-types';
 
 const NavLink = ({ to, children }) => {
@@ -24,7 +25,9 @@ NavLink.propTypes = {
 
 const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
   const { user, logout, isAuthenticated, roles } = useAuth();
+  const { lang, changeLanguage, t } = useLanguage();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
 
   const userRole = roles && roles.length > 0 ? roles[0].role_display_name : 'Student';
 
@@ -104,6 +107,61 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                   )}
                 </button>
 
+                {/* Language Selector Dropdown next to notifications */}
+                <div className="relative">
+                  <button
+                    onClick={() => setLangMenuOpen(!langMenuOpen)}
+                    className="flex items-center gap-1.5 p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/8 transition-all duration-200 text-xs font-bold uppercase tracking-wider"
+                    aria-label="Change language"
+                  >
+                    <svg className="w-4 h-4 text-slate-400 dark:text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9" />
+                    </svg>
+                    <span>{lang}</span>
+                    <svg className="w-3 h-3 text-slate-400 dark:text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {langMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setLangMenuOpen(false)} />
+                      <div className="absolute right-0 top-11 z-20 w-32 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-xl shadow-lg py-1 animate-slide-up">
+                        <button
+                          onClick={() => {
+                            changeLanguage('en');
+                            setLangMenuOpen(false);
+                          }}
+                          className={`w-full text-left flex items-center justify-between px-3.5 py-2 text-xs font-semibold transition-colors ${lang === 'en' ? 'text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5' : 'text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                        >
+                          <span>English</span>
+                          {lang === 'en' && <span className="w-1.5 h-1.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            changeLanguage('fr');
+                            setLangMenuOpen(false);
+                          }}
+                          className={`w-full text-left flex items-center justify-between px-3.5 py-2 text-xs font-semibold transition-colors ${lang === 'fr' ? 'text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5' : 'text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                        >
+                          <span>Français</span>
+                          {lang === 'fr' && <span className="w-1.5 h-1.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            changeLanguage('de');
+                            setLangMenuOpen(false);
+                          }}
+                          className={`w-full text-left flex items-center justify-between px-3.5 py-2 text-xs font-semibold transition-colors ${lang === 'de' ? 'text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5' : 'text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                        >
+                          <span>Deutsch</span>
+                          {lang === 'de' && <span className="w-1.5 h-1.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 {/* User avatar + logout dropdown */}
                 <div className="relative flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-white/10">
                   <button
@@ -130,21 +188,55 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                   {profileMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setProfileMenuOpen(false)} />
-                      <div className="absolute right-0 top-12 z-20 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-xl shadow-lg py-1.5 animate-slide-up">
+                      <div className="absolute right-0 top-12 z-20 w-52 bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 rounded-xl shadow-lg py-1.5 animate-slide-up">
                         <Link
                           to="/profile"
                           onClick={() => setProfileMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                         >
-                          Profile
+                          {t('nav.my_profile')}
                         </Link>
                         <Link
                           to="/preferences"
                           onClick={() => setProfileMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                         >
-                          Preferences
+                          {t('nav.preferences')}
                         </Link>
+                        <div className="h-px bg-slate-100 dark:bg-white/10 my-1" />
+                        <div className="px-4 py-1 text-[9px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-wider">
+                          Language / Langue
+                        </div>
+                        <button
+                          onClick={() => {
+                            changeLanguage('en');
+                            setProfileMenuOpen(false);
+                          }}
+                          className={`w-full text-left flex items-center justify-between px-4 py-1.5 text-xs font-semibold transition-colors ${lang === 'en' ? 'text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5' : 'text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                        >
+                          <span>English</span>
+                          {lang === 'en' && <span className="w-1.5 h-1.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            changeLanguage('fr');
+                            setProfileMenuOpen(false);
+                          }}
+                          className={`w-full text-left flex items-center justify-between px-4 py-1.5 text-xs font-semibold transition-colors ${lang === 'fr' ? 'text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5' : 'text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                        >
+                          <span>Français</span>
+                          {lang === 'fr' && <span className="w-1.5 h-1.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            changeLanguage('de');
+                            setProfileMenuOpen(false);
+                          }}
+                          className={`w-full text-left flex items-center justify-between px-4 py-1.5 text-xs font-semibold transition-colors ${lang === 'de' ? 'text-violet-600 dark:text-violet-400 bg-violet-50/50 dark:bg-violet-500/5' : 'text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                        >
+                          <span>Deutsch</span>
+                          {lang === 'de' && <span className="w-1.5 h-1.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+                        </button>
                         <div className="h-px bg-slate-100 dark:bg-white/10 my-1" />
                         <button
                           onClick={() => {
@@ -153,7 +245,7 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                           }}
                           className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-red-650 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                         >
-                          Logout
+                          {t('nav.logout')}
                         </button>
                       </div>
                     </>

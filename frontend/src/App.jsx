@@ -11,6 +11,8 @@ import Layout from './components/layout/Layout';
 import HomeRedirect from './components/HomeRedirect';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import PreferencesPage from './pages/PreferencesPage';
@@ -62,9 +64,11 @@ const router = createBrowserRouter([
   { path: '/', element: <HomeRedirect /> },
 
   // Public routes
-  { path: '/login',    element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
-  { path: '/demo',     element: <CalendarDemo /> },
+  { path: '/login',             element: <LoginPage /> },
+  { path: '/register',          element: <RegisterPage /> },
+  { path: '/forgot-password',   element: <ForgotPasswordPage /> },
+  { path: '/reset-password',    element: <ResetPasswordPage /> },
+  { path: '/demo',              element: <CalendarDemo /> },
 
   // Student routes — authentication required
   // ProtectedRoute (auth guard) → Layout (shell) → Page component

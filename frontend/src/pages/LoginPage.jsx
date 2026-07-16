@@ -146,9 +146,9 @@ const LoginPage = () => {
                 </div>
                 <span className="text-xs text-white/50 group-hover:text-white/70 transition-colors">Se souvenir de moi</span>
               </label>
-              <a href="#" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+              <Link to="/forgot-password" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
                 Mot de passe oublié ?
-              </a>
+              </Link>
             </div>
 
             {/* Error */}

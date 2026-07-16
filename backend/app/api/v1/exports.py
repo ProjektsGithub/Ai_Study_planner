@@ -14,7 +14,7 @@ router = APIRouter(prefix="/exports", tags=["exports"])
 
 @router.post("/plans/{plan_id}/pdf")
 async def export_plan_to_pdf(
-    plan_id: int,
+    plan_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

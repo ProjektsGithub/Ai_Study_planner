@@ -96,7 +96,7 @@ describe('ProtectedRoute', () => {
       </LanguageProvider>
     );
 
-    expect(screen.getByText('Zugriff verweigert')).toBeInTheDocument();
+    expect(screen.getByText('Access Denied')).toBeInTheDocument();
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 

@@ -20,6 +20,8 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     failed_login_attempts = Column(Integer, default=0, nullable=False)
     last_failed_login = Column(DateTime, nullable=True)
+    reset_password_token = Column(String(255), nullable=True, index=True)
+    reset_password_token_expires = Column(DateTime, nullable=True)
 
     # Existing relationships
     profile = relationship("StudentProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")

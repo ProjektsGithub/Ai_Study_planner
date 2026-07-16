@@ -213,6 +213,29 @@ const AdminLayout = () => {
     }
   );
 
+  const languageMenu = {
+    items: [
+      {
+        key: 'lang-en',
+        label: 'English',
+        disabled: lang === 'en',
+        onClick: () => changeLanguage('en'),
+      },
+      {
+        key: 'lang-fr',
+        label: 'Français',
+        disabled: lang === 'fr',
+        onClick: () => changeLanguage('fr'),
+      },
+      {
+        key: 'lang-de',
+        label: 'Deutsch',
+        disabled: lang === 'de',
+        onClick: () => changeLanguage('de'),
+      },
+    ]
+  };
+
   const userMenu = {
     items: [
       {
@@ -225,19 +248,25 @@ const AdminLayout = () => {
       },
       {
         key: 'language',
-        label: lang === 'de' ? 'Sprache: Deutsch' : 'Language: English',
+        label: lang === 'fr' ? 'Langue: Français' : lang === 'de' ? 'Sprache: Deutsch' : 'Language: English',
         children: [
-          {
-            key: 'lang-de',
-            label: 'Deutsch',
-            disabled: lang === 'de',
-            onClick: () => changeLanguage('de'),
-          },
           {
             key: 'lang-en',
             label: 'English',
             disabled: lang === 'en',
             onClick: () => changeLanguage('en'),
+          },
+          {
+            key: 'lang-fr',
+            label: 'Français',
+            disabled: lang === 'fr',
+            onClick: () => changeLanguage('fr'),
+          },
+          {
+            key: 'lang-de',
+            label: 'Deutsch',
+            disabled: lang === 'de',
+            onClick: () => changeLanguage('de'),
           },
         ]
       },
@@ -353,6 +382,18 @@ const AdminLayout = () => {
           </div>
 
           <Space size={24}>
+            <Dropdown menu={languageMenu} placement="bottomRight" trigger={['click']}>
+              <Button
+                type="text"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, textTransform: 'uppercase', fontSize: '12px', color: '#8c8c8c', height: 32 }}
+              >
+                <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9" />
+                </svg>
+                <span>{lang}</span>
+              </Button>
+            </Dropdown>
+
             <Tooltip title={t('shortcut.legend') + ' (Alt + H)'}>
               <Button
                 type="text"
@@ -403,7 +444,7 @@ const AdminLayout = () => {
         onCancel={() => setHelpOpen(false)}
         footer={[
           <Button key="close" type="primary" onClick={() => setHelpOpen(false)}>
-            {lang === 'de' ? 'Verstanden' : 'Got it'}
+            {lang === 'fr' ? 'Compris' : lang === 'de' ? 'Verstanden' : 'Got it'}
           </Button>
         ]}
         width={450}

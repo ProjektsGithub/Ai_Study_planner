@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Icons definitions
 const HomeIcon = () => (
@@ -65,33 +66,33 @@ const LogoutIcon = () => (
 
 const menuGroups = [
   {
-    title: 'Overview',
+    titleKey: 'nav.group.overview',
     items: [
-      { path: '/dashboard', label: 'Dashboard', icon: <HomeIcon /> }
+      { path: '/dashboard', labelKey: 'nav.dashboard', icon: <HomeIcon /> }
     ]
   },
   {
-    title: 'Planning',
+    titleKey: 'nav.group.planning',
     items: [
-      { path: '/ai-plan', label: 'Create a Plan', icon: <SparklesIcon /> },
-      { path: '/planner', label: 'My Study Plans', icon: <CalendarIcon /> },
-      { path: '/subjects', label: 'Manage Courses', icon: <BookOpenIcon /> }
+      { path: '/ai-plan', labelKey: 'nav.create_plan', icon: <SparklesIcon /> },
+      { path: '/planner', labelKey: 'nav.my_study_plans', icon: <CalendarIcon /> },
+      { path: '/subjects', labelKey: 'nav.manage_courses', icon: <BookOpenIcon /> }
     ]
   },
   {
-    title: 'Settings',
+    titleKey: 'nav.group.settings',
     items: [
-      { path: '/availabilities', label: 'Availabilities', icon: <ClockIcon /> },
-      { path: '/preferences', label: 'Preferences', icon: <PreferencesIcon /> },
-      { path: '/constraints', label: 'Off Days', icon: <CalendarDaysIcon /> }
+      { path: '/availabilities', labelKey: 'nav.availabilities', icon: <ClockIcon /> },
+      { path: '/preferences', labelKey: 'nav.preferences', icon: <PreferencesIcon /> },
+      { path: '/constraints', labelKey: 'nav.off_days', icon: <CalendarDaysIcon /> }
     ]
   },
   {
-    title: 'Account',
+    titleKey: 'nav.group.account',
     items: [
-      { path: '/profile', label: 'Profile', icon: <UserIcon /> },
-      { path: '/recommendations', label: 'Recommendations', icon: <LightbulbIcon /> },
-      { path: 'logout', label: 'Logout', icon: <LogoutIcon />, action: true }
+      { path: '/profile', labelKey: 'nav.my_profile', icon: <UserIcon /> },
+      { path: '/recommendations', labelKey: 'nav.recommendations', icon: <LightbulbIcon /> },
+      { path: 'logout', labelKey: 'nav.logout', icon: <LogoutIcon />, action: true }
     ]
   }
 ];
@@ -99,6 +100,7 @@ const menuGroups = [
 const Sidebar = ({ isOpen, onClose }) => {
   const { pathname } = useLocation();
   const { logout } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <aside
@@ -116,17 +118,17 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-500 flex items-center justify-center shadow-glow-sm">
               <span className="text-lg text-white font-bold">✦</span>
             </div>
-            <div className="flex flex-col leading-none">
+          <div className="flex flex-col leading-none">
               <span className="text-base font-bold text-violet-600 dark:text-white tracking-tight">STUDYPLAN AI</span>
-              <span className="text-[9px] text-slate-400 dark:text-white/40 font-medium tracking-tight mt-0.5">Your personalized study planner</span>
+              <span className="text-[9px] text-slate-400 dark:text-white/40 font-medium tracking-tight mt-0.5">{t('nav.logo_subtitle')}</span>
             </div>
           </div>
-
+ 
           <nav className="space-y-4">
             {menuGroups.map((group) => (
-              <div key={group.title} className="space-y-1">
+              <div key={group.titleKey} className="space-y-1">
                 <div className="text-[10px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-widest px-4 mb-1">
-                  {group.title}
+                  {t(group.titleKey)}
                 </div>
                 {group.items.map((item) => {
                   const isActive = !item.action && (pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path)));
@@ -134,7 +136,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   if (item.action && item.path === 'logout') {
                     return (
                       <button
-                        key={item.label}
+                        key={item.labelKey}
                         onClick={() => {
                           logout();
                           onClose();
@@ -144,11 +146,11 @@ const Sidebar = ({ isOpen, onClose }) => {
                         <span className="text-slate-400 dark:text-white/40">
                           {item.icon}
                         </span>
-                        <span>{item.label}</span>
+                        <span>{t(item.labelKey)}</span>
                       </button>
                     );
                   }
-
+ 
                   return (
                     <Link
                       key={item.path}
@@ -164,7 +166,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                       <span className={isActive ? 'text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-white/40'}>
                         {item.icon}
                       </span>
-                      <span>{item.label}</span>
+                      <span>{t(item.labelKey)}</span>
                     </Link>
                   );
                 })}
@@ -181,9 +183,9 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div className="relative z-10 flex items-start gap-2.5">
               <span className="text-xl leading-none">💡</span>
               <div className="flex-1">
-                <p className="text-xs font-bold text-slate-800 dark:text-violet-200">Astuce d'étude</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-violet-200">{t('study_tip.title')}</p>
                 <p className="text-[10px] text-slate-500 dark:text-white/50 mt-1 font-medium leading-relaxed">
-                  Essayez la méthode <strong>Pomodoro</strong> : 25 minutes de révision intense, puis 5 minutes de pause pour rester concentré !
+                  {t('study_tip.content')}
                 </p>
               </div>
             </div>
