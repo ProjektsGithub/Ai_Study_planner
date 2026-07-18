@@ -6,12 +6,16 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
 import sys
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core.config import settings
+# Load .env file directly (avoid app.core.config import issues)
+load_dotenv()
+
 from app.core.database import Base
 # Import all models to ensure they're registered with Base
 from app.models import (
@@ -42,8 +46,16 @@ from app.models import (
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set sqlalchemy.url from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Load DATABASE_URL directly from environment (more reliable than app.core.config)
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    raise RuntimeError(
+        "DATABASE_URL is not configured. "
+        "Ensure .env file exists in backend/ directory with DATABASE_URL set."
+    )
+
+# Set sqlalchemy.url from environment
+config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
