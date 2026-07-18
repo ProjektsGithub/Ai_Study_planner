@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "AI Study Planner"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
+    LOG_LEVEL: str = "INFO"
     
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/ai_study_planner"
