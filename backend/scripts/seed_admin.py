@@ -75,13 +75,13 @@ def create_admin_roles(db: Session) -> None:
             )
             db.add(role)
             created_roles.append(role_data["name"])
-            print(f"  ✓ Created role: {role_data['display_name']}")
+            print(f"  [OK] Created role: {role_data['display_name']}")
         else:
-            print(f"  - Role already exists: {role_data['display_name']}")
+            print(f"  [-] Role already exists: {role_data['display_name']}")
     
     if created_roles:
         db.commit()
-        print(f"\n✓ Created {len(created_roles)} new role(s)")
+        print(f"\n[OK] Created {len(created_roles)} new role(s)")
     else:
         print("\n- All roles already exist")
 
@@ -128,7 +128,7 @@ def create_super_admin(db: Session, email: str, password: str, name: str) -> Use
     db.add(user)
     db.flush()  # Get user ID
     
-    print(f"  ✓ Created user: {name} ({email})")
+    print(f"  [OK] Created user: {name} ({email})")
     
     return user
 
@@ -174,7 +174,7 @@ def assign_super_admin_role(db: Session, user: User) -> None:
     db.add(user_role)
     db.commit()
     
-    print(f"  ✓ Assigned Super Admin role to {user.name}")
+    print(f"  [OK] Assigned Super Admin role to {user.name}")
 
 
 def seed_admin_user(email: str = "admin@example.com", 
@@ -208,7 +208,7 @@ def seed_admin_user(email: str = "admin@example.com",
         try:
             user = create_super_admin(db, email, password, name)
         except ValueError as e:
-            print(f"  ✗ Error: {e}")
+            print(f"  [ERROR] {e}")
             # If user exists, try to get it and assign role
             user = db.query(User).filter(User.email == email).first()
             if user:
@@ -224,7 +224,7 @@ def seed_admin_user(email: str = "admin@example.com",
         
         # Success summary
         print("="*60)
-        print("  ✓ Super Admin Account Setup Complete!")
+        print("  [SUCCESS] Super Admin Account Setup Complete!")
         print("="*60)
         print()
         print("Login Credentials:")
@@ -245,7 +245,7 @@ def seed_admin_user(email: str = "admin@example.com",
         db.rollback()
         print()
         print("="*60)
-        print("  ✗ Error During Setup")
+        print("  [ERROR] Error During Setup")
         print("="*60)
         print(f"  {str(e)}")
         print()
