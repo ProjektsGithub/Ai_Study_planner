@@ -326,7 +326,7 @@ Now generate the JSON study plan (JSON only, no other text):"""
         try:
             result = json.loads(response_text)
             if isinstance(result, dict) and 'sessions' in result:
-                print("[AI_SERVICE] ✅ Strategy 0: Direct parse after pre-processing succeeded")
+                print("[AI_SERVICE] [OK] Strategy 0: Direct parse after pre-processing succeeded")
                 return fix_plan_data(result)
         except json.JSONDecodeError:
             pass
@@ -340,7 +340,7 @@ Now generate the JSON study plan (JSON only, no other text):"""
                 try:
                     result = json.loads(json_str)
                     if isinstance(result, dict) and 'sessions' in result:
-                        print("[AI_SERVICE] ✅ Strategy 1: Markdown block extraction succeeded")
+                        print("[AI_SERVICE] [OK] Strategy 1: Markdown block extraction succeeded")
                         return fix_plan_data(result)
                 except json.JSONDecodeError:
                     pass
@@ -366,7 +366,7 @@ Now generate the JSON study plan (JSON only, no other text):"""
                                 result = json.loads(json_str)
                                 # Validate it has expected structure
                                 if isinstance(result, dict) and 'sessions' in result:
-                                    print("[AI_SERVICE] ✅ Strategy 2: Brace matching succeeded")
+                                    print("[AI_SERVICE] [OK] Strategy 2: Brace matching succeeded")
                                     return fix_plan_data(result)
                             except json.JSONDecodeError:
                                 continue
@@ -381,13 +381,13 @@ Now generate the JSON study plan (JSON only, no other text):"""
             try:
                 result = json.loads(json_str)
                 if isinstance(result, dict) and 'sessions' in result:
-                    print("[AI_SERVICE] ✅ Strategy 3: Simple extraction succeeded")
+                    print("[AI_SERVICE] [OK] Strategy 3: Simple extraction succeeded")
                     return fix_plan_data(result)
             except json.JSONDecodeError:
                 pass
         
         # Strategy 4: Last resort - log and return None
-        print(f"[AI_SERVICE] ❌ All extraction strategies failed")
+        print(f"[AI_SERVICE] [FAIL] All extraction strategies failed")
         print(f"[AI_SERVICE ERROR] Response length: {len(response_text)} characters")
         print(f"[AI_SERVICE ERROR] Full response:")
         print("="*70)
