@@ -597,7 +597,7 @@ Now generate the JSON study plan (JSON only, no other text):"""
                             if response.status_code == 404:
                                 # Old Colab notebook — fallback to batch /generate
                                 use_stream = False
-                                print("[AI_SERVICE STREAM] /generate_stream not found on Colab → falling back to /generate")
+                                print("[AI_SERVICE STREAM] /generate_stream not found on Colab -- falling back to /generate")
                             else:
                                 response.raise_for_status()
                                 async for line in response.aiter_lines():
@@ -623,7 +623,7 @@ Now generate the JSON study plan (JSON only, no other text):"""
                 except httpx.HTTPStatusError as e:
                     if e.response.status_code == 404:
                         use_stream = False
-                        print("[AI_SERVICE STREAM] /generate_stream not found → fallback to /generate")
+                        print("[AI_SERVICE STREAM] /generate_stream not found -- fallback to /generate")
                     else:
                         raise
 
