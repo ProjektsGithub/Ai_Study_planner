@@ -224,14 +224,18 @@ class AIService:
 - project_work: Assignments, lab reports
 - reading: Textbooks, articles
 
-**CRITICAL OUTPUT REQUIREMENTS**:
-- You MUST respond with ONLY valid JSON
-- Do NOT include any explanatory text before or after the JSON
-- Do NOT use markdown code blocks (no ```)
-- Start your response directly with {{
-- End your response directly with }}
+🚨 **ABSOLUTE OUTPUT RULE** 🚨:
+Your ENTIRE response must be ONLY the JSON object.
+- First character: {{
+- Last character: }}
+- NO text before the {{
+- NO text after the }}
+- NO explanations
+- NO markdown (no ```)
+- NO "Here is your plan:" or similar
+- JUST the raw JSON
 
-**OUTPUT FORMAT**:
+**OUTPUT FORMAT** (copy this structure exactly):
 {{
   "sessions": [
     {{
@@ -257,10 +261,7 @@ class AIService:
 
 **VALID TASK TYPES**: lecture_review, exercise_practice, exam_preparation, project_work, reading
 
-**EXAMPLE**:
-{{"sessions":[{{"day":"Monday","start_time":"09:00:00","end_time":"11:00:00","subject_name":"Math","task_type":"lecture_review","notes":"Review chapter 3"}},{{"day":"Wednesday","start_time":"14:00:00","end_time":"15:30:00","subject_name":"Math","task_type":"exercise_practice","notes":"Solve exercises 3.1-3.5; Practice separation of variables"}}],"total_hours":3.5,"reasoning":"Theory then practice"}}
-
-Now generate the JSON study plan (JSON only, no other text):"""
+GENERATE THE JSON NOW (start with {{ immediately):"""
         
         return prompt
     
@@ -275,9 +276,15 @@ Now generate the JSON study plan (JSON only, no other text):"""
         - Double braces: {{...}} → {...}
         - Markdown blocks: ```json ... ```
         - Extra whitespace and newlines
+        - Explanatory text before/after JSON
         """
         import re
         from datetime import datetime, time
+        
+        # Log original response for debugging
+        print(f"[AI_SERVICE] Raw response length: {len(response_text)} characters")
+        if len(response_text) < 500:
+            print(f"[AI_SERVICE] Raw response: {response_text[:500]}")
         
         # PRE-PROCESSING: Clean common issues BEFORE parsing
         # 1. Remove markdown code blocks
@@ -288,6 +295,20 @@ Now generate the JSON study plan (JSON only, no other text):"""
         # This is aggressive: replaces ALL double braces, not just at start/end
         # Llama sometimes outputs {{...}} instead of {...} throughout the JSON
         response_text = response_text.replace('{{', '{').replace('}}', '}')
+        
+        # 3. Remove common prefixes (explanatory text before JSON)
+        # Remove lines like "Here is your study plan:", "Here's the JSON:", etc.
+        lines = response_text.split('\n')
+        json_start_idx = -1
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith('{'):
+                json_start_idx = i
+                break
+        
+        if json_start_idx > 0:
+            print(f"[AI_SERVICE] Removed {json_start_idx} lines of prefix text")
+            response_text = '\n'.join(lines[json_start_idx:])
         
         def calculate_total_hours(plan_data: Dict[str, Any]) -> float:
             """Calculate total hours from sessions"""
@@ -324,12 +345,12 @@ Now generate the JSON study plan (JSON only, no other text):"""
         
         # Strategy 0: Try direct parsing after pre-processing (MOST COMMON CASE)
         try:
-            result = json.loads(response_text)
+            result = json.loads(response_text.strip())
             if isinstance(result, dict) and 'sessions' in result:
                 print("[AI_SERVICE] [OK] Strategy 0: Direct parse after pre-processing succeeded")
                 return fix_plan_data(result)
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            print(f"[AI_SERVICE] Strategy 0 failed: {e}")
         
         # Strategy 1: Try to find JSON in ```json code blocks (PRIORITY)
         if "```json" in response_text or "```" in response_text:
