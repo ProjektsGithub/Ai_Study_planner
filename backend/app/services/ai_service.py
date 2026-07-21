@@ -127,6 +127,12 @@ class AIService:
                 prompt += f"  Weak topics: {', '.join(subj['weak_topics'])}\n"
         
         prompt += f"\n**CONSTRAINTS**:\n"
+        
+        # CRITICAL: List available days explicitly
+        available_days = sorted(slots_by_day.keys())
+        prompt += f"🚨 CRITICAL: You can ONLY schedule sessions on these {len(available_days)} days: {', '.join(available_days)}\n"
+        prompt += f"🚨 DO NOT schedule sessions on days NOT listed above (user has NO availability on other days)\n"
+        
         if constraints['max_daily_hours']:
             prompt += f"- Maximum {constraints['max_daily_hours']} hours of study per day\n"
         
@@ -200,16 +206,18 @@ class AIService:
 
         prompt += f"""
 **OPTIMIZATION INSTRUCTIONS**:
-1. Prioritize MANDATORY and FAILED subjects (must validate)
-2. Consider ECTS credits and coefficients (higher impact on grades)
-3. Schedule difficult subjects during HIGH energy time slots
-4. Focus on weak topics for each subject when planning sessions
-5. Account for class hours and other commitments
-6. Respect exam dates and types (projects need distributed time, exams need intensive review)
-7. Distribute sessions across the week for spaced repetition
-8. Respect all constraints (max daily hours, breaks, fixed slots)
-9. Try to reach the weekly study goal of {weekly_study_goal} hours
-10. Consider validation status and current progress
+1. 🚨 CRITICAL: Schedule sessions ONLY on days with available time slots (listed above)
+2. 🚨 CRITICAL: Sessions must fit within the exact time windows provided for each day
+3. Prioritize MANDATORY and FAILED subjects (must validate)
+4. Consider ECTS credits and coefficients (higher impact on grades)
+5. Schedule difficult subjects during HIGH energy time slots
+6. Focus on weak topics for each subject when planning sessions
+7. Account for class hours and other commitments
+8. Respect exam dates and types (projects need distributed time, exams need intensive review)
+9. Distribute sessions across the week for spaced repetition
+10. Respect all constraints (max daily hours, breaks, fixed slots)
+11. Try to reach the weekly study goal of {weekly_study_goal} hours
+12. Consider validation status and current progress
 
 **MANDATORY EXERCISE RULE** (CRITICAL):
 - Every subject MUST have at least ONE session with task_type "exercise_practice" per week
@@ -277,6 +285,7 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         - Markdown blocks: ```json ... ```
         - Extra whitespace and newlines
         - Explanatory text before/after JSON
+        - Text after closing brace (Llama explaining steps)
         """
         import re
         from datetime import datetime, time
@@ -284,7 +293,7 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         # Log original response for debugging
         print(f"[AI_SERVICE] Raw response length: {len(response_text)} characters")
         if len(response_text) < 500:
-            print(f"[AI_SERVICE] Raw response: {response_text[:500]}")
+            print(f"[AI_SERVICE] Raw response preview: {response_text[:500]}")
         
         # PRE-PROCESSING: Clean common issues BEFORE parsing
         # 1. Remove markdown code blocks
@@ -292,12 +301,9 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         response_text = re.sub(r'```\s*', '', response_text)
         
         # 2. Fix double braces {{...}} → {...}
-        # This is aggressive: replaces ALL double braces, not just at start/end
-        # Llama sometimes outputs {{...}} instead of {...} throughout the JSON
         response_text = response_text.replace('{{', '{').replace('}}', '}')
         
         # 3. Remove common prefixes (explanatory text before JSON)
-        # Remove lines like "Here is your study plan:", "Here's the JSON:", etc.
         lines = response_text.split('\n')
         json_start_idx = -1
         for i, line in enumerate(lines):
@@ -351,10 +357,63 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
                 return fix_plan_data(result)
         except json.JSONDecodeError as e:
             print(f"[AI_SERVICE] Strategy 0 failed: {e}")
+            # If error is "Extra data" it means JSON is valid but followed by text
+            if "Extra data" in str(e):
+                print("[AI_SERVICE] Detected 'Extra data' - trying to extract just the JSON part")
+                # Extract only up to the error position
+                try:
+                    result = json.loads(response_text[:e.pos].strip())
+                    if isinstance(result, dict) and 'sessions' in result:
+                        print("[AI_SERVICE] [OK] Strategy 0b: Extracted JSON before extra text")
+                        return fix_plan_data(result)
+                except:
+                    pass
         
-        # Strategy 1: Try to find JSON in ```json code blocks (PRIORITY)
+        # Strategy 0b: Find first complete JSON object (ignore everything after)
+        # This handles: {"valid": "json"}## Extra text here
+        try:
+            # Find first { and try to parse incrementally
+            start_idx = response_text.find("{")
+            if start_idx != -1:
+                # Count braces to find the complete JSON object
+                depth = 0
+                in_string = False
+                escape_next = False
+                
+                for i in range(start_idx, len(response_text)):
+                    char = response_text[i]
+                    
+                    if escape_next:
+                        escape_next = False
+                        continue
+                    
+                    if char == '\\':
+                        escape_next = True
+                        continue
+                    
+                    if char == '"' and not in_string:
+                        in_string = True
+                    elif char == '"' and in_string:
+                        in_string = False
+                    elif char == '{' and not in_string:
+                        depth += 1
+                    elif char == '}' and not in_string:
+                        depth -= 1
+                        if depth == 0:
+                            # Found complete JSON object
+                            json_str = response_text[start_idx:i+1]
+                            try:
+                                result = json.loads(json_str)
+                                if isinstance(result, dict) and 'sessions' in result:
+                                    print("[AI_SERVICE] [OK] Strategy 0b: Extracted complete JSON object (ignoring suffix)")
+                                    return fix_plan_data(result)
+                            except json.JSONDecodeError:
+                                break
+        except Exception as e:
+            print(f"[AI_SERVICE] Strategy 0b exception: {e}")
+        
+        # Strategy 1: Try to find JSON in ```json code blocks
         if "```json" in response_text or "```" in response_text:
-            # Already cleaned by pre-processing, but try again with regex
             match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
             if match:
                 json_str = match.group(1).strip()
@@ -412,7 +471,7 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         print(f"[AI_SERVICE ERROR] Response length: {len(response_text)} characters")
         print(f"[AI_SERVICE ERROR] Full response:")
         print("="*70)
-        print(response_text)
+        print(response_text[:1000])  # First 1000 chars only
         print("="*70)
         
         return None

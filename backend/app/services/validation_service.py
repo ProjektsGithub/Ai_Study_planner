@@ -483,15 +483,20 @@ class ValidationService:
             slots_by_day[slot.day].append(slot)
         
         valid_sessions = []
+        removed_count = 0
         
         for session in plan_data["sessions"]:
             # Check subject
             if session.get("subject_name") not in subject_map:
+                removed_count += 1
+                self.corrections_made.append(f"Removed session: Invalid subject '{session.get('subject_name')}'")
                 continue
             
-            # Check day
+            # Check day - CRITICAL: Must be in available days
             day = session.get("day")
             if day not in slots_by_day:
+                removed_count += 1
+                self.corrections_made.append(f"🚨 Removed session on {day}: NO availability on this day (available days: {', '.join(sorted(slots_by_day.keys()))})")
                 continue
             
             # Check time
@@ -508,8 +513,18 @@ class ValidationService:
                 
                 if in_valid_slot:
                     valid_sessions.append(session)
+                else:
+                    removed_count += 1
+                    self.corrections_made.append(f"Removed session on {day}: Time {start_time.strftime('%H:%M')}-{end_time.strftime('%H:%M')} not in valid slots")
             except (ValueError, TypeError):
+                removed_count += 1
+                self.corrections_made.append(f"Removed session: Invalid time format")
                 continue
+        
+        if removed_count > 0:
+            print(f"[VALIDATION] Removed {removed_count} invalid sessions from AI plan")
+            print(f"[VALIDATION] Available days: {', '.join(sorted(slots_by_day.keys()))}")
+            print(f"[VALIDATION] Valid sessions remaining: {len(valid_sessions)}")
         
         plan_data["sessions"] = valid_sessions
         

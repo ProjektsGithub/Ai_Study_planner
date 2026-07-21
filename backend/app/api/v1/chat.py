@@ -26,8 +26,10 @@ CHAT_MAX_TOKENS = 350
 # Patterns that mean the model started hallucinating a new turn
 _STOP_RE = re.compile(
     r"\n---|\n###\s+(QUESTION|HISTORIQUE|FIN|NOTE|MESSAGE|CONTEXTE|PROGRESSION|EMPLOI)|"
-    r"\n(Étudiant|Student|User)\s*:|\n(Assistant|Chatbot|Bot)\s*:|"
-    r"### FIN|\[FIN\]|fin de (la|le) session|note de l.assistant",
+    r"\n(Étudiant|Étudent|Student|User)\s*:|"  # Ajouté "Étudent" (faute courante de Llama)
+    r"\n(Assistant|Toi|Chatbot|Bot|AI)\s*:|"
+    r"### FIN|\[FIN\]|fin de (la|le) session|note de l.assistant|"
+    r"Veux-tu ajouter|Pour .+ tu devrais peut-être|il faudrait peut-être|tu peux peut-être",
     re.IGNORECASE,
 )
 
@@ -124,10 +126,14 @@ async def _call_ollama(prompt: str) -> str:
 
 def _build_prompt(message: str, context: Optional[dict], history: list) -> str:
     lines = [
-        "Tu es un assistant pédagogique intégré dans une app de planning d'études.",
-        "Réponds de façon COURTE et DIRECTE (3-6 phrases max).",
-        "Ne génère PAS de note finale, de séparateur ---, ni d'historique.",
-        "Réponds dans la langue de l'étudiant.",
+        "Tu es un assistant pédagogique pour les étudiants.",
+        "",
+        "🚨 RÈGLES CRITIQUES :",
+        "- Réponds DIRECTEMENT à la question (3-6 phrases max)",
+        "- NE génère PAS de dialogue fictif (pas de 'Étudiant:', 'Toi:', etc.)",
+        "- NE répète PAS la question",
+        "- NE génère PAS de séparateur --- ou ### à la fin",
+        "- Réponds dans la langue de l'étudiant",
     ]
 
     if context:
@@ -145,17 +151,17 @@ def _build_prompt(message: str, context: Optional[dict], history: list) -> str:
             wp = context["weekly_progress"]
             ctx_parts.append(f"Progression : {wp.get('completed',0)}/{wp.get('total',0)} sessions")
         if ctx_parts:
-            lines.append("\nContexte planning : " + " | ".join(ctx_parts))
+            lines.append("\nContexte du planning de l'étudiant : " + " | ".join(ctx_parts))
 
     if history:
-        lines.append("")
+        lines.append("\nHistorique récent :")
         for msg in history[-4:]:
-            label = "Étudiant" if msg.role == "user" else "Toi"
+            role_prefix = "Étudiant" if msg.role == "user" else "Assistant"
             content = msg.content[:300] + "..." if len(msg.content) > 300 else msg.content
-            lines.append(f"{label} : {content}")
+            lines.append(f"- {role_prefix} : {content}")
 
-    lines.append(f"\nÉtudiant : {message}")
-    lines.append("Toi :")
+    lines.append(f"\nQuestion de l'étudiant : {message}")
+    lines.append("\nRéponds maintenant (directement, sans répéter la question) :")
     return "\n".join(lines)
 
 
