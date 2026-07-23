@@ -509,7 +509,12 @@ class StudyPlanService:
         plan_data: Dict[str, Any],
         subjects: list
     ) -> Dict[str, Any]:
-        """Save generated plan to database"""
+        """
+        Save generated plan to database.
+        
+        CRITICAL: This function uses a transaction. If it fails, the old plan
+        will NOT be marked as superseded, so the user keeps their existing plan.
+        """
         try:
             # Create subject name to ID mapping
             subject_map = {s.name: s.id for s in subjects}
@@ -538,9 +543,28 @@ class StudyPlanService:
                 if not subject_id:
                     continue  # Skip if subject not found (shouldn't happen after validation)
                 
-                # Parse time strings
-                start_time = datetime.strptime(session_data.get("start_time"), "%H:%M:%S").time()
-                end_time = datetime.strptime(session_data.get("end_time"), "%H:%M:%S").time()
+                # Parse time strings - support both HH:MM:SS and HH:MM formats
+                start_time_str = session_data.get("start_time")
+                end_time_str = session_data.get("end_time")
+                
+                # Try HH:MM:SS first, fallback to HH:MM
+                try:
+                    start_time = datetime.strptime(start_time_str, "%H:%M:%S").time()
+                except ValueError:
+                    try:
+                        start_time = datetime.strptime(start_time_str, "%H:%M").time()
+                    except ValueError:
+                        print(f"[SAVE_PLAN] Invalid start_time format: {start_time_str}, skipping session")
+                        continue
+                
+                try:
+                    end_time = datetime.strptime(end_time_str, "%H:%M:%S").time()
+                except ValueError:
+                    try:
+                        end_time = datetime.strptime(end_time_str, "%H:%M").time()
+                    except ValueError:
+                        print(f"[SAVE_PLAN] Invalid end_time format: {end_time_str}, skipping session")
+                        continue
                 
                 session = StudySession(
                     study_plan_id=study_plan.id,
@@ -561,7 +585,9 @@ class StudyPlanService:
             if isinstance(week_start, str):
                 week_start = _date_type.fromisoformat(week_start)
 
-            # Mark previous plans as superseded
+            # IMPORTANT: Mark previous plans as superseded ONLY AFTER the new plan
+            # is fully created and validated. This ensures that if this transaction
+            # fails, the user keeps their existing plan.
             self.db.query(StudyPlan).filter(
                 and_(
                     StudyPlan.user_id == user_id,
@@ -571,9 +597,11 @@ class StudyPlanService:
                 )
             ).update({"status": "superseded"}, synchronize_session="fetch")
 
+            # Commit EVERYTHING together: if anything fails above, the old plan
+            # stays as "generated" and the new plan is not saved.
             self.db.commit()
             
-            # Create notification for plan generation
+            # Create notification for plan generation (after successful commit)
             from app.services.notification_service import NotificationService
             notification_service = NotificationService(self.db)
             notification_service.create_plan_generated_notification(user_id, study_plan)
@@ -584,6 +612,7 @@ class StudyPlanService:
             }
             
         except Exception as e:
+            # Rollback transaction - the old plan is NOT touched
             self.db.rollback()
             # Log l'erreur complète pour debug
             import traceback

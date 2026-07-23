@@ -74,7 +74,20 @@ class AIService:
         subject_priorities = planning_data['subject_priorities']
         constraints = planning_data['constraints']
         
-        prompt = f"""You are an AI study planner. Generate a weekly study schedule based on the following data.
+        # System instruction forcing JSON-only output
+        system_instruction = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+You are a JSON API that generates study schedules. You MUST respond with ONLY valid JSON.
+Rules:
+- First character: {
+- Last character: }
+- NO markdown code blocks (no ```)
+- NO explanatory text before or after the JSON
+- NO "Here is..." or "Step 1:" phrases
+- Put reasoning INSIDE the "reasoning" field of the JSON<|eot_id|>"""
+        
+        prompt = f"""{system_instruction}
+<|start_header_id|>user<|end_header_id|>
+Generate a weekly study schedule in JSON format.
 
 **WEEKLY STUDY GOAL**: {weekly_study_goal} hours
 """
@@ -232,46 +245,71 @@ class AIService:
 - project_work: Assignments, lab reports
 - reading: Textbooks, articles
 
-🚨 **ABSOLUTE OUTPUT RULE** 🚨:
-Your ENTIRE response must be ONLY the JSON object.
-- First character: {{
-- Last character: }}
-- NO text before the {{
-- NO text after the }}
-- NO explanations
-- NO markdown (no ```)
-- NO "Here is your plan:" or similar
-- JUST the raw JSON
+🚨 **CRITICAL JSON-ONLY OUTPUT RULE** 🚨:
+You are a JSON generator, NOT a conversational assistant.
+Your response will be parsed by json.loads() in Python.
+Any text outside the JSON object will cause a FATAL ERROR.
 
-**OUTPUT FORMAT** (copy this structure exactly):
-{{
-  "sessions": [
-    {{
-      "day": "Monday",
-      "start_time": "09:00:00",
-      "end_time": "10:30:00",
-      "subject_name": "Mathematics",
-      "task_type": "lecture_review",
-      "notes": "Review integration techniques chapter 5"
-    }},
-    {{
-      "day": "Wednesday",
-      "start_time": "14:00:00",
-      "end_time": "15:30:00",
-      "subject_name": "Mathematics",
-      "task_type": "exercise_practice",
-      "notes": "Solve exercises 5.1, 5.3, 5.7; Practice integration by parts"
-    }}
-  ],
-  "total_hours": 25.5,
-  "reasoning": "Brief explanation of the schedule strategy"
-}}
+**RULES**:
+1. Start IMMEDIATELY with {{ (opening brace)
+2. End with }} (closing brace)
+3. NO ```json markdown blocks
+4. NO explanations before the JSON
+5. NO step-by-step reasoning outside the JSON
+6. NO "Here is..." or "Let me..." phrases
+7. Put your reasoning INSIDE the "reasoning" field
 
-**VALID TASK TYPES**: lecture_review, exercise_practice, exam_preparation, project_work, reading
+**CORRECT OUTPUT** (copy this pattern):
+{{"sessions":[{{"day":"Monday","start_time":"09:00:00","end_time":"10:30:00","subject_name":"Mathematics","task_type":"lecture_review","notes":"Review integration techniques chapter 5"}}],"total_hours":25.5,"reasoning":"Brief explanation of the schedule strategy"}}
 
-GENERATE THE JSON NOW (start with {{ immediately):"""
+**VALID TASK TYPES**: lecture_review, exercise_practice, exam_preparation, project_work, reading<|eot_id|>
+<|start_header_id|>assistant<|end_header_id|>
+{{"""
         
         return prompt
+    
+    def _fix_time_format(self, time_str: str) -> str:
+        """
+        Fix invalid time formats from AI (e.g., 24:15:00 → 00:15:00, 25:30:00 → 01:30:00)
+        
+        Args:
+            time_str: Time string in format HH:MM:SS
+        
+        Returns:
+            Corrected time string in valid HH:MM:SS format (00-23 hours)
+        """
+        try:
+            parts = time_str.split(':')
+            if len(parts) != 3:
+                return time_str
+            
+            hours = int(parts[0])
+            minutes = int(parts[1])
+            seconds = int(parts[2])
+            
+            # Fix hours >= 24 (wrap around to next day)
+            if hours >= 24:
+                hours = hours % 24
+                print(f"[AI_SERVICE] Fixed invalid hour: {time_str} → {hours:02d}:{minutes:02d}:{seconds:02d}")
+            
+            # Validate minutes and seconds
+            if minutes >= 60:
+                hours += minutes // 60
+                minutes = minutes % 60
+            
+            if seconds >= 60:
+                minutes += seconds // 60
+                seconds = seconds % 60
+            
+            # Handle hour overflow after minute/second fixes
+            if hours >= 24:
+                hours = hours % 24
+            
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        except (ValueError, IndexError):
+            print(f"[AI_SERVICE] Warning: Could not parse time '{time_str}', returning as-is")
+            return time_str
     
     def _extract_json_from_response(self, response_text: str) -> Optional[Dict[str, Any]]:
         """
@@ -296,14 +334,28 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
             print(f"[AI_SERVICE] Raw response preview: {response_text[:500]}")
         
         # PRE-PROCESSING: Clean common issues BEFORE parsing
-        # 1. Remove markdown code blocks
-        response_text = re.sub(r'```json\s*', '', response_text)
-        response_text = re.sub(r'```\s*', '', response_text)
+        
+        # 1. Extract content from markdown code blocks FIRST (if present)
+        # Pattern: ```json ... ``` or ``` ... ```
+        markdown_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+        if markdown_match:
+            print("[AI_SERVICE] Found markdown code block, extracting content")
+            response_text = markdown_match.group(1).strip()
+        else:
+            # If no markdown blocks, just remove stray backticks
+            response_text = re.sub(r'```json\s*', '', response_text)
+            response_text = re.sub(r'```\s*', '', response_text)
         
         # 2. Fix double braces {{...}} → {...}
         response_text = response_text.replace('{{', '{').replace('}}', '}')
         
-        # 3. Remove common prefixes (explanatory text before JSON)
+        # 3. Fix missing opening brace (Llama sometimes starts with "sessions": [...])
+        response_text = response_text.strip()
+        if not response_text.startswith('{') and ('"sessions"' in response_text or "'sessions'" in response_text):
+            print("[AI_SERVICE] Missing opening brace detected, adding {")
+            response_text = '{' + response_text
+        
+        # 4. Remove common prefixes (explanatory text before JSON)
         lines = response_text.split('\n')
         json_start_idx = -1
         for i, line in enumerate(lines):
@@ -315,6 +367,21 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         if json_start_idx > 0:
             print(f"[AI_SERVICE] Removed {json_start_idx} lines of prefix text")
             response_text = '\n'.join(lines[json_start_idx:])
+        
+        # 5. Ensure the response ends with }
+        response_text = response_text.rstrip()
+        if not response_text.endswith('}'):
+            print("[AI_SERVICE] Missing closing brace detected, adding }")
+            response_text = response_text + '}'
+        
+        # 6. Remove any text AFTER the last complete JSON object
+        # Find the LAST } which should be the end of our JSON
+        last_brace = response_text.rfind('}')
+        if last_brace != -1 and last_brace < len(response_text) - 1:
+            suffix = response_text[last_brace + 1:].strip()
+            if suffix:
+                print(f"[AI_SERVICE] Removing {len(suffix)} chars of suffix text after JSON")
+                response_text = response_text[:last_brace + 1]
         
         def calculate_total_hours(plan_data: Dict[str, Any]) -> float:
             """Calculate total hours from sessions"""
@@ -339,6 +406,18 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         
         def fix_plan_data(plan_data: Dict[str, Any]) -> Dict[str, Any]:
             """Fix common issues in plan data"""
+            
+            # Fix invalid times in sessions (e.g., 24:15:00 → 00:15:00)
+            if 'sessions' in plan_data:
+                for session in plan_data['sessions']:
+                    # Fix start_time
+                    if 'start_time' in session:
+                        session['start_time'] = self._fix_time_format(session['start_time'])
+                    
+                    # Fix end_time
+                    if 'end_time' in session:
+                        session['end_time'] = self._fix_time_format(session['end_time'])
+            
             # Calculate total_hours if missing
             if 'total_hours' not in plan_data or plan_data['total_hours'] == 0:
                 plan_data['total_hours'] = calculate_total_hours(plan_data)
@@ -547,10 +626,52 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
         if self.lora_enabled and self.lora_adapter:
             payload["lora_adapter"] = self.lora_adapter
         
-        async with httpx.AsyncClient(timeout=300.0) as client:  # 5 min — large prompts need time
-            response = await client.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-            return response.json()
+        try:
+            print(f"[AI_SERVICE] Calling Colab API: {url}")
+            print(f"[AI_SERVICE] Payload size: {len(str(payload))} bytes")
+            print(f"[AI_SERVICE] Prompt length: {len(prompt)} chars")
+            
+            # Timeout granulaire : 30s pour connexion, 300s pour lecture, 30s pour écriture
+            timeout = httpx.Timeout(connect=30.0, read=300.0, write=30.0, pool=30.0)
+            
+            print(f"[AI_SERVICE] Creating httpx client with timeout: connect=30s, read=300s...")
+            
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                print(f"[AI_SERVICE] Sending POST request to Colab...")
+                import time
+                start = time.time()
+                
+                response = await client.post(url, json=payload, headers=headers)
+                
+                elapsed = time.time() - start
+                print(f"[AI_SERVICE] ✅ Response received in {elapsed:.2f}s - HTTP {response.status_code}")
+                
+                response.raise_for_status()
+                
+                result = response.json()
+                print(f"[AI_SERVICE] ✅ JSON parsed successfully")
+                
+                # Log la taille de la réponse
+                generated_text = result.get("generated_text", "")
+                print(f"[AI_SERVICE] Generated text length: {len(generated_text)} chars")
+                
+                return result
+                
+        except httpx.TimeoutException as e:
+            print(f"[AI_SERVICE] ❌ TIMEOUT: {e}")
+            print(f"[AI_SERVICE] Cette erreur signifie que Colab prend plus de 5 minutes à répondre.")
+            print(f"[AI_SERVICE] Vérifiez que le GPU Colab est actif et le modèle est chargé.")
+            raise
+        except httpx.HTTPError as e:
+            print(f"[AI_SERVICE] ❌ HTTP Error: {e}")
+            print(f"[AI_SERVICE] Response status: {e.response.status_code if hasattr(e, 'response') else 'N/A'}")
+            print(f"[AI_SERVICE] Response body: {e.response.text[:500] if hasattr(e, 'response') else 'N/A'}")
+            raise
+        except Exception as e:
+            print(f"[AI_SERVICE] ❌ Unexpected error calling Colab: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     async def _call_colab_stream_api(self, prompt: str) -> str:
         """
@@ -709,9 +830,17 @@ GENERATE THE JSON NOW (start with {{ immediately):"""
 
                 if not use_stream:
                     # ── Fallback: batch /generate (old Colab notebook) ───
+                    print("[AI_SERVICE STREAM] Using batch /generate endpoint")
                     yield _sse({"type": "status", "status": "generating_batch"})
                     response_data = await self._call_colab_api(prompt)
                     full_text = response_data.get("generated_text", "")
+                    print(f"[AI_SERVICE STREAM] Batch generation complete: {len(full_text)} chars")
+                    
+                    # Log the raw response for debugging
+                    if len(full_text) < 1000:
+                        print(f"[AI_SERVICE STREAM] Raw response: {full_text}")
+                    else:
+                        print(f"[AI_SERVICE STREAM] Raw response (first 500 chars): {full_text[:500]}")
 
             else:
                 # ── Ollama batch (local dev) ─────────────────────────────
