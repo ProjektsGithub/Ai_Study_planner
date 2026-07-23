@@ -11,6 +11,23 @@ Super Admin Platform modules:
   dashboard, audit, exports, search, roles, settings
 """
 from pathlib import Path
+"""
+Main entry point for the FastAPI application.
+Handles UTF-8 encoding for Windows console compatibility.
+"""
+import sys
+import io
+
+# Force UTF-8 encoding for stdout/stderr on Windows to handle French characters
+# This prevents UnicodeEncodeError when logging messages with accents (é, è, à, ç, etc.)
+if sys.platform == "win32":
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    except AttributeError:
+        # In case stdout/stderr don't have .buffer (e.g., in some IDEs)
+        pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
