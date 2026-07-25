@@ -144,6 +144,30 @@ class StudyPlanService:
             
             plan_data = ai_result["plan"]
             
+            # Step 4b: HARD FILTER — Remove sessions on days with no availability
+            # This is a safety net: even if the AI ignores the prompt, we enforce
+            # that sessions only appear on days where the student has valid slots.
+            allowed_days = set(slot.day for slot in valid_slots)
+            original_session_count = len(plan_data.get("sessions", []))
+            plan_data["sessions"] = [
+                s for s in plan_data.get("sessions", [])
+                if s.get("day") in allowed_days
+            ]
+            filtered_count = original_session_count - len(plan_data["sessions"])
+            if filtered_count > 0:
+                print(f"[STUDY_PLAN_SERVICE] Removed {filtered_count} sessions on forbidden days "
+                      f"(allowed: {sorted(allowed_days)})")
+                # Recalculate total_hours after filtering
+                total_minutes = 0
+                for s in plan_data["sessions"]:
+                    try:
+                        st = datetime.strptime(s["start_time"], "%H:%M:%S")
+                        et = datetime.strptime(s["end_time"], "%H:%M:%S")
+                        total_minutes += (et - st).total_seconds() / 60
+                    except (ValueError, KeyError):
+                        pass
+                plan_data["total_hours"] = round(total_minutes / 60, 2)
+            
             # Step 5: Validate plan
             is_valid, validation_result = self.validation_service.validate_plan(
                 plan_data=plan_data,

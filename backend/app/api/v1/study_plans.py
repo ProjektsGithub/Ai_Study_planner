@@ -232,6 +232,31 @@ async def stream_study_plan(
                 yield _sse({"type": "error", "message": "AI generation produced no plan"})
                 return
 
+            # ── 2b. HARD FILTER — Remove sessions on forbidden days ───
+            # Safety net: even if the AI ignores the prompt, enforce that
+            # sessions only appear on days where the student has valid slots.
+            allowed_days = set(s.day for s in engine.valid_slots)
+            original_count = len(plan_data.get("sessions", []))
+            plan_data["sessions"] = [
+                s for s in plan_data.get("sessions", [])
+                if s.get("day") in allowed_days
+            ]
+            filtered = original_count - len(plan_data["sessions"])
+            if filtered > 0:
+                print(f"[STREAM ENDPOINT] Removed {filtered} sessions on forbidden days "
+                      f"(allowed: {sorted(allowed_days)})")
+                # Recalculate total_hours
+                from datetime import datetime as _dt
+                _total_min = 0
+                for _s in plan_data["sessions"]:
+                    try:
+                        _st = _dt.strptime(_s["start_time"], "%H:%M:%S")
+                        _et = _dt.strptime(_s["end_time"], "%H:%M:%S")
+                        _total_min += (_et - _st).total_seconds() / 60
+                    except (ValueError, KeyError):
+                        pass
+                plan_data["total_hours"] = round(_total_min / 60, 2)
+
             # ── 3. Validate + save to DB ─────────────────────────────
             yield _sse({"type": "status", "status": "saving"})
 

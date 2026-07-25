@@ -141,10 +141,17 @@ Generate a weekly study schedule in JSON format.
         
         prompt += f"\n**CONSTRAINTS**:\n"
         
-        # CRITICAL: List available days explicitly
+        # CRITICAL: List available AND forbidden days explicitly
+        all_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         available_days = sorted(slots_by_day.keys())
-        prompt += f"🚨 CRITICAL: You can ONLY schedule sessions on these {len(available_days)} days: {', '.join(available_days)}\n"
-        prompt += f"🚨 DO NOT schedule sessions on days NOT listed above (user has NO availability on other days)\n"
+        forbidden_days = [d for d in all_days if d not in available_days]
+        
+        prompt += f"\n⛔ HARD CONSTRAINT — ALLOWED DAYS (the student is ONLY free on these days):\n"
+        prompt += f"  ✅ ALLOWED: {', '.join(available_days)}\n"
+        if forbidden_days:
+            prompt += f"  ❌ FORBIDDEN (student is NOT available, DO NOT USE): {', '.join(forbidden_days)}\n"
+        prompt += f"  → Every session MUST have its \"day\" field set to one of: {', '.join(available_days)}\n"
+        prompt += f"  → Any session on {', '.join(forbidden_days) if forbidden_days else 'N/A'} will be DELETED and wasted\n"
         
         if constraints['max_daily_hours']:
             prompt += f"- Maximum {constraints['max_daily_hours']} hours of study per day\n"
@@ -219,7 +226,7 @@ Generate a weekly study schedule in JSON format.
 
         prompt += f"""
 **OPTIMIZATION INSTRUCTIONS**:
-1. 🚨 CRITICAL: Schedule sessions ONLY on days with available time slots (listed above)
+1. 🚨 ABSOLUTE RULE: EVERY session "day" MUST be one of: {', '.join(available_days)}. Sessions on other days = FATAL ERROR.
 2. 🚨 CRITICAL: Sessions must fit within the exact time windows provided for each day
 3. Prioritize MANDATORY and FAILED subjects (must validate)
 4. Consider ECTS credits and coefficients (higher impact on grades)
@@ -244,6 +251,12 @@ Generate a weekly study schedule in JSON format.
 - exam_preparation: Mock exams, timed practice (close to exam dates)
 - project_work: Assignments, lab reports
 - reading: Textbooks, articles
+
+⛔ **FINAL VERIFICATION BEFORE OUTPUT** ⛔:
+Before generating your JSON, verify EVERY session:
+- Is the "day" field one of [{', '.join(available_days)}]? If NOT → REMOVE that session.
+- Is the time within the available slots for that day? If NOT → ADJUST or REMOVE.
+- You have {len(available_days)} available days. Your output should have sessions ONLY on those days.
 
 🚨 **CRITICAL JSON-ONLY OUTPUT RULE** 🚨:
 You are a JSON generator, NOT a conversational assistant.
