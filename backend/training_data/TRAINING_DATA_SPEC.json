@@ -1,0 +1,226 @@
+{
+  "dataset_name": "study_planner_lora_training",
+  "version": "1.0.0",
+  "format": "jsonl",
+  "description": "Training data for fine-tuning Llama 3.1-8B to generate study schedule JSON",
+  
+  "target_metrics": {
+    "total_examples": 3000,
+    "min_examples": 1000,
+    "recommended_examples": 3000,
+    "validation_split": 0.1
+  },
+  
+  "conversation_structure": {
+    "format": "chat_format",
+    "roles": ["system", "user", "assistant"],
+    "system_prompt": "You are a JSON API that generates study schedules. You MUST respond with ONLY valid JSON. Rules: First character: {, Last character: }, NO markdown, NO explanations, Put reasoning INSIDE the \"reasoning\" field.",
+    "user_prompt_template": "See detailed structure below",
+    "assistant_response": "Pure JSON only - no markdown, no explanations"
+  },
+  
+  "diversity_requirements": {
+    "weekly_study_goals": {
+      "range": [10, 40],
+      "unit": "hours",
+      "distribution": "uniform",
+      "examples": [10, 15, 20, 25, 30, 35, 40]
+    },
+    
+    "number_of_subjects": {
+      "range": [2, 10],
+      "distribution": "normal_centered_at_5",
+      "examples": [2, 3, 4, 5, 6, 7, 8, 9, 10]
+    },
+    
+    "available_days": {
+      "options": [
+        ["Monday", "Wednesday", "Friday"],
+        ["Tuesday", "Thursday"],
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        ["Saturday", "Sunday"],
+        ["Monday", "Thursday", "Sunday"],
+        ["Tuesday", "Friday", "Saturday"],
+        ["All 7 days"]
+      ],
+      "distribution": "varied"
+    },
+    
+    "time_slots_per_day": {
+      "patterns": [
+        "09:00-17:00",
+        "08:00-12:00",
+        "14:00-18:00",
+        "09:00-12:00, 14:00-17:00",
+        "18:00-22:00",
+        "06:00-09:00"
+      ],
+      "include_split_sessions": true
+    },
+    
+    "subject_characteristics": {
+      "priorities": ["low", "medium", "high"],
+      "difficulties": [1, 2, 3, 4, 5],
+      "ects_credits": [2, 3, 4, 5, 6, 7, 8, 10],
+      "exam_dates": "varied_future_dates",
+      "include_weak_topics": true
+    },
+    
+    "constraints_variety": {
+      "max_daily_hours": [4, 6, 8, 10],
+      "break_rules": [
+        {"after_minutes": 60, "duration_minutes": 10},
+        {"after_minutes": 90, "duration_minutes": 15},
+        {"after_minutes": 120, "duration_minutes": 20}
+      ],
+      "include_fixed_slots": "sometimes",
+      "include_energy_levels": "sometimes"
+    }
+  },
+  
+  "output_json_schema": {
+    "type": "object",
+    "required": ["sessions", "total_hours", "reasoning"],
+    "properties": {
+      "sessions": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["day", "start_time", "end_time", "subject_name", "task_type", "notes"],
+          "properties": {
+            "day": {
+              "type": "string",
+              "enum": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            },
+            "start_time": {
+              "type": "string",
+              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$",
+              "examples": ["09:00:00", "14:30:00", "18:00:00"]
+            },
+            "end_time": {
+              "type": "string",
+              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$"
+            },
+            "subject_name": {
+              "type": "string",
+              "description": "Must match exactly one of the subjects from input"
+            },
+            "task_type": {
+              "type": "string",
+              "enum": ["lecture_review", "exercise_practice", "exam_preparation", "project_work", "reading"]
+            },
+            "notes": {
+              "type": "string",
+              "description": "Specific, actionable study tasks"
+            }
+          }
+        }
+      },
+      "total_hours": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Sum of all session durations"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Brief explanation of scheduling strategy (1-3 sentences)"
+      }
+    }
+  },
+  
+  "quality_criteria": {
+    "json_validity": {
+      "must_parse": true,
+      "no_syntax_errors": true,
+      "no_trailing_commas": true,
+      "proper_escaping": true
+    },
+    
+    "scheduling_logic": {
+      "sessions_within_available_slots": true,
+      "no_overlapping_sessions": true,
+      "breaks_respected": true,
+      "max_daily_hours_respected": true,
+      "each_subject_has_exercise_practice": true,
+      "high_priority_subjects_get_more_time": true,
+      "sessions_near_exam_dates_prioritized": true
+    },
+    
+    "realism": {
+      "reasonable_session_durations": "1-4 hours",
+      "no_unrealistic_schedules": true,
+      "task_notes_are_specific": true,
+      "reasoning_is_coherent": true
+    }
+  },
+  
+  "generation_strategies": {
+    "strategy_1_synthetic": {
+      "description": "Generate completely synthetic examples with varied parameters",
+      "tool": "Python script using random combinations",
+      "recommended_count": 300
+    },
+    
+    "strategy_2_real_data": {
+      "description": "Use real student data from database (anonymized)",
+      "source": "generation_logs table + study_sessions",
+      "recommended_count": 100
+    },
+    
+    "strategy_3_edge_cases": {
+      "description": "Manually create edge cases and difficult scenarios",
+      "examples": [
+        "Very few available hours",
+        "Many subjects with conflicting priorities",
+        "Tight exam schedule",
+        "Non-standard time slots"
+      ],
+      "recommended_count": 50
+    },
+    
+    "strategy_4_augmentation": {
+      "description": "Take existing good examples and slightly modify them",
+      "techniques": [
+        "Change subject names",
+        "Adjust time slots",
+        "Modify priorities",
+        "Add/remove subjects"
+      ],
+      "recommended_count": 50
+    }
+  },
+  
+  "training_parameters": {
+    "model_base": "unsloth/Meta-Llama-3.1-8B-Instruct",
+    "lora_rank": 16,
+    "lora_alpha": 16,
+    "lora_dropout": 0.05,
+    "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    "learning_rate": 2e-4,
+    "num_epochs": 3,
+    "batch_size": 4,
+    "gradient_accumulation_steps": 4,
+    "warmup_steps": 5,
+    "max_seq_length": 2048,
+    "optimizer": "adamw_8bit"
+  },
+  
+  "validation_strategy": {
+    "split_method": "random_10_percent",
+    "metrics_to_track": [
+      "json_parse_rate",
+      "schema_compliance_rate",
+      "constraint_violation_rate",
+      "average_reasoning_quality",
+      "training_loss",
+      "validation_loss"
+    ]
+  },
+  
+  "output_files": {
+    "training_file": "study_planner_train.jsonl",
+    "validation_file": "study_planner_val.jsonl",
+    "metadata_file": "training_metadata.json"
+  }
+}
