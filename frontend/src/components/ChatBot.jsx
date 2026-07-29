@@ -131,8 +131,8 @@ const ChatBot = () => {
     }
   }, [open]);
 
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
+  const sendMessage = useCallback(async (overrideText = null) => {
+    const text = (typeof overrideText === 'string' ? overrideText : input).trim();
     if (!text || loading) return;
 
     const userMsg = { role: 'user', content: text };
@@ -288,7 +288,7 @@ const ChatBot = () => {
           {messages.length === 1 && (
             <div style={{ padding: '4px 14px 6px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {suggestions.map((s, i) => (
-                <button key={i} onClick={() => setInput(s)} style={{
+                <button key={i} onClick={() => sendMessage(s)} style={{
                   background: '#f5f3ff', border: '1px solid #ddd6fe',
                   borderRadius: 20, padding: '5px 10px', fontSize: 11.5,
                   color: '#6d28d9', cursor: 'pointer', transition: 'all 0.15s ease',

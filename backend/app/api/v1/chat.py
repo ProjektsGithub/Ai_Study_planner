@@ -23,11 +23,12 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 CHAT_MAX_TOKENS = 350
 
-# Patterns that mean the model started hallucinating a new turn
+# Patterns that mean the model started hallucinating a new turn or dataset template
 _STOP_RE = re.compile(
     r"\n---|\n###\s+(QUESTION|HISTORIQUE|FIN|NOTE|MESSAGE|CONTEXTE|PROGRESSION|EMPLOI)|"
-    r"\n(Étudiant|Étudent|Student|User)\s*:|"  # Ajouté "Étudent" (faute courante de Llama)
+    r"\n(Étudiant|Étudent|Student|User)\s*:|"
     r"\n(Assistant|Toi|Chatbot|Bot|AI)\s*:|"
+    r"(?:\n|\s+)(Réponse\s+JUSTIFIÉE|Réponse\s+justifiée|JUSTIFIÉE|Justification|Explication)\s*:|"
     r"### FIN|\[FIN\]|fin de (la|le) session|note de l.assistant|"
     r"Veux-tu ajouter|Pour .+ tu devrais peut-être|il faudrait peut-être|tu peux peut-être",
     re.IGNORECASE,
@@ -36,7 +37,12 @@ _STOP_RE = re.compile(
 
 def _truncate_hallucination(text: str) -> str:
     m = _STOP_RE.search(text)
-    return text[: m.start()].rstrip() if m else text
+    if m:
+        text = text[: m.start()].rstrip()
+    
+    # Strip residual header prefixes if generated at the very beginning of the response
+    text = re.sub(r"^(?:Réponse\s+JUSTIFIÉE|Réponse|Justification|Explication)\s*:\s*", "", text, flags=re.IGNORECASE)
+    return text.strip()
 
 
 # ── Helpers to call AI backend ────────────────────────────────────────────────
@@ -126,14 +132,15 @@ async def _call_ollama(prompt: str) -> str:
 
 def _build_prompt(message: str, context: Optional[dict], history: list) -> str:
     lines = [
-        "Tu es un assistant pédagogique pour les étudiants.",
+        "Tu es un assistant pédagogique bienveillant et concis pour les étudiants.",
         "",
         "🚨 RÈGLES CRITIQUES :",
-        "- Réponds DIRECTEMENT à la question (3-6 phrases max)",
-        "- NE génère PAS de dialogue fictif (pas de 'Étudiant:', 'Toi:', etc.)",
-        "- NE répète PAS la question",
-        "- NE génère PAS de séparateur --- ou ### à la fin",
-        "- Réponds dans la langue de l'étudiant",
+        "- Réponds DIRECTEMENT et naturellement à la question (2 à 4 phrases max).",
+        "- N'AJOUTE AUCUN préfixe ou label (interdiction d'écrire 'Réponse JUSTIFIÉE :', 'Justification :', 'Note :', etc.).",
+        "- NE génère PAS de dialogue fictif (pas de 'Étudiant:', 'Toi:', etc.).",
+        "- NE répète PAS la question de l'étudiant.",
+        "- N'AJOUTE PAS de section de justification répétitive.",
+        "- Réponds de manière chaleureuse, précise et directe.",
     ]
 
     if context:

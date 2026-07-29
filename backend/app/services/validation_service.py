@@ -803,13 +803,13 @@ class ValidationService:
         
         errors = []
         
-        # Define expected structure based on track level
+        # Define expected structure based on track level (standard 1-6 for Bachelor, 1-4 for Master, up to 12 for extensions)
         if track.level == TrackLevel.BACHELOR:
-            expected_max = 6
-            expected_semesters = list(range(1, 7))  # [1, 2, 3, 4, 5, 6]
+            expected_max = 12
+            expected_semesters = list(range(1, 7))  # Standard semesters 1-6
         elif track.level == TrackLevel.MASTER:
-            expected_max = 4
-            expected_semesters = list(range(1, 5))  # [1, 2, 3, 4]
+            expected_max = 12
+            expected_semesters = list(range(1, 5))  # Standard semesters 1-4
         elif track.level == TrackLevel.DOCTORATE:
             # Doctorate can have custom structure, no strict validation
             return True, []
@@ -821,7 +821,7 @@ class ValidationService:
         if not semesters:
             errors.append(
                 f"{track.level.value.capitalize()} track '{track.name}' has no semesters configured. "
-                f"Expected semesters 1-{expected_max}."
+                f"Expected semesters 1-{len(expected_semesters)}."
             )
             return False, errors
         

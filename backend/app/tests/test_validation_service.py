@@ -385,12 +385,12 @@ class TestSemesterStructureValidation:
     
     @pytest.mark.asyncio
     async def test_bachelor_with_invalid_semester_number(self, db_session, validation_service, sample_bachelor_track):
-        """Test Bachelor with semester number > 6"""
+        """Test Bachelor with semester number > 12"""
         # Create semester with invalid number
         semester = Semester(
             academic_track_id=sample_bachelor_track.id,
-            name="S7",
-            semester_number=7  # Invalid for Bachelor
+            name="S13",
+            semester_number=13  # Invalid (> 12)
         )
         db_session.add(semester)
         db_session.commit()
@@ -406,12 +406,12 @@ class TestSemesterStructureValidation:
     
     @pytest.mark.asyncio
     async def test_master_with_invalid_semester_number(self, db_session, validation_service, sample_master_track):
-        """Test Master with semester number > 4"""
+        """Test Master with semester number > 12"""
         # Create semester with invalid number
         semester = Semester(
             academic_track_id=sample_master_track.id,
-            name="S5",
-            semester_number=5  # Invalid for Master
+            name="S13",
+            semester_number=13  # Invalid (> 12)
         )
         db_session.add(semester)
         db_session.commit()

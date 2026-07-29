@@ -124,6 +124,7 @@ export const StudyPlanProvider = ({ children }) => {
           } else if (evt.type === 'done') {
             resultPlan = evt.plan;
             setGenerationProgress('done');
+            // Refresh from DB to get the latest plan
             await fetchCurrentPlan();
             
             // Notify other tabs
@@ -142,6 +143,9 @@ export const StudyPlanProvider = ({ children }) => {
 
     } catch (err) {
       console.error('Error generating study plan:', err);
+      // IMPORTANT: Refresh current plan even on error to restore the UI
+      // (the backend keeps the old plan if generation fails)
+      await fetchCurrentPlan();
       throw err;
     } finally {
       setGenerating(false);

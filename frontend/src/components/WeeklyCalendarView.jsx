@@ -47,8 +47,7 @@ const WeeklyCalendarView = ({
     return Array.from({ length: max - min + 1 }, (_, i) => min + i);
   }, [sessions]);
 
-  const getSlotSessions = (dayIndex, hour) => {
-    const dayName = DAYS[dayIndex];
+  const getSlotSessions = (dayName, hour) => {
     const slotStart = `${String(hour).padStart(2,'0')}:00`;
     const slotEnd   = `${String(hour + 1).padStart(2,'0')}:00`;
     return sessions.filter(s => {
@@ -182,7 +181,7 @@ const WeeklyCalendarView = ({
 
               {/* Day cells */}
               {DAYS.map((day, dayIndex) => {
-                const slotSessions = getSlotSessions(dayIndex, hour);
+                const slotSessions = getSlotSessions(day, hour);
                 const isToday = weekDates[dayIndex].toDateString() === todayStr;
 
                 return (
