@@ -3,6 +3,7 @@ import { useStudyPlan } from '../context/StudyPlanContext';
 import { useAcademicData } from '../context/AcademicDataContext';
 import WeeklyCalendarView from '../components/WeeklyCalendarView';
 import SessionEditor from '../components/SessionEditor';
+import SessionViewModal from '../components/SessionViewModal';
 import PlanProgressDashboard from '../components/PlanProgressDashboard';
 import CalendarExportMenu from '../components/CalendarExportMenu';
 import usePdfExport from '../hooks/usePdfExport';
@@ -11,6 +12,16 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+
+const formatError = (err) => {
+  if (!err) return null;
+  const detail = err.response?.data?.detail || err.detail;
+  if (Array.isArray(detail)) {
+    return detail.map(e => e.msg || e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e))).join(', ');
+  }
+  if (detail && typeof detail === 'object') return detail.msg || JSON.stringify(detail);
+  return typeof detail === 'string' ? detail : (err.message || 'Une erreur est survenue');
+};
 
 const AIPlanPage = () => {
   const {
@@ -31,10 +42,16 @@ const AIPlanPage = () => {
 
   const [availabilities, setAvailabilities] = useState([]);
   const [constraints, setConstraints] = useState([]);
+  const [academicSchedule, setAcademicSchedule] = useState([]);
   const [loadingExtras, setLoadingExtras] = useState(false);
   const [error, setError] = useState(null);
+
+  // Modals state
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingSession, setViewingSession] = useState(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+
   // Local session list for optimistic completion updates
   const [localSessions, setLocalSessions] = useState([]);
   const { exportPdf, exporting, exportError } = usePdfExport();
@@ -54,12 +71,14 @@ const AIPlanPage = () => {
   const loadExtras = async () => {
     setLoadingExtras(true);
     try {
-      const [availRes, constRes] = await Promise.all([
+      const [availRes, constRes, acadRes] = await Promise.all([
         apiClient.get('/api/v1/availabilities').catch(() => ({ data: { availabilities: [] } })),
         apiClient.get('/api/v1/constraints').catch(() => ({ data: { constraints: [] } })),
+        apiClient.get('/api/v1/availabilities/academic-schedule').catch(() => ({ data: { academic_schedule: [] } })),
       ]);
       setAvailabilities(availRes.data?.availabilities || []);
       setConstraints(constRes.data?.constraints || []);
+      setAcademicSchedule(acadRes.data?.academic_schedule || []);
     } catch (err) {
       console.error('Error loading planner extras:', err);
       setError('Error loading schedule preferences');
@@ -71,16 +90,10 @@ const AIPlanPage = () => {
   const handleGeneratePlan = async (force = false) => {
     setError(null);
     try {
-      // Use local date to avoid UTC timezone shift (toISOString converts to UTC)
       const weekStartStr = `${weekStartDate.getFullYear()}-${String(weekStartDate.getMonth() + 1).padStart(2, '0')}-${String(weekStartDate.getDate()).padStart(2, '0')}`;
       await generatePlan(weekStartStr, force);
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        setError(detail.map((e) => e.msg || e.message || JSON.stringify(e)).join(', '));
-      } else {
-        setError(typeof detail === 'string' ? detail : 'Error generating study plan with AI');
-      }
+      setError(formatError(err) || 'Error generating study plan with AI');
     }
   };
 
@@ -89,16 +102,17 @@ const AIPlanPage = () => {
     try {
       await regeneratePlan('manual_edit', null, 'Global regeneration request');
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        setError(detail.map((e) => e.msg || e.message || JSON.stringify(e)).join(', '));
-      } else {
-        setError(typeof detail === 'string' ? detail : 'Error regenerating study plan');
-      }
+      setError(formatError(err) || 'Error regenerating study plan');
     }
   };
 
   const handleSessionClick = (session) => {
+    setViewingSession(session);
+    setIsViewModalOpen(true);
+  };
+
+  const handleOpenEditorFromView = (session) => {
+    setIsViewModalOpen(false);
     setSelectedSession(session);
     setIsEditorOpen(true);
   };
@@ -115,7 +129,6 @@ const AIPlanPage = () => {
 
   const handleSaveSession = async (sessionData) => {
     if (!currentPlan) return;
-    
     setError(null);
     try {
       if (selectedSession) {
@@ -125,19 +138,18 @@ const AIPlanPage = () => {
       }
       handleCloseEditor();
     } catch (err) {
-      throw new Error(err.response?.data?.detail || 'Error saving study session');
+      throw new Error(formatError(err) || 'Error saving study session');
     }
   };
 
   const handleDeleteSession = async (sessionId) => {
     if (!currentPlan) return;
-    
     setError(null);
     try {
       await deleteSession(currentPlan.id || currentPlan.plan_id, sessionId);
       handleCloseEditor();
     } catch (err) {
-      throw new Error(err.response?.data?.detail || 'Error deleting study session');
+      throw new Error(formatError(err) || 'Error deleting study session');
     }
   };
 
@@ -150,6 +162,24 @@ const AIPlanPage = () => {
   }
 
   const sessions = localSessions.length > 0 ? localSessions : (currentPlan?.sessions || []);
+
+  const mergedSessions = useMemo(() => {
+    const fixedAcademicSessions = academicSchedule.map((item) => ({
+      id: `academic-${item.id}`,
+      course_name: item.course_name,
+      day: item.day_of_week,
+      start_time: item.start_time,
+      end_time: item.end_time,
+      task_type: 'university_class',
+      session_type: item.session_type,
+      is_academic_fixed: true,
+      room_location: item.room_location,
+      notes: `Cours universitaire (${item.session_type}) - ${item.room_location || 'Salle non spécifiée'}`,
+      completed: false,
+    }));
+    return [...fixedAcademicSessions, ...sessions];
+  }, [academicSchedule, sessions]);
+
   const isLoading = planLoading || academicLoading || loadingExtras;
 
   // Mark session as complete (optimistic update)
@@ -433,7 +463,7 @@ const AIPlanPage = () => {
         <div className="space-y-6">
           <div className="rounded-2xl overflow-hidden shadow-lg">
             <WeeklyCalendarView
-              sessions={sessions}
+              sessions={mergedSessions}
               availabilities={availabilities}
               constraints={constraints}
               onSessionClick={handleSessionClick}
@@ -492,6 +522,16 @@ const AIPlanPage = () => {
           </div>
         </div>
       )}
+
+      {/* Session View & Facilitation Modal */}
+      <SessionViewModal
+        session={viewingSession}
+        isOpen={isViewModalOpen}
+        onClose={() => { setIsViewModalOpen(false); setViewingSession(null); }}
+        onComplete={handleSessionComplete}
+        onEdit={handleOpenEditorFromView}
+        onDelete={handleDeleteSession}
+      />
 
       {/* Session Modal Editor */}
       <SessionEditor

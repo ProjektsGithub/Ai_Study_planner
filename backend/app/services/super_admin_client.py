@@ -508,7 +508,7 @@ def fetch_prerequisite_map(db: Session) -> Dict[int, List[int]]:
         # the incomplete back_populates on the Prerequisite <-> Course relationship.
         from sqlalchemy import text
         rows = db.execute(
-            text("SELECT course_id, prerequisite_course_id FROM prerequisites")
+            text("SELECT course_id, prerequisite_id FROM course_prerequisites")
         ).fetchall()
         result: Dict[int, List[int]] = {}
         for row in rows:

@@ -1,8 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import WeeklyCalendarView from '../components/WeeklyCalendarView';
 import SessionEditor from '../components/SessionEditor';
+import SessionViewModal from '../components/SessionViewModal';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import apiClient from '../api/client';
+
+const formatError = (err) => {
+  if (!err) return null;
+  const detail = err.response?.data?.detail || err.detail;
+  if (Array.isArray(detail)) {
+    return detail.map(e => e.msg || e.message || (typeof e === 'object' ? JSON.stringify(e) : String(e))).join(', ');
+  }
+  if (detail && typeof detail === 'object') return detail.msg || JSON.stringify(detail);
+  return typeof detail === 'string' ? detail : (err.message || 'Une erreur est survenue');
+};
 
 const PlannerPage = () => {
   // Use StudyPlanContext instead of local state
@@ -21,13 +32,35 @@ const PlannerPage = () => {
   const [availabilities, setAvailabilities] = useState([]);
   const [constraints, setConstraints] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [academicSchedule, setAcademicSchedule] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // View Modal & Editor Modal states
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingSession, setViewingSession] = useState(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
 
   // Derive sessions from studyPlan
   const sessions = studyPlan?.sessions || [];
+
+  const mergedSessions = useMemo(() => {
+    const fixedAcademicSessions = academicSchedule.map((item) => ({
+      id: `academic-${item.id}`,
+      course_name: item.course_name,
+      day: item.day_of_week,
+      start_time: item.start_time,
+      end_time: item.end_time,
+      task_type: 'university_class',
+      session_type: item.session_type,
+      is_academic_fixed: true,
+      room_location: item.room_location,
+      notes: `Cours universitaire (${item.session_type}) - ${item.room_location || 'Salle non spécifiée'}`,
+      completed: false,
+    }));
+    return [...fixedAcademicSessions, ...sessions];
+  }, [academicSchedule, sessions]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -35,16 +68,16 @@ const PlannerPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Note: studyPlan is now loaded via StudyPlanContext
-      // We only need to load availabilities, constraints, and subjects
-      const [availRes, constRes, subRes] = await Promise.all([
-        apiClient.get('/api/v1/availabilities'),
-        apiClient.get('/api/v1/constraints'),
-        apiClient.get('/api/v1/subjects'),
+      const [availRes, constRes, subRes, acadRes] = await Promise.all([
+        apiClient.get('/api/v1/availabilities').catch(() => ({ data: {} })),
+        apiClient.get('/api/v1/constraints').catch(() => ({ data: {} })),
+        apiClient.get('/api/v1/subjects').catch(() => ({ data: {} })),
+        apiClient.get('/api/v1/availabilities/academic-schedule').catch(() => ({ data: {} })),
       ]);
       setAvailabilities(availRes.data?.availabilities || []);
       setConstraints(constRes.data?.constraints || []);
       setSubjects(subRes.data?.subjects || []);
+      setAcademicSchedule(acadRes.data?.academic_schedule || []);
     } catch (err) {
       console.error('Error loading data:', err);
       const detail = err.response?.data?.detail;
@@ -83,45 +116,56 @@ const PlannerPage = () => {
     }
   };
 
-  const handleSessionClick = (session) => { setSelectedSession(session); setIsEditorOpen(true); };
+  const handleSessionClick = (session) => {
+    setViewingSession(session);
+    setIsViewModalOpen(true);
+  };
+
+  const handleOpenEditorFromView = (session) => {
+    setIsViewModalOpen(false);
+    setSelectedSession(session);
+    setIsEditorOpen(true);
+  };
+
   const handleAddSession = () => { setSelectedSession(null); setIsEditorOpen(true); };
   const handleCloseEditor = () => { setIsEditorOpen(false); setSelectedSession(null); };
+
+  const handleSessionComplete = useCallback(async (session) => {
+    if (!studyPlan) return;
+    try {
+      await apiClient.post(`/api/v1/study-plans/${studyPlan.plan_id || studyPlan.id}/sessions/${session.id}/complete`);
+    } catch (err) {
+      console.error('Failed to mark session complete:', err);
+    }
+  }, [studyPlan]);
 
   const handleSaveSession = async (sessionData) => {
     if (!studyPlan) throw new Error("Aucun plan d'étude actif");
     
-    // Use plan_id (UUID) instead of id
     const planId = studyPlan.plan_id || studyPlan.id;
-    if (!planId) {
-      throw new Error("Plan ID is missing");
-    }
+    if (!planId) throw new Error("Plan ID is missing");
     
     try {
       if (selectedSession) {
-        // Update existing session via Context
         await updateSession(planId, selectedSession.id, sessionData);
       } else {
-        // Add new session via Context
         await addSession(planId, sessionData);
       }
     } catch (err) {
-      throw new Error(err.response?.data?.detail || err.message || 'Erreur lors de la sauvegarde');
+      throw new Error(formatError(err) || 'Erreur lors de la sauvegarde');
     }
   };
 
   const handleDeleteSession = async (sessionId) => {
     if (!studyPlan) throw new Error("Aucun plan d'étude actif");
     
-    // Use plan_id (UUID) instead of id
     const planId = studyPlan.plan_id || studyPlan.id;
-    if (!planId) {
-      throw new Error("Plan ID is missing");
-    }
+    if (!planId) throw new Error("Plan ID is missing");
     
     try {
       await deleteSession(planId, sessionId);
     } catch (err) {
-      throw new Error(err.response?.data?.detail || err.message || 'Erreur lors de la suppression');
+      throw new Error(formatError(err) || 'Erreur lors de la suppression');
     }
   };
 
@@ -232,7 +276,7 @@ const PlannerPage = () => {
       {!loading && !planLoading && (
         <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden mb-6 dark:border-white/10 dark:bg-white/[0.03]">
           <WeeklyCalendarView
-            sessions={sessions}
+            sessions={mergedSessions}
             availabilities={availabilities}
             constraints={constraints}
             onSessionClick={handleSessionClick}
@@ -282,6 +326,16 @@ const PlannerPage = () => {
           ))}
         </div>
       )}
+
+      {/* Session View & Facilitation Modal */}
+      <SessionViewModal
+        session={viewingSession}
+        isOpen={isViewModalOpen}
+        onClose={() => { setIsViewModalOpen(false); setViewingSession(null); }}
+        onComplete={handleSessionComplete}
+        onEdit={handleOpenEditorFromView}
+        onDelete={handleDeleteSession}
+      />
 
       {/* Session Editor */}
       <SessionEditor

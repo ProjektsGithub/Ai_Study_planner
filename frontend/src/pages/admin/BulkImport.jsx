@@ -33,6 +33,7 @@ import {
   BookOutlined,
   DeleteOutlined,
   ExclamationCircleOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../../context/AuthContext';
 
@@ -275,6 +276,16 @@ const BulkImport = () => {
     );
   };
 
+  const handleDownloadTemplate = () => {
+    const link = document.createElement('a');
+    link.href = 'http://localhost:8000/api/v1/admin/imports/template';
+    link.setAttribute('download', 'modele_import_complet_10_onglets.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    message.success('Téléchargement du modèle Excel démo (10 onglets)...');
+  };
+
   return (
     <div style={{ padding: 24, background: '#fff', borderRadius: 8, minHeight: '100%' }}>
       {/* Header breadcrumb */}
@@ -291,6 +302,14 @@ const BulkImport = () => {
         </div>
 
         <Space>
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
+            style={{ backgroundColor: '#10b981', borderColor: '#059669' }}
+            onClick={handleDownloadTemplate}
+          >
+            Télécharger le Modèle Excel (.xlsx)
+          </Button>
           <Button
             danger
             icon={<DeleteOutlined />}
@@ -339,7 +358,7 @@ const BulkImport = () => {
           <Col xs={24} lg={9}>
             <Card title="Excel Format Requirements" size="small" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
               <Paragraph style={{ fontSize: 13 }}>
-                The import spreadsheet must contain the following sheets (tabs) in exact spelling:
+                The import spreadsheet may contain the following sheets (tabs) in exact spelling:
               </Paragraph>
               <List
                 size="small"
@@ -353,18 +372,35 @@ const BulkImport = () => {
                   'TeachingUnits',
                   'Courses',
                   'Prerequisites',
+                  'ClassSchedules (Emplois du temps)',
                 ]}
                 renderItem={(item) => (
                   <List.Item style={{ padding: '4px 0', fontSize: 12 }}>
-                    <BookOutlined style={{ color: '#1890ff', marginRight: 8 }} />
-                    <Text strong>{item}</Text>
+                    <BookOutlined style={{ color: item.includes('ClassSchedules') ? '#52c41a' : '#1890ff', marginRight: 8 }} />
+                    <Text strong style={{ color: item.includes('ClassSchedules') ? '#389e0d' : 'inherit' }}>{item}</Text>
+                    {item.includes('ClassSchedules') && <Tag color="green" style={{ marginLeft: 6 }}>NEW</Tag>}
                   </List.Item>
                 )}
               />
               <Divider style={{ margin: '12px 0' }} />
-              <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }}>
-                Download a reference curriculum worksheet layout or export curriculum details to Excel from the Universities screen to use as a format guide.
-              </Paragraph>
+              <Alert
+                type="info"
+                showIcon
+                message="Emplois du temps de classe"
+                description="Incluez l'onglet 'ClassSchedules' pour importer les cours magistraux, TD, TP, salles et horaires par filière."
+                style={{ fontSize: 12 }}
+              />
+              <div style={{ marginTop: 12 }}>
+                <Button
+                  block
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  style={{ backgroundColor: '#10b981', borderColor: '#059669' }}
+                  onClick={handleDownloadTemplate}
+                >
+                  Télécharger le Modèle Démo (.xlsx)
+                </Button>
+              </div>
             </Card>
           </Col>
         </Row>

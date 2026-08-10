@@ -118,7 +118,9 @@ class SessionEditService:
                     "start_time": session.start_time.strftime("%H:%M:%S"),
                     "end_time": session.end_time.strftime("%H:%M:%S"),
                     "task_type": session.task_type,
-                    "notes": session.notes
+                    "notes": session.notes,
+                    "completed": bool(getattr(session, "completed", False)),
+                    "completed_at": session.completed_at.isoformat() if getattr(session, "completed_at", None) else None,
                 }
             }
             
@@ -225,7 +227,9 @@ class SessionEditService:
                     "start_time": session.start_time.strftime("%H:%M:%S"),
                     "end_time": session.end_time.strftime("%H:%M:%S"),
                     "task_type": session.task_type,
-                    "notes": session.notes
+                    "notes": session.notes,
+                    "completed": bool(getattr(session, "completed", False)),
+                    "completed_at": session.completed_at.isoformat() if getattr(session, "completed_at", None) else None,
                 }
             }
             
@@ -294,6 +298,33 @@ class SessionEditService:
                 "error": "database_error",
                 "message": f"Failed to delete session: {str(e)}"
             }
+
+    def get_session(self, plan_id: str, session_id: int, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get a single session formatted as a dict"""
+        plan = self.db.query(StudyPlan).filter(
+            and_(StudyPlan.plan_id == plan_id, StudyPlan.user_id == user_id)
+        ).first()
+        if not plan:
+            return None
+        session = self.db.query(StudySession).filter(
+            and_(StudySession.id == session_id, StudySession.study_plan_id == plan.id)
+        ).first()
+        if not session:
+            return None
+        subject = self.db.query(Subject).filter(Subject.id == session.subject_id).first()
+        return {
+            "id": session.id,
+            "study_plan_id": session.study_plan_id,
+            "subject_id": session.subject_id,
+            "subject_name": subject.name if subject else "",
+            "day": session.day,
+            "start_time": session.start_time.strftime("%H:%M:%S"),
+            "end_time": session.end_time.strftime("%H:%M:%S"),
+            "task_type": session.task_type,
+            "notes": session.notes,
+            "completed": bool(getattr(session, "completed", False)),
+            "completed_at": session.completed_at.isoformat() if getattr(session, "completed_at", None) else None,
+        }
     
     def _validate_session(
         self,

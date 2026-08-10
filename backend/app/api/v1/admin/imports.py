@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
@@ -59,6 +60,7 @@ from app.schemas.admin import (
 )
 from app.services.import_service import ImportService
 from app.services.audit_service import AuditService
+from app.services.super_admin_client import invalidate_cache
 
 
 router = APIRouter()
@@ -69,6 +71,27 @@ _UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # Max upload size: 20 MB
 _MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+
+
+# ============================================================================
+# GET /api/v1/admin/imports/template  — Download Excel demo template
+# ============================================================================
+
+@router.get(
+    "/template",
+    summary="Download complete Excel import template",
+    description="Returns the 10-sheet master Excel template (.xlsx) with sample data."
+)
+async def download_import_template():
+    file_path = Path("uploads") / "modele_import_complet_10_onglets.xlsx"
+    if not file_path.exists():
+        from create_full_demo_excel import generate_full_demo
+        generate_full_demo()
+    return FileResponse(
+        path=str(file_path),
+        filename="modele_import_complet_10_onglets.xlsx",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 # ============================================================================
@@ -383,6 +406,7 @@ async def execute_import(
     # Execute the transactional import
     try:
         summary = await service.execute_import(import_data, user_id=current_user.id)
+        invalidate_cache()
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -786,6 +810,7 @@ async def reset_all_data(
             deleted_counts["universities"] += 1
         
         db.commit()
+        invalidate_cache()
         
         total_deleted = sum(deleted_counts.values())
         

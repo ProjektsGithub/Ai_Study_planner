@@ -1,7 +1,7 @@
 """
 Study Session model
 """
-from sqlalchemy import Column, Integer, String, Time, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Time, Text, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -19,10 +19,12 @@ class StudySession(Base):
     end_time = Column(Time, nullable=False)
     task_type = Column(String(20), nullable=False)  # revision, exercises, reading, project, exam_prep
     notes = Column(Text, nullable=True)
+    completed = Column(Boolean, default=False, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
     
     # Relationships
     study_plan = relationship("StudyPlan", back_populates="sessions")
     subject = relationship("Subject", back_populates="study_sessions")
     
     def __repr__(self):
-        return f"<StudySession(id={self.id}, day='{self.day}', {self.start_time}-{self.end_time})>"
+        return f"<StudySession(id={self.id}, day='{self.day}', {self.start_time}-{self.end_time}, completed={self.completed})>"

@@ -23,12 +23,12 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 CHAT_MAX_TOKENS = 350
 
-# Patterns that mean the model started hallucinating a new turn or dataset template
+# Patterns that mean the model started hallucinating a new turn, meta-labels, or dataset template
 _STOP_RE = re.compile(
     r"\n---|\n###\s+(QUESTION|HISTORIQUE|FIN|NOTE|MESSAGE|CONTEXTE|PROGRESSION|EMPLOI)|"
     r"\n(Étudiant|Étudent|Student|User)\s*:|"
     r"\n(Assistant|Toi|Chatbot|Bot|AI)\s*:|"
-    r"(?:\n|\s+)(Réponse\s+JUSTIFIÉE|Réponse\s+justifiée|JUSTIFIÉE|Justification|Explication)\s*:|"
+    r"(?:\n|\s+)(Réponse\s+MUST|Réponse\s+générée|Réponse\s+JUSTIFIÉE|Réponse\s+finale|Réponse\s+définitive|Réponse\s+justifiée|Réponse|JUSTIFIÉE|Justification|Explication|Synthèse|Conclusion|Résultat)\s*:?|"
     r"### FIN|\[FIN\]|fin de (la|le) session|note de l.assistant|"
     r"Veux-tu ajouter|Pour .+ tu devrais peut-être|il faudrait peut-être|tu peux peut-être",
     re.IGNORECASE,
@@ -41,7 +41,12 @@ def _truncate_hallucination(text: str) -> str:
         text = text[: m.start()].rstrip()
     
     # Strip residual header prefixes if generated at the very beginning of the response
-    text = re.sub(r"^(?:Réponse\s+JUSTIFIÉE|Réponse|Justification|Explication)\s*:\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"^(?:Réponse\s+MUST\s+être[^\n:]*:?|Réponse\s+générée|Réponse\s+JUSTIFIÉE|Réponse\s+finale|Réponse\s+définitive|Réponse|Justification|Explication|Synthèse|Conclusion|Résultat)\s*:\s*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
     return text.strip()
 
 
@@ -136,10 +141,10 @@ def _build_prompt(message: str, context: Optional[dict], history: list) -> str:
         "",
         "🚨 RÈGLES CRITIQUES :",
         "- Réponds DIRECTEMENT et naturellement à la question (2 à 4 phrases max).",
-        "- N'AJOUTE AUCUN préfixe ou label (interdiction d'écrire 'Réponse JUSTIFIÉE :', 'Justification :', 'Note :', etc.).",
+        "- N'AJOUTE AUCUN préfixe ou label (interdiction d'écrire 'Réponse finale :', 'Réponse :', 'Réponse JUSTIFIÉE :', 'Justification :', 'Note :', etc.).",
         "- NE génère PAS de dialogue fictif (pas de 'Étudiant:', 'Toi:', etc.).",
-        "- NE répète PAS la question de l'étudiant.",
-        "- N'AJOUTE PAS de section de justification répétitive.",
+        "- NE répète PAS ta propre réponse ni la question de l'étudiant.",
+        "- N'AJOUTE PAS de seconde version ou de section 'Réponse finale :'.",
         "- Réponds de manière chaleureuse, précise et directe.",
     ]
 

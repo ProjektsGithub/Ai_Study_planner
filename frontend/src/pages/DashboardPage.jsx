@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useAcademicData } from '../context/AcademicDataContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useGamification } from '../context/GamificationContext';
@@ -62,9 +63,12 @@ const QUICK_ACTIONS = [
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const DashboardPage = () => {
+  const { user } = useAuth();
   const { academicProfile, loading: academicLoading, fetchAllData } = useAcademicData();
   const { currentPlan, loading: planLoading, fetchCurrentPlan } = useStudyPlan();
   const { streak, badges } = useGamification();
+
+  const studentName = user?.name || (user?.email ? user.email.split('@')[0] : 'Student');
 
   const [setupStatus, setSetupStatus] = useState(null);
   const [setupLoading, setSetupLoading] = useState(true);
@@ -118,10 +122,15 @@ const DashboardPage = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-1.5">
-            Hello{academicProfile?.cursus_name ? `, ${academicProfile.cursus_name}` : ''}!
+            Hello, <span className="text-violet-600 dark:text-violet-400 capitalize">{studentName}</span>!
           </h1>
-          <p className="text-slate-500 dark:text-white/40 text-sm">
-            Here is the progress of your academic success.
+          <p className="text-slate-500 dark:text-white/40 text-sm flex items-center gap-2">
+            {academicProfile?.filiere_name && (
+              <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300">
+                {academicProfile.filiere_name}
+              </span>
+            )}
+            <span>Here is the progress of your academic success.</span>
           </p>
         </div>
 

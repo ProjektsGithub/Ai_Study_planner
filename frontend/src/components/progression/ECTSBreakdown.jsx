@@ -6,9 +6,10 @@ const ECTSBreakdown = ({ breakdown = [] }) => {
   return (
     <div className="space-y-4">
       {semesters.map((sem) => {
-        const data = breakdown.find((b) => b.semester === sem) || { obtained: 0, total: 30 };
-        const obtained = data.obtained || 0;
-        const total = data.total || 30; // standard European semester target is 30 ECTS
+        const semNum = sem.replace('S', '');
+        const data = breakdown.find((b) => String(b.semester) === sem || String(b.semester) === semNum) || { obtained: 0, total: 30 };
+        const obtained = data.obtained ?? data.ects_obtained ?? 0;
+        const total = data.total ?? data.ects_required ?? 30;
         const percentage = total > 0 ? Math.min(Math.round((obtained / total) * 100), 100) : 0;
 
         return (

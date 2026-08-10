@@ -8,12 +8,14 @@ import Skeleton from '../components/ui/Skeleton';
 
 const RecommendationsPage = () => {
   const {
+    subjects,
     priorities,
     riskScores,
     failedCourses,
     ectsProgression,
     upcomingExams,
     recalculateAnalysis,
+    fetchAllData,
     loading
   } = useAcademicData();
 
@@ -24,7 +26,7 @@ const RecommendationsPage = () => {
 
   const [freshnessTime, setFreshnessTime] = useState(() => {
     const saved = localStorage.getItem('recommendations_freshness');
-    return saved ? saved : new Date().toLocaleString('en-US');
+    return saved ? saved : new Date().toLocaleString('fr-FR');
   });
 
   const [activeTab, setActiveTab] = useState('all');
@@ -36,18 +38,76 @@ const RecommendationsPage = () => {
     localStorage.setItem('dismissed_recommendations', JSON.stringify(dismissedIds));
   }, [dismissedIds]);
 
-  // Construct recommendations dynamically based on backend analysis
+  // Construct recommendations dynamically based on enrolled subjects + backend analysis
   const recommendationsList = useMemo(() => {
     const recs = [];
 
-    // 1. priorities
+    // 1. Personalized Subject Cards based on Student's Current Enrolled Courses
+    if (Array.isArray(subjects) && subjects.length > 0) {
+      subjects.forEach((s) => {
+        // High priority / High difficulty course card
+        if ((s.priority && s.priority >= 4) || (s.difficulty && s.difficulty >= 4)) {
+          recs.push({
+            id: `subject-priority-${s.id}`,
+            title: `🎯 Stratégie d'étude : ${s.name}`,
+            description: `Matière à forte priorité (${s.priority || 4}/5) et difficulté (${s.difficulty || 4}/5). Allouez au moins ${s.target_weekly_hours || 4}h cette semaine avec une alternance de théorie et d'exercices ciblés.`,
+            category: 'priority',
+            priority: Math.min(5, Math.max(3, s.priority || 4)),
+            subjectId: s.id,
+            subjectName: s.name
+          });
+        }
+
+        // Course with registered weak topics / chapters
+        if (s.weak_topics && ((Array.isArray(s.weak_topics) && s.weak_topics.length > 0) || (typeof s.weak_topics === 'string' && s.weak_topics.trim()))) {
+          const topicsStr = Array.isArray(s.weak_topics) ? s.weak_topics.join(', ') : s.weak_topics;
+          recs.push({
+            id: `subject-weak-${s.id}`,
+            title: `⚠️ Chapitres à renforcer : ${s.name}`,
+            description: `Notions signalées comme fragiles : ${topicsStr}. Planifiez des séances de révision ciblées et des fiches de synthèse.`,
+            category: 'alert',
+            priority: 4,
+            subjectId: s.id,
+            subjectName: s.name
+          });
+        }
+
+        // Course with exam date scheduled
+        if (s.exam_date) {
+          const examD = new Date(s.exam_date);
+          const daysLeft = Math.ceil((examD - new Date()) / (1000 * 60 * 60 * 24));
+          recs.push({
+            id: `subject-exam-${s.id}`,
+            title: `📅 Évaluation prévue : ${s.name}`,
+            description: `Examen prévu le ${examD.toLocaleDateString('fr-FR')} ${daysLeft > 0 ? `(dans ${daysLeft} jours)` : ''}. ${s.exam_type ? `Format: ${s.exam_type}.` : ''} Priorisez les annales et examens blancs.`,
+            category: 'priority',
+            priority: daysLeft <= 7 ? 5 : 4,
+            subjectId: s.id,
+            subjectName: s.name
+          });
+        }
+
+        // General study card per enrolled subject
+        recs.push({
+          id: `subject-general-${s.id}`,
+          title: `📚 Programme de travail : ${s.name}`,
+          description: `Objectif hebdomadaire conseillé : ${s.target_weekly_hours || 3}h. ECTS : ${s.ects_credits || 3}. Répartissez la charge sur plusieurs sessions de 45 à 90 minutes.`,
+          category: 'suggestion',
+          priority: 3,
+          subjectId: s.id,
+          subjectName: s.name
+        });
+      });
+    }
+
+    // 2. Priority backend score analysis
     if (Array.isArray(priorities)) {
       priorities.forEach((p) => {
         if (p.priority_score > 35) {
           recs.push({
             id: `priority-${p.course_id || p.id}`,
-            title: `Intensify learning: ${p.course_name}`,
-            description: `Priority subject scored at ${p.priority_score.toFixed(0)}/100. Spend about ${p.recommended_weekly_hours?.toFixed(1) || '3'}h on it this week to maximize your chances.`,
+            title: `Intensifier la révision : ${p.course_name}`,
+            description: `Matière prioritaire avec un score de ${p.priority_score.toFixed(0)}/100. Consacrez environ ${p.recommended_weekly_hours?.toFixed(1) || '3'}h cette semaine pour maximiser vos chances.`,
             category: 'priority',
             priority: Math.min(5, Math.max(1, Math.ceil(p.priority_score / 20))),
             subjectId: p.course_id,
@@ -57,14 +117,14 @@ const RecommendationsPage = () => {
       });
     }
 
-    // 2. risk alerts
+    // 3. Risk Alerts backend analysis
     if (Array.isArray(riskScores)) {
       riskScores.forEach((r) => {
         if (r.risk_level === 'high' || r.risk_level === 'medium') {
           recs.push({
             id: `risk-${r.course_id || r.id}`,
-            title: `${r.risk_level === 'high' ? 'High' : 'Medium'} Risk Alert: ${r.course_name || 'Course'}`,
-            description: `Subject presenting a significant risk of failure. Focus on practical exercises and targeted revisions for this course.`,
+            title: `Alerte risque ${r.risk_level === 'high' ? 'Élevé' : 'Moyen'} : ${r.course_name || 'Matière'}`,
+            description: `Matière présentant un risque d'échec significatif. Concentrez-vous sur les travaux pratiques et les révisions ciblées.`,
             category: 'alert',
             priority: r.risk_level === 'high' ? 5 : 4,
             subjectId: r.course_id,
@@ -74,13 +134,13 @@ const RecommendationsPage = () => {
       });
     }
 
-    // 3. failed courses
+    // 4. Failed Courses (Rattrapages)
     if (Array.isArray(failedCourses)) {
       failedCourses.forEach((fc) => {
         recs.push({
           id: `failed-${fc.course_id}`,
-          title: `Retake required: ${fc.course_name}`,
-          description: `This course has been marked as failed (Attempts: ${fc.attempt_count}). ${fc.is_prerequisite_blocker ? `WARNING: Blocker subject preventing validation of: ${fc.blocks_courses?.join(', ') || 'other courses'}.` : ''} Make it a priority to schedule study sessions.`,
+          title: `Rattrapage requis : ${fc.course_name}`,
+          description: `Cours non validé (Tentatives: ${fc.attempt_count}). ${fc.is_prerequisite_blocker ? `ATTENTION : Matière bloquante empêchant la validation de : ${fc.blocks_courses?.join(', ') || 'autres cours'}.` : ''} Planifiez des révisions prioritaires.`,
           category: 'alert',
           priority: fc.is_prerequisite_blocker ? 5 : 4,
           subjectId: fc.course_id,
@@ -89,26 +149,31 @@ const RecommendationsPage = () => {
       });
     }
 
-    // 4. ECTS progression
+    // 5. ECTS Progression Analysis
     if (ectsProgression) {
+      const obtained = ectsProgression.ects_obtained ?? ectsProgression.obtained ?? 0;
+      const target = ectsProgression.ects_required ?? ectsProgression.target ?? 180;
+      const percentage = ectsProgression.progression_percentage ?? ectsProgression.percentage ?? 0;
+      const remaining = ectsProgression.ects_remaining ?? ectsProgression.remaining ?? 0;
+
       recs.push({
         id: 'ects-progression-rec',
-        title: 'ECTS & Degree Analysis',
-        description: `You have validated ${ectsProgression.obtained?.toFixed(1) || '0.0'} ECTS out of a total objective of ${ectsProgression.target || '180'} ECTS (${ectsProgression.percentage?.toFixed(1) || '0.0'}% completed). There are ${ectsProgression.remaining?.toFixed(1) || '0.0'} ECTS remaining.`,
+        title: 'Analyse ECTS & Avancement du Diplôme',
+        description: `Vous avez validé ${Number(obtained).toFixed(1)} ECTS sur un objectif total de ${Number(target).toFixed(1)} ECTS (${Number(percentage).toFixed(1)}% accomplis). Il reste ${Number(remaining).toFixed(1)} ECTS à valider.`,
         category: 'analysis',
         priority: 3,
       });
     }
 
-    // 5. upcoming exams countdown
+    // 6. Upcoming Exams Countdown
     if (Array.isArray(upcomingExams)) {
       upcomingExams.forEach((ex) => {
         const days = ex.days_until ?? 10;
         if (days <= 7) {
           recs.push({
             id: `exam-upcoming-${ex.id}`,
-            title: `Imminent Exam: ${ex.course_name || ex.subject_name}`,
-            description: `Your exam is on ${new Date(ex.exam_date).toLocaleDateString('en-US')} (${days} days remaining). Recommended prep: at least ${ex.preparation_time_recommended || '10'}h of study this week.`,
+            title: `Examen Imminent : ${ex.course_name || ex.subject_name}`,
+            description: `Épreuve le ${new Date(ex.exam_date).toLocaleDateString('fr-FR')} (dans ${days} jours). Préparation conseillée : au moins ${ex.preparation_time_recommended || '10'}h cette semaine.`,
             category: 'priority',
             priority: days <= 2 ? 5 : 4,
             subjectId: ex.subject_id,
@@ -118,46 +183,60 @@ const RecommendationsPage = () => {
       });
     }
 
-    // 6. Generic Suggestions
+    // 7. General Pedagogical Suggestions
     recs.push({
       id: 'suggest-spaced-repetition',
-      title: 'Suggested Learning Technique',
-      description: 'Use the spaced repetition principle to review your study notes at intervals of 1, 3, and 7 days.',
+      title: 'Technique d\'Étude : Répétition Espacée',
+      description: 'Revoyez vos fiches de cours à des intervalles de 1, 3 et 7 jours pour ancrer les connaissances durablement.',
       category: 'suggestion',
       priority: 2
     });
 
     recs.push({
       id: 'suggest-pomodoro',
-      title: 'Focus Time Optimization',
-      description: 'Apply the Pomodoro method: 25 minutes of intense study followed by a 5-minute break to rest your brain.',
+      title: 'Optimisation de la Concentration (Pomodoro)',
+      description: 'Appliquez des sessions de 25 minutes de travail intense suivies de 5 minutes de pause pour maintenir une bonne énergie.',
       category: 'suggestion',
       priority: 2
     });
 
-    // Filter out dismissed ones
-    return recs.filter((rec) => !dismissedIds.includes(rec.id));
-  }, [priorities, riskScores, failedCourses, ectsProgression, upcomingExams, dismissedIds]);
+    // Deduplicate by ID and filter out dismissed ones
+    const seen = new Set();
+    const uniqueRecs = [];
+    for (const rec of recs) {
+      if (!seen.has(rec.id) && !dismissedIds.includes(rec.id)) {
+        seen.add(rec.id);
+        uniqueRecs.push(rec);
+      }
+    }
+
+    return uniqueRecs;
+  }, [subjects, priorities, riskScores, failedCourses, ectsProgression, upcomingExams, dismissedIds]);
 
   const handleDismiss = (id, feedback) => {
     setDismissedIds((prev) => [...prev, id]);
-    showToast(`Recommendation hidden (Reason: ${feedback})`);
+    showToast(`Recommandation masquée (Raison: ${feedback})`);
   };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setToastMessage(null);
     try {
-      await recalculateAnalysis();
-      // Clear dismissed items to refresh recommendations
+      if (recalculateAnalysis) {
+        await recalculateAnalysis();
+      }
+      if (fetchAllData) {
+        await fetchAllData();
+      }
+      // Reset dismissed items to refresh recommendations
       setDismissedIds([]);
-      const nowStr = new Date().toLocaleString('en-US');
+      const nowStr = new Date().toLocaleString('fr-FR');
       setFreshnessTime(nowStr);
       localStorage.setItem('recommendations_freshness', nowStr);
-      showToast('Recommendations updated by AI!');
+      showToast('✨ Recommandations IA mises à jour d\'après vos cours et votre progression !');
     } catch (err) {
       console.error('Error generating recommendations:', err);
-      showToast('Error during generation', 'error');
+      showToast('Erreur lors de la génération', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -169,11 +248,11 @@ const RecommendationsPage = () => {
   };
 
   const tabs = [
-    { id: 'all', label: 'All' },
-    { id: 'priority', label: 'Study Priorities' },
-    { id: 'alert', label: 'Risk Alerts' },
-    { id: 'suggestion', label: 'Time Management' },
-    { id: 'analysis', label: 'Analyses' }
+    { id: 'all', label: 'Toutes' },
+    { id: 'priority', label: 'Priorités d\'Étude' },
+    { id: 'alert', label: 'Alertes de Risque' },
+    { id: 'suggestion', label: 'Organisation' },
+    { id: 'analysis', label: 'Analyses ECTS' }
   ];
 
   const isLoading = loading || isGenerating;
@@ -195,12 +274,12 @@ const RecommendationsPage = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <span>AI Recommendations</span>
-            <Badge variant="cyan">Updated: {freshnessTime}</Badge>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <span>Recommandations Pédagogiques IA</span>
+            <Badge variant="cyan">Mise à jour: {freshnessTime}</Badge>
           </h1>
-          <p className="text-white/40 text-sm mt-1">
-            Personalized recommendations generated by Llama + LoRA tailored to your academic progression.
+          <p className="text-slate-500 dark:text-white/40 text-sm mt-1">
+            Conseils personnalisés générés par l'IA et adaptés à vos cours actuels, examens et progression académique.
           </p>
         </div>
 
@@ -215,29 +294,29 @@ const RecommendationsPage = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Generating...
+              Calcul en cours...
             </>
           ) : (
             <>
               <svg className="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2" />
               </svg>
-              Update AI Advice
+              Actualiser les conseils IA
             </>
           )}
         </Button>
       </div>
 
       {/* Category Tabs */}
-      <div className="flex flex-wrap items-center gap-2 mb-8 border-b border-white/5 pb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-8 border-b border-slate-200 dark:border-white/5 pb-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
               activeTab === tab.id
-                ? 'bg-violet-600/25 border-violet-500/30 text-violet-200 shadow-glow-sm'
-                : 'bg-white/5 border-transparent text-white/60 hover:text-white hover:bg-white/10'
+                ? 'bg-violet-600 text-white border-violet-500 shadow-lg'
+                : 'bg-slate-100 dark:bg-white/5 border-transparent text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10'
             }`}
           >
             {tab.label}

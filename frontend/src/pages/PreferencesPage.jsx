@@ -18,7 +18,21 @@ const RETAKE_RULES = {
   3: [],
   4: [2],
   5: [1, 3],
-  6: [2, 3],
+  6: [2, 4],
+};
+
+const getAllowedRetakes = (semNum) => {
+  const sem = parseInt(semNum) || 1;
+  if (RETAKE_RULES[sem]) return RETAKE_RULES[sem];
+  if (sem >= 7) {
+    // For extended semesters (S7+), allow retaking any anterior semester S1 to S(sem - 1)
+    const allowed = [];
+    for (let s = 1; s < sem; s++) {
+      allowed.push(s);
+    }
+    return allowed;
+  }
+  return [];
 };
 
 const PreferencesPage = () => {
@@ -239,8 +253,8 @@ const PreferencesPage = () => {
     }
 
     const sem = academicData.current_semester;
-    if (sem !== undefined && (sem < 1 || sem > 6)) {
-      newErrors.current_semester = 'Current semester must be between S1 and S6';
+    if (sem !== undefined && (sem < 1 || sem > 7)) {
+      newErrors.current_semester = 'Current semester must be between S1 and S7';
     }
 
     setErrors(newErrors);
@@ -384,8 +398,8 @@ const PreferencesPage = () => {
                   value={academicData.current_semester}
                   onChange={handleAcademicFieldChange}
                 >
-                  {[1, 2, 3, 4, 5, 6].map((num) => (
-                    <option key={num} value={num}>Semester S{num}</option>
+                  {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                    <option key={num} value={num}>Semester S{num}{num === 7 ? ' (Extended / Combined)' : ''}</option>
                   ))}
                 </select>
                 {errors.current_semester && (
@@ -415,7 +429,7 @@ const PreferencesPage = () => {
         {/* Retake Semesters (German Wiederholung system) */}
         {(() => {
           const currentSem = parseInt(academicData.current_semester) || 1;
-          const allowedRetakes = RETAKE_RULES[currentSem] || [];
+          const allowedRetakes = getAllowedRetakes(currentSem);
           if (allowedRetakes.length === 0) return null;
 
           return (

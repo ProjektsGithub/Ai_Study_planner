@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import apiClient from '../api/client';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
@@ -23,6 +24,7 @@ const ENERGY_CONFIG = {
 const AvailabilityManager = () => {
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [academicData, setAcademicData] = useState({ has_preferences: false, program_name: null, total_class_hours: 0, academic_schedule: [] });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(null);
   const [formData, setFormData] = useState({ day_of_week: 'Monday', start_time: '09:00', end_time: '17:00', energy_level: '' });
@@ -40,7 +42,19 @@ const AvailabilityManager = () => {
     }
   };
 
-  useEffect(() => { loadAvailabilities(); }, []);
+  const loadAcademicSchedule = async () => {
+    try {
+      const response = await apiClient.get('/api/v1/availabilities/academic-schedule');
+      setAcademicData(response.data || {});
+    } catch (error) {
+      console.error('Error loading academic schedule:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadAvailabilities();
+    loadAcademicSchedule();
+  }, []);
 
   const handleAdd = () => {
     setEditingAvailability(null);
@@ -130,13 +144,158 @@ const AvailabilityManager = () => {
   }
 
   return (
-    <div>
+    <div className="space-y-8">
+      {/* Detected Academic Timetable Section */}
+      <div
+        className="p-6 rounded-3xl border-2 border-indigo-100 shadow-xl space-y-5"
+        style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
+      >
+        {/* Top Header Banner */}
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 pb-4 border-b-2 border-slate-100">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span
+                className="px-3 py-1 rounded-full text-xs font-bold border border-indigo-200"
+                style={{ backgroundColor: '#eef2ff', color: '#4338ca' }}
+              >
+                🏛️ Emploi du Temps Universitaire
+              </span>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2" style={{ color: '#0f172a' }}>
+              Programme Scolaire Détecté
+            </h2>
+            {academicData.has_preferences && (
+              <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
+                <span
+                  className="px-3 py-1.5 rounded-xl font-bold border border-slate-200"
+                  style={{ backgroundColor: '#f8fafc', color: '#0f172a' }}
+                >
+                  🎓 {academicData.program_name}
+                </span>
+                <span
+                  className="px-3 py-1.5 rounded-xl font-bold border border-cyan-200"
+                  style={{ backgroundColor: '#ecfeff', color: '#0e7490' }}
+                >
+                  ⏱️ {academicData.total_class_hours}h / semaine
+                </span>
+                <span
+                  className="px-3 py-1.5 rounded-xl font-bold border border-emerald-200"
+                  style={{ backgroundColor: '#ecfdf5', color: '#047857' }}
+                >
+                  📚 {academicData.academic_schedule?.length || 0} cours fixes
+                </span>
+              </div>
+            )}
+          </div>
+          <Link
+            to="/preferences"
+            className="self-start md:self-auto inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border border-indigo-200 transition-all shadow-sm hover:shadow"
+            style={{ backgroundColor: '#4f46e5', color: '#ffffff' }}
+          >
+            <span>Modifier mes préférences</span>
+            <span>→</span>
+          </Link>
+        </div>
+
+        {/* Schedule Grid */}
+        {academicData.academic_schedule && academicData.academic_schedule.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+            {DAYS_OF_WEEK.map((day) => {
+              const dayClasses = academicData.academic_schedule.filter((c) => c.day_of_week === day);
+              if (dayClasses.length === 0) return null;
+              return (
+                <div
+                  key={day}
+                  className="flex flex-col p-3.5 rounded-2xl border border-slate-200 space-y-3 shadow-sm"
+                  style={{ backgroundColor: '#f8fafc' }}
+                >
+                  {/* Day Header */}
+                  <div className="flex items-center justify-between px-1">
+                    <span
+                      className="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider shadow-sm"
+                      style={{ backgroundColor: '#4f46e5', color: '#ffffff' }}
+                    >
+                      {DAY_LABELS[day]}
+                    </span>
+                    <span className="text-xs font-extrabold" style={{ color: '#334155' }}>
+                      {dayClasses.length} {dayClasses.length > 1 ? 'cours' : 'cours'}
+                    </span>
+                  </div>
+
+                  {/* Day Slot Cards */}
+                  <div className="space-y-2.5 flex-1">
+                    {dayClasses.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3.5 rounded-xl border border-slate-200 space-y-2.5 shadow-sm hover:shadow transition-all"
+                        style={{ backgroundColor: '#ffffff' }}
+                      >
+                        {/* Session Type & Time */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide text-white shadow-sm"
+                            style={{
+                              backgroundColor:
+                                item.session_type === 'CM' ? '#2563eb' :
+                                item.session_type === 'TD' ? '#7c3aed' :
+                                item.session_type === 'TP' ? '#059669' : '#dc2626',
+                              color: '#ffffff'
+                            }}
+                          >
+                            {item.session_type === 'CM' ? '🏛️ CM' : item.session_type === 'TD' ? '📝 TD' : item.session_type === 'TP' ? '🧪 TP' : '🎯 EXAM'}
+                          </span>
+
+                          <span
+                            className="text-[11px] font-mono font-black px-2 py-0.5 rounded border border-slate-300 shadow-sm"
+                            style={{ backgroundColor: '#0f172a', color: '#38bdf8' }}
+                          >
+                            {item.start_time} – {item.end_time}
+                          </span>
+                        </div>
+
+                        {/* Course Title (CRISP BOLD JET BLACK TEXT) */}
+                        <h4
+                          className="font-black text-xs leading-snug pt-1"
+                          style={{ color: '#0f172a' }}
+                        >
+                          {item.course_name}
+                        </h4>
+
+                        {/* Room Location */}
+                        {item.room_location && (
+                          <div
+                            className="text-[11px] font-bold flex items-center gap-1.5 pt-2 border-t border-slate-100"
+                            style={{ color: '#475569' }}
+                          >
+                            <span>📍</span>
+                            <span className="truncate">{item.room_location}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-6 rounded-2xl border border-dashed border-slate-300 text-center space-y-2" style={{ backgroundColor: '#f8fafc' }}>
+            <div className="text-2xl">🎓</div>
+            <p className="text-xs font-bold max-w-md mx-auto" style={{ color: '#334155' }}>
+              {academicData.has_preferences
+                ? 'Aucun créneau de cours fixe n\'a été importé pour cette filière pour le moment.'
+                : 'Veuillez configurer votre filière et votre semestre dans la page des préférences pour afficher votre emploi du temps universitaire.'}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-white">My Availabilities</h2>
           <p className="text-white/40 text-sm mt-1">
-            {availabilities.length} slot(s) · <span className="text-cyan-400">{totalHours.toFixed(1)}h</span> available / week
+            {availabilities.length} slot(s) · <span className="text-cyan-400">{totalHours.toFixed(1)}h</span> free for study / week
           </p>
         </div>
         <Button onClick={handleAdd}>+ Add Availability</Button>

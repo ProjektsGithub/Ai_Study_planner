@@ -11,7 +11,7 @@ Provides methods for:
 Requirements: 9.1-9.10
 """
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 import openpyxl
@@ -25,6 +25,7 @@ from app.models.academic_track import AcademicTrack, TrackLevel
 from app.models.semester import Semester
 from app.models.teaching_unit import TeachingUnit
 from app.models.course import Course, course_prerequisites
+from app.models.class_schedule import ClassSchedule
 from app.services.validation_service import ValidationService
 from app.services.audit_service import AuditService
 
@@ -96,7 +97,8 @@ class ImportService:
             "semesters": [],
             "teaching_units": [],
             "courses": [],
-            "prerequisites": []
+            "prerequisites": [],
+            "class_schedules": []
         }
         
         # Parse Universities
@@ -140,6 +142,12 @@ class ImportService:
             import_data["prerequisites"] = self._parse_prerequisites_sheet(
                 workbook["Prerequisites"]
             )
+
+        # Parse ClassSchedules
+        for sheet_name in ["ClassSchedules", "Class_Schedules", "Timetables"]:
+            if sheet_name in workbook.sheetnames:
+                import_data["class_schedules"] = self._parse_class_schedules_sheet(workbook[sheet_name])
+                break
         
         workbook.close()
         
@@ -331,6 +339,31 @@ class ImportService:
             })
         
         return prerequisites
+
+    def _parse_class_schedules_sheet(self, sheet: Worksheet) -> List[Dict[str, Any]]:
+        """Parse ClassSchedules sheet"""
+        schedules = []
+        rows = list(sheet.iter_rows(min_row=2, values_only=True))
+        
+        for i, row in enumerate(rows, start=2):
+            if not row or not any(row):
+                continue
+            
+            schedules.append({
+                "program_name": self._get_cell_value(row, 0),
+                "track_name": self._get_cell_value(row, 1),
+                "semester_number": self._get_cell_value(row, 2, int),
+                "course_code": self._get_cell_value(row, 3),
+                "course_name": self._get_cell_value(row, 4),
+                "day_of_week": self._get_cell_value(row, 5),
+                "start_time": self._get_cell_value(row, 6),
+                "end_time": self._get_cell_value(row, 7),
+                "session_type": self._get_cell_value(row, 8) or "CM",
+                "room_location": self._get_cell_value(row, 9),
+                "_row": i
+            })
+        
+        return schedules
     
     def _get_cell_value(self, row: tuple, index: int, convert_type=None):
         """
@@ -924,6 +957,10 @@ class ImportService:
             "prerequisites": {
                 "count": len(import_data.get("prerequisites", [])),
                 "samples": import_data.get("prerequisites", [])[:3]
+            },
+            "class_schedules": {
+                "count": len(import_data.get("class_schedules", [])),
+                "samples": import_data.get("class_schedules", [])[:3]
             }
         }
         
@@ -965,7 +1002,8 @@ class ImportService:
                 "semesters": [],
                 "teaching_units": [],
                 "courses": [],
-                "prerequisites": []
+                "prerequisites": [],
+                "class_schedules": []
             }
             
             # Create name-to-entity mappings for referencing
@@ -978,23 +1016,29 @@ class ImportService:
             
             # 1. Create Universities
             for uni_data in import_data.get("universities", []):
-                uni = University(
-                    name=uni_data.get("name"),
-                    name_de=uni_data.get("name_de"),
-                    country=uni_data.get("country", "Germany"),
-                    description=uni_data.get("description"),
-                    description_de=uni_data.get("description_de")
-                )
-                self.db.add(uni)
-                self.db.flush()  # Get ID without committing
+                uni_name = uni_data.get("name")
+                existing_uni = self.db.query(University).filter(
+                    University.name == uni_name,
+                    University.is_deleted == False
+                ).first()
+                if existing_uni:
+                    uni = existing_uni
+                else:
+                    uni = University(
+                        name=uni_name,
+                        name_de=uni_data.get("name_de"),
+                        country=uni_data.get("country", "Germany"),
+                        description=uni_data.get("description"),
+                        description_de=uni_data.get("description_de")
+                    )
+                    self.db.add(uni)
+                    self.db.flush()  # Get ID without committing
+                    created_entities["universities"].append(uni.id)
+                    await self.audit_service.log_create(
+                        "university", uni.id, {"name": uni.name}, user_id
+                    )
                 
                 university_map[uni.name] = uni
-                created_entities["universities"].append(uni.id)
-                
-                # Log creation
-                await self.audit_service.log_create(
-                    "university", uni.id, {"name": uni.name}, user_id
-                )
             
             # 2. Create Campuses
             for campus_data in import_data.get("campuses", []):
@@ -1028,22 +1072,29 @@ class ImportService:
             
             # 3. Create Programs
             for prog_data in import_data.get("programs", []):
-                program = StudyProgram(
-                    name=prog_data.get("name"),
-                    name_de=prog_data.get("name_de"),
-                    code=prog_data.get("code"),
-                    description=prog_data.get("description"),
-                    description_de=prog_data.get("description_de")
-                )
-                self.db.add(program)
-                self.db.flush()
+                prog_name = prog_data.get("name")
+                existing_prog = self.db.query(StudyProgram).filter(
+                    StudyProgram.name == prog_name,
+                    StudyProgram.is_deleted == False
+                ).first()
+                if existing_prog:
+                    program = existing_prog
+                else:
+                    program = StudyProgram(
+                        name=prog_name,
+                        name_de=prog_data.get("name_de"),
+                        code=prog_data.get("code"),
+                        description=prog_data.get("description"),
+                        description_de=prog_data.get("description_de")
+                    )
+                    self.db.add(program)
+                    self.db.flush()
+                    created_entities["programs"].append(program.id)
+                    await self.audit_service.log_create(
+                        "study_program", program.id, {"name": program.name}, user_id
+                    )
                 
                 program_map[program.name] = program
-                created_entities["programs"].append(program.id)
-                
-                await self.audit_service.log_create(
-                    "study_program", program.id, {"name": program.name}, user_id
-                )
             
             # 4. Create University-Program links
             for link_data in import_data.get("university_programs", []):
@@ -1219,6 +1270,69 @@ class ImportService:
                     self.db.execute(stmt)
                     created_entities["prerequisites"].append(
                         f"{course_name} <- {prereq_name}"
+                    )
+            
+            # 10. Create ClassSchedules
+            for cs_data in import_data.get("class_schedules", []):
+                prog_name = cs_data.get("program_name")
+                program = program_map.get(prog_name) or self.db.query(StudyProgram).filter(
+                    StudyProgram.name == prog_name, StudyProgram.is_deleted == False
+                ).first()
+
+                if not program and cs_data.get("program_code"):
+                    program = self.db.query(StudyProgram).filter(
+                        StudyProgram.code == cs_data.get("program_code"), StudyProgram.is_deleted == False
+                    ).first()
+
+                if program:
+                    track_name = cs_data.get("track_name")
+                    track = track_map.get(track_name) if track_name else None
+                    if not track and track_name:
+                        track = self.db.query(AcademicTrack).filter(
+                            AcademicTrack.name == track_name,
+                            AcademicTrack.is_deleted == False
+                        ).first()
+
+                    sem_num = cs_data.get("semester_number")
+                    semester = None
+                    if track and sem_num:
+                        semester = semester_map.get(f"{track.id}_{sem_num}") or self.db.query(Semester).filter(
+                            Semester.academic_track_id == track.id,
+                            Semester.semester_number == sem_num,
+                            Semester.is_deleted == False
+                        ).first()
+                    elif sem_num:
+                        semester = self.db.query(Semester).filter(
+                            Semester.semester_number == sem_num,
+                            Semester.is_deleted == False
+                        ).first()
+
+                    def parse_time_val(t_val):
+                        if isinstance(t_val, time):
+                            return t_val
+                        if isinstance(t_val, str):
+                            parts = t_val.strip().split(":")
+                            return time(int(parts[0]), int(parts[1]))
+                        return time(8, 30)
+
+                    cs = ClassSchedule(
+                        study_program_id=program.id,
+                        academic_track_id=track.id if track else None,
+                        semester_id=semester.id if semester else None,
+                        course_name=cs_data.get("course_name", "Cours"),
+                        course_code=cs_data.get("course_code"),
+                        day_of_week=cs_data.get("day_of_week", "Monday"),
+                        start_time=parse_time_val(cs_data.get("start_time")),
+                        end_time=parse_time_val(cs_data.get("end_time")),
+                        session_type=cs_data.get("session_type", "CM"),
+                        room_location=cs_data.get("room_location"),
+                        is_mandatory=True
+                    )
+                    self.db.add(cs)
+                    self.db.flush()
+                    created_entities["class_schedules"].append(cs.id)
+                    await self.audit_service.log_create(
+                        "class_schedule", cs.id, {"course_name": cs.course_name}, user_id
                     )
             
             # Commit transaction

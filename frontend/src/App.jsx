@@ -39,6 +39,7 @@ import AcademicTracks from './pages/admin/AcademicTracks';
 import Semesters from './pages/admin/Semesters';
 import TeachingUnits from './pages/admin/TeachingUnits';
 import Courses from './pages/admin/Courses';
+import ClassSchedules from './pages/admin/ClassSchedules';
 import ValidationRules from './pages/admin/ValidationRules';
 import BulkImport from './pages/admin/BulkImport';
 import ImportHistory from './pages/admin/ImportHistory';
@@ -111,6 +112,7 @@ const router = createBrowserRouter([
       { path: 'semesters',            element: <Semesters /> },
       { path: 'teaching-units',       element: <TeachingUnits /> },
       { path: 'courses',              element: <Courses /> },
+      { path: 'class-schedules',      element: <ClassSchedules /> },
       { path: 'rules',                element: <ValidationRules /> },
       { path: 'imports',              element: <BulkImport /> },
       { path: 'imports/history',      element: <ImportHistory /> },

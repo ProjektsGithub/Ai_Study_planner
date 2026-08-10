@@ -25,19 +25,30 @@ const ProgressionPage = () => {
   // Current semester from profile (default to 1)
   const currentSemesterNum = academicProfile?.current_semester || 1;
 
-  // Filter subjects for the selected semester
-  const semesterSubjects = subjects.filter((s) => s.semester === selectedSemester);
+  useEffect(() => {
+    if (academicProfile?.current_semester) {
+      setSelectedSemester(`S${academicProfile.current_semester}`);
+    }
+  }, [academicProfile?.current_semester]);
 
-  const obtained = ectsProgression?.ects_obtained || 0;
-  const target = ectsProgression?.ects_required || 180.0;
+  // Filter subjects for the selected semester (support both 'S1' and 1)
+  const targetSemNum = selectedSemester.replace('S', '');
+  const semesterSubjects = subjects.filter((s) => {
+    const subSem = String(s.semester_number || s.semester || '').replace('S', '');
+    return subSem === targetSemNum || String(s.semester) === selectedSemester;
+  });
+
+  const obtained = ectsProgression?.ects_obtained ?? ectsProgression?.obtained ?? 0;
+  const target = ectsProgression?.ects_required ?? ectsProgression?.target ?? 180.0;
 
   // Map backend breakdown format to the format required by ECTSBreakdown
-  // Backend returns: list of structures containing semester, obtained, total
-  const mappedBreakdown = ectsBreakdown?.by_semester?.map(b => ({
-    semester: b.semester,
-    obtained: b.obtained,
-    total: b.total
-  })) || [];
+  // Backend returns: semester_breakdown list with ects_obtained and ects_required
+  const rawBreakdownList = ectsBreakdown?.semester_breakdown || ectsBreakdown?.by_semester || [];
+  const mappedBreakdown = rawBreakdownList.map(b => ({
+    semester: typeof b.semester === 'number' ? `S${b.semester}` : String(b.semester),
+    obtained: b.ects_obtained ?? b.obtained ?? 0,
+    total: b.ects_required ?? b.total ?? 30
+  }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">

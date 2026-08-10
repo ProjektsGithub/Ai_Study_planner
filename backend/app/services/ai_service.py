@@ -162,6 +162,18 @@ Generate a weekly study schedule in JSON format.
         if constraints['fixed_slots']:
             prompt += f"- {len(constraints['fixed_slots'])} fixed time slots already reserved\n"
         
+        academic_schedule = planning_data.get("academic_schedule") or []
+        if academic_schedule:
+            prompt += f"\n🎓 **FIXED UNIVERSITY TIMETABLE (Emploi du temps académique)**:\n"
+            prompt += "The student attends the following fixed mandatory university classes. DO NOT schedule personal study sessions during these times:\n"
+            for cs in academic_schedule:
+                room_str = f" in {cs['room_location']}" if cs.get('room_location') else ""
+                code_str = f" ({cs['course_code']})" if cs.get('course_code') else ""
+                prompt += f"  - {cs['day_of_week']} {cs['start_time'][:5]}-{cs['end_time'][:5]}: {cs['course_name']}{code_str} [{cs['session_type']}]{room_str}\n"
+            prompt += "  👉 ALIGNMENT RULES FOR AI:\n"
+            prompt += "  - Place preparatory study sessions shortly before important TD/TP sessions.\n"
+            prompt += "  - Place review/consolidation study sessions on the same day or day after heavy Lectures (CM).\n"
+
         prompt += f"\n**USER PREFERENCES**:\n"
         if user_preferences:
             if 'preferred_study_times' in user_preferences:

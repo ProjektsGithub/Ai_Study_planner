@@ -8,6 +8,10 @@ from app.core.dependencies import get_db, get_current_user
 from app.models.user import User
 from app.models.availability import Availability
 from app.models.study_plan import StudyPlan
+from app.models.student_profile import StudentProfile
+from app.models.class_schedule import ClassSchedule
+from app.models.study_program import StudyProgram
+from app.models.semester import Semester
 from app.schemas.availability import (
     AvailabilityCreate,
     AvailabilityUpdate,
@@ -95,6 +99,100 @@ async def list_availabilities(
     return {
         "availabilities": availabilities,
         "total": len(availabilities)
+    }
+
+
+@router.get("/academic-schedule")
+async def get_academic_schedule(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detected university class schedule for current student based on profile preferences.
+    """
+    profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+    
+    if not profile or not profile.filiere_id:
+        first_prog = db.query(StudyProgram).filter(StudyProgram.is_deleted == False).first()
+        if first_prog:
+            try:
+                if not profile:
+                    profile = StudentProfile(user_id=current_user.id, filiere_id=first_prog.id, current_semester=1)
+                    db.add(profile)
+                else:
+                    profile.filiere_id = first_prog.id
+                    if not profile.current_semester:
+                        profile.current_semester = 1
+                db.commit()
+                db.refresh(profile)
+            except Exception:
+                db.rollback()
+                profile = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+        if not profile or not profile.filiere_id:
+            return {
+                "has_preferences": False,
+                "program_name": None,
+                "total_class_hours": 0,
+                "academic_schedule": []
+            }
+    
+    # Query program name & resolve all program IDs with same name
+    program = db.query(StudyProgram).filter(StudyProgram.id == profile.filiere_id).first()
+    program_name = program.name if program else "University Program"
+    
+    matching_prog_ids = [
+        p.id for p in db.query(StudyProgram.id).filter(
+            StudyProgram.name == program_name,
+            StudyProgram.is_deleted == False
+        ).all()
+    ] if program else [profile.filiere_id]
+
+    base_query = db.query(ClassSchedule).filter(
+        ClassSchedule.study_program_id.in_(matching_prog_ids),
+        ClassSchedule.is_deleted == False
+    )
+    query = base_query
+    if profile.cursus_id:
+        query = query.filter((ClassSchedule.academic_track_id == profile.cursus_id) | (ClassSchedule.academic_track_id == None))
+    if profile.current_semester:
+        sem_ids = [
+            s.id for s in db.query(Semester.id).filter(
+                Semester.semester_number == profile.current_semester,
+                Semester.is_deleted == False
+            ).all()
+        ]
+        if sem_ids:
+            query = query.filter((ClassSchedule.semester_id.in_(sem_ids)) | (ClassSchedule.semester_id == None))
+        
+    schedules = query.all()
+    if not schedules and not profile.cursus_id:
+        schedules = base_query.all()
+    
+    # Calculate total class hours per week
+    total_minutes = 0
+    formatted_schedules = []
+    for item in schedules:
+        sh, sm = item.start_time.hour, item.start_time.minute
+        eh, em = item.end_time.hour, item.end_time.minute
+        dur = (eh * 60 + em) - (sh * 60 + sm)
+        total_minutes += max(dur, 0)
+        formatted_schedules.append({
+            "id": item.id,
+            "course_name": item.course_name,
+            "course_code": item.course_code,
+            "day_of_week": item.day_of_week,
+            "start_time": item.start_time.strftime("%H:%M"),
+            "end_time": item.end_time.strftime("%H:%M"),
+            "session_type": item.session_type,
+            "room_location": item.room_location,
+            "is_mandatory": item.is_mandatory
+        })
+        
+    return {
+        "has_preferences": True,
+        "program_name": program_name,
+        "total_class_hours": round(total_minutes / 60.0, 1),
+        "academic_schedule": formatted_schedules
     }
 
 
@@ -207,3 +305,4 @@ async def delete_availability(
     mark_future_plans_outdated(current_user.id, db)
     
     return {"message": "Availability deleted successfully"}
+

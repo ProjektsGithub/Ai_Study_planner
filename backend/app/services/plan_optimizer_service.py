@@ -153,7 +153,7 @@ class PlanOptimizerService:
 
         session = (
             db.query(StudySession)
-            .join(StudyPlan, StudyPlan.id == StudySession.plan_id)
+            .join(StudyPlan, StudyPlan.id == StudySession.study_plan_id)
             .filter(
                 StudySession.id == session_id,
                 StudyPlan.user_id == user_id,

@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 
 const SemesterTimeline = ({ selectedSemester, onSemesterSelect, currentSemester = 1 }) => {
-  const semesters = [1, 2, 3, 4, 5, 6];
+  const maxSem = Math.max(6, currentSemester || 1);
+  const semesters = Array.from({ length: maxSem }, (_, i) => i + 1);
 
   return (
     <div className="w-full py-6 overflow-x-auto select-none">

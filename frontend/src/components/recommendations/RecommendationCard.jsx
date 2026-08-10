@@ -91,11 +91,11 @@ const RecommendationCard = ({ recommendation, onDismiss }) => {
                 className="w-full text-xs px-2 py-1.5 bg-slate-950/60 border border-white/10 rounded-lg text-white"
                 required
               >
-                <option value="">Select a reason...</option>
-                <option value="already_done">Already done / Completed</option>
-                <option value="not_relevant">Not relevant right now</option>
-                <option value="too_hard">Too difficult to implement</option>
-                <option value="other">Other reason</option>
+                <option value="" className="bg-slate-900 text-white">Select a reason...</option>
+                <option value="already_done" className="bg-slate-900 text-white">Already done / Completed</option>
+                <option value="not_relevant" className="bg-slate-900 text-white">Not relevant right now</option>
+                <option value="too_hard" className="bg-slate-900 text-white">Too difficult to implement</option>
+                <option value="other" className="bg-slate-900 text-white">Other reason</option>
               </select>
               <div className="flex justify-end gap-2 mt-1">
                 <button

@@ -95,8 +95,12 @@ class StudyPlanService:
                         "from_cache": True
                     }
             
-            # Step 3: Run PlanningEngine logic
-            valid_slots = self._construct_valid_slots_from_data(availabilities, constraints)
+            # Step 3: Run PlanningEngine logic (loads subjects, availabilities, constraints,
+            # and academic class schedules, removing university course overlaps and enriching context)
+            engine = PlanningEngine(user_id=user_id, db=self.db)
+            planning_data = engine.generate_planning_data(db=self.db)
+            valid_slots = engine.valid_slots
+            constraint_info = planning_data["constraints"]
             
             if not valid_slots:
                 return False, {
@@ -104,15 +108,7 @@ class StudyPlanService:
                     "message": "No valid time slots available after applying constraints. Please adjust your availabilities or constraints."
                 }
             
-            priorities = self._calculate_priorities_from_data(subjects, week_start)
-            constraint_info = self._validate_constraints_from_data(constraints)
-            
             # Step 4: Call AI Service
-            planning_data = {
-                "valid_slots": [slot.to_dict() for slot in valid_slots],
-                "subject_priorities": [p.to_dict() for p in priorities],
-                "constraints": constraint_info
-            }
             
             # Prepare profile context for AI
             profile_context = {
@@ -665,7 +661,9 @@ class StudyPlanService:
                 "start_time": session.start_time.strftime("%H:%M:%S"),
                 "end_time": session.end_time.strftime("%H:%M:%S"),
                 "task_type": session.task_type,
-                "notes": session.notes or ""
+                "notes": session.notes or "",
+                "completed": bool(getattr(session, "completed", False)),
+                "completed_at": session.completed_at.isoformat() if getattr(session, "completed_at", None) else None,
             })
         
         # Calculate total hours

@@ -15,6 +15,10 @@ from sqlalchemy.orm import Session
 from app.models.subject import Subject
 from app.models.availability import Availability
 from app.models.constraint import Constraint
+from app.models.student_profile import StudentProfile
+from app.models.class_schedule import ClassSchedule
+from app.models.study_program import StudyProgram
+from app.models.semester import Semester
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +107,7 @@ class PlanningEngine:
         self.subjects: List[Subject] = []
         self.availabilities: List[Availability] = []
         self.constraints: List[Constraint] = []
+        self.academic_schedules: List[ClassSchedule] = []
         self.valid_slots: List[TimeSlot] = []
         self.subject_priorities: List[SubjectPriority] = []
     
@@ -120,6 +125,37 @@ class PlanningEngine:
             Constraint.user_id == self.user_id,
             Constraint.active == True
         ).all()
+
+        profile = self.db.query(StudentProfile).filter(StudentProfile.user_id == self.user_id).first()
+        self.academic_schedules = []
+        if profile and profile.filiere_id:
+            prog = self.db.query(StudyProgram).filter(StudyProgram.id == profile.filiere_id).first()
+            matching_prog_ids = [
+                p.id for p in self.db.query(StudyProgram.id).filter(
+                    StudyProgram.name == prog.name,
+                    StudyProgram.is_deleted == False
+                ).all()
+            ] if prog else [profile.filiere_id]
+
+            base_query = self.db.query(ClassSchedule).filter(
+                ClassSchedule.study_program_id.in_(matching_prog_ids),
+                ClassSchedule.is_deleted == False
+            )
+            query = base_query
+            if profile.cursus_id:
+                query = query.filter((ClassSchedule.academic_track_id == profile.cursus_id) | (ClassSchedule.academic_track_id == None))
+            if profile.current_semester:
+                sem_ids = [
+                    s.id for s in self.db.query(Semester.id).filter(
+                        Semester.semester_number == profile.current_semester,
+                        Semester.is_deleted == False
+                    ).all()
+                ]
+                if sem_ids:
+                    query = query.filter((ClassSchedule.semester_id.in_(sem_ids)) | (ClassSchedule.semester_id == None))
+            self.academic_schedules = query.all()
+            if not self.academic_schedules and not profile.cursus_id:
+                self.academic_schedules = base_query.all()
     
     def construct_valid_slots(self) -> List[TimeSlot]:
         """
@@ -128,8 +164,9 @@ class PlanningEngine:
         Process:
         1. Start with all availability windows
         2. Remove forbidden slot overlaps
-        3. Apply fixed slot reservations
-        4. Ensure minimum 15-minute slot duration
+        3. Remove fixed university class schedule overlaps (ClassSchedule)
+        4. Apply fixed slot reservations
+        5. Ensure minimum 15-minute slot duration
         
         Returns:
             List of valid TimeSlot objects
@@ -163,9 +200,15 @@ class PlanningEngine:
             
             # Remove overlapping portions
             slots = self._remove_forbidden_overlap(slots, forbidden_slot)
-        
-        # Step 3: Mark fixed slots (they're still valid but reserved)
-        # Fixed slots are handled during AI generation, not here
+
+        # Step 3: Remove university class schedules so personal study NEVER overlaps with university classes
+        for cs in self.academic_schedules:
+            class_slot = TimeSlot(
+                cs.day_of_week,
+                cs.start_time,
+                cs.end_time
+            )
+            slots = self._remove_forbidden_overlap(slots, class_slot)
         
         # Step 4: Filter slots with minimum duration
         valid_slots = [s for s in slots if s.duration_minutes >= 15]
@@ -372,6 +415,19 @@ class PlanningEngine:
             "valid_slots": [slot.to_dict() for slot in valid_slots],
             "subject_priorities": [p.to_dict() for p in priorities],
             "constraints": constraint_info,
+            "academic_schedule": [
+                {
+                    "id": cs.id,
+                    "course_name": cs.course_name,
+                    "course_code": cs.course_code,
+                    "day_of_week": cs.day_of_week,
+                    "start_time": cs.start_time.strftime("%H:%M:%S"),
+                    "end_time": cs.end_time.strftime("%H:%M:%S"),
+                    "session_type": cs.session_type,
+                    "room_location": cs.room_location,
+                    "is_mandatory": cs.is_mandatory
+                } for cs in self.academic_schedules
+            ],
             "total_subjects": len(self.subjects),
             "total_slots": len(valid_slots),
             "total_slot_hours": sum(s.duration_minutes for s in valid_slots) / 60,

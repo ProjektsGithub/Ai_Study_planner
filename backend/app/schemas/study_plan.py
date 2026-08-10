@@ -30,6 +30,8 @@ class StudySessionResponse(BaseModel):
     end_time: str
     task_type: str
     notes: str
+    completed: bool = False
+    completed_at: Optional[str] = None
     
     class Config:
         from_attributes = True

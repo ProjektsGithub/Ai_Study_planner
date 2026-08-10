@@ -28,6 +28,7 @@ from app.models.ects_progress import ECTSProgress
 from app.models.risk_score import RiskScore
 from app.models.priority_score import PriorityScore
 from app.models.student_course_enrollment import StudentCourseEnrollment
+from app.models.class_schedule import ClassSchedule
 
 __all__ = [
     "User",
@@ -60,4 +61,5 @@ __all__ = [
     "RiskScore",
     "PriorityScore",
     "StudentCourseEnrollment",
+    "ClassSchedule",
 ]

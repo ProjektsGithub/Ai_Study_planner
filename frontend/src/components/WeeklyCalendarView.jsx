@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 // ── Task type config ─────────────────────────────────────────────────────────
 const TASK_CONFIG = {
+  university_class: { label: 'Cours Univ', icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' },
   lecture_review:    { label: 'Cours',    icon: '📖', solid: '#6366f1', dark: '#4338ca' },
   exercise_practice: { label: 'Exercice', icon: '✏️', solid: '#f97316', dark: '#c2410c' },
   exam_preparation:  { label: 'Exam',     icon: '📝', solid: '#ef4444', dark: '#b91c1c' },
@@ -199,7 +200,10 @@ const WeeklyCalendarView = ({
                       const durMin = (eh * 60 + em) - (sh * 60 + sm);
                       const heightPx = (durMin / 60) * ROW_H;
                       const topPx = (sm / 60) * ROW_H;
-                      const cfg = TASK_CONFIG[session.task_type] || TASK_CONFIG.lecture_review;
+                      const isAcademic = session.is_academic_fixed || session.session_type === 'CM' || session.session_type === 'TD' || session.session_type === 'TP' || session.task_type === 'university_class';
+                      const cfg = isAcademic
+                        ? { label: session.session_type || 'Univ', icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' }
+                        : (TASK_CONFIG[session.task_type] || TASK_CONFIG.lecture_review);
                       const done = session.completed;
 
                       return (

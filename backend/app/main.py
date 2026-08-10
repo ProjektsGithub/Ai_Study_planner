@@ -33,6 +33,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.database import engine, Base
+import app.models  # Ensure models registered
 from app.api.v1 import api_router
 from app.services.background_jobs import background_jobs
 
@@ -77,12 +79,16 @@ async def lifespan(app: FastAPI):
     Application lifespan manager.
 
     Startup:
+      - Creates all missing DB tables (including class_schedules)
       - Creates the uploads/imports directory used by the bulk import router
       - Starts background jobs (study plan cleanup, notification dispatch)
 
     Shutdown:
       - Gracefully stops background jobs
     """
+    # Create missing database tables
+    Base.metadata.create_all(bind=engine)
+
     # Ensure upload directory exists
     upload_dir = Path("uploads") / "imports"
     upload_dir.mkdir(parents=True, exist_ok=True)

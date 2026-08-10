@@ -166,6 +166,11 @@ const AdminLayout = () => {
       label: <Link to="/admin/courses">{t('nav.courses')}</Link>,
     },
     {
+      key: '/admin/class-schedules',
+      icon: <CalendarOutlined />,
+      label: <Link to="/admin/class-schedules">Emplois du temps</Link>,
+    },
+    {
       key: '/admin/imports',
       icon: <ImportOutlined />,
       label: <Link to="/admin/imports">{t('nav.imports')}</Link>,

@@ -31,4 +31,9 @@ echo ""
 echo "Appuyez sur Ctrl+C pour arrêter le serveur"
 echo ""
 
+# Forcer UTF-8 pour eviter les erreurs charmap sur Windows
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
+
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+

@@ -19,6 +19,7 @@ from app.api.v1.admin import (
     search,
     roles,
     settings,
+    class_schedules,
 )
 
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
@@ -40,5 +41,6 @@ admin_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 admin_router.include_router(search.router, prefix="/search", tags=["search"])
 admin_router.include_router(roles.router, prefix="/roles", tags=["roles"])
 admin_router.include_router(settings.router, prefix="/settings", tags=["settings"])
+admin_router.include_router(class_schedules.router, tags=["class-schedules"])
 
 __all__ = ["admin_router"]
