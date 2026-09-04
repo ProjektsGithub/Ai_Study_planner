@@ -1,19 +1,25 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { useLanguage } from '../context/LanguageContext';
 
-const TASK_LABELS = {
-  university_class: { label: 'Cours Universitaire', icon: '🏛️', bg: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-  lecture_review:    { label: 'Revoir le cours',    icon: '📖', bg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-  exercise_practice: { label: 'Exercices',         icon: '✏️',  bg: 'bg-orange-500/20 text-orange-300 border-orange-500/30' },
-  exam_preparation:  { label: 'Préparation Exam',  icon: '🔄', bg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-  project_work:      { label: 'Projet',            icon: '🚀', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
-  reading:           { label: 'Lecture',           icon: '📰', bg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
-  practice:          { label: 'Pratique',          icon: '🎯', bg: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+const TASK_ICONS = {
+  university_class: '🏛️',
+  lecture_review: '📖',
+  exercise_practice: '✏️',
+  exam_preparation: '🔄',
+  project_work: '🚀',
+  reading: '📰',
+  practice: '🎯',
 };
 
-const DAY_LABELS_FR = {
-  Monday: 'Lundi', Tuesday: 'Mardi', Wednesday: 'Mercredi',
-  Thursday: 'Jeudi', Friday: 'Vendredi', Saturday: 'Samedi', Sunday: 'Dimanche'
+const TASK_BG = {
+  university_class: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  lecture_review: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+  exercise_practice: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  exam_preparation: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  project_work: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  reading: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  practice: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
 };
 
 const parseDurationMin = (start, end) => {
@@ -32,11 +38,20 @@ const SessionViewModal = ({
   onEdit,
   onDelete
 }) => {
+  const { t } = useLanguage();
+
   if (!isOpen || !session) return null;
 
   const isAcademic = session.is_academic_fixed || session.task_type === 'university_class';
-  const taskInfo = TASK_LABELS[session.task_type] || TASK_LABELS.lecture_review;
+  const icon = TASK_ICONS[session.task_type] || '📖';
+  const badgeStyle = TASK_BG[session.task_type] || 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
+  const taskLabel = isAcademic
+    ? `${t('task.university_class', 'Cours Univ')} (${session.session_type || 'CM/TD'})`
+    : t(`task.${session.task_type}`, session.task_type);
+
   const durationMinutes = parseDurationMin(session.start_time, session.end_time);
+  const dayKey = session.day || session.day_of_week;
+  const dayLabel = t(`days.${dayKey}`, dayKey);
 
   const handleCompleteClick = async () => {
     if (onComplete) {
@@ -66,14 +81,14 @@ const SessionViewModal = ({
         <div className="p-6 border-b border-slate-800 bg-slate-900/60 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-inner">
-              {isAcademic ? '🏛️' : taskInfo.icon}
+              {isAcademic ? '🏛️' : icon}
             </div>
             <div>
-              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold border mb-1 ${isAcademic ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : taskInfo.bg}`}>
-                {isAcademic ? `Cours Fixe (${session.session_type || 'CM/TD'})` : taskInfo.label}
+              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold border mb-1 ${isAcademic ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : badgeStyle}`}>
+                {taskLabel}
               </span>
               <h2 className="text-xl font-black text-white leading-tight">
-                {session.course_name || session.subject_name || 'Session d\'Étude'}
+                {session.course_name || session.subject_name || t('session_view.title', 'Détails de la session d\'étude')}
               </h2>
             </div>
           </div>
@@ -91,9 +106,9 @@ const SessionViewModal = ({
           {/* Key info badges */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">📅 Jour & Horaires</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">📅 {t('session_view.time_slot', 'Jour & Horaires')}</p>
               <p className="text-sm font-bold text-white mt-1">
-                {DAY_LABELS_FR[session.day || session.day_of_week] || session.day}
+                {dayLabel}
               </p>
               <p className="text-xs font-semibold text-indigo-300 mt-0.5">
                 ⏱ {session.start_time?.substring(0,5)} - {session.end_time?.substring(0,5)} ({durationMinutes} min)
@@ -101,12 +116,12 @@ const SessionViewModal = ({
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">📍 Type & Emplacement</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">📍 {t('session_view.activity_type', 'Type & Emplacement')}</p>
               <p className="text-sm font-bold text-white mt-1">
-                {isAcademic ? (session.session_type || 'Cours Magistral') : (session.task_type || 'Révision IA')}
+                {isAcademic ? (session.session_type || t('task.university_class', 'Cours Univ')) : taskLabel}
               </p>
               <p className="text-xs font-semibold text-slate-300 mt-0.5 truncate">
-                {session.room_location ? `Salle: ${session.room_location}` : 'Séance programmée'}
+                {session.room_location ? `${t('label.room', 'Salle')}: ${session.room_location}` : (isAcademic ? t('task.desc.university_class', 'Cours universitaire') : t('task.practice', 'Séance d\'étude'))}
               </p>
             </div>
           </div>
@@ -114,7 +129,7 @@ const SessionViewModal = ({
           {/* Notes section */}
           {session.notes && (
             <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/40">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">📝 Notes & Consignes</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">📝 {t('session_view.goals_notes', 'Objectifs & Notes')}</p>
               <p className="text-xs text-slate-200 leading-relaxed">{session.notes}</p>
             </div>
           )}
@@ -123,7 +138,7 @@ const SessionViewModal = ({
           {isAcademic && (
             <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2.5">
               <span>🏛️</span>
-              <span>Ceci est un cours universitaire obligatoire fixé par votre filière.</span>
+              <span>{t('session_view.academic_notice', 'Ce créneau correspond à un cours universitaire fixe de votre emploi du temps.')}</span>
             </div>
           )}
         </div>
@@ -141,12 +156,12 @@ const SessionViewModal = ({
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 hover:-translate-y-0.5'
               }`}
             >
-              <span>{session.completed ? '✅ Déjà Effectué' : '✅ Marquer comme fait'}</span>
+              <span>{session.completed ? `✅ ${t('action.completed', 'Terminé')}` : `✅ ${t('action.mark_completed', 'Marquer comme terminé')}`}</span>
               <span className="text-xs font-normal opacity-80">({durationMinutes} min)</span>
             </button>
           ) : (
             <div className="w-full sm:flex-1 text-center py-2 px-3 rounded-xl bg-slate-800 text-xs text-slate-400 font-semibold">
-              Présence aux cours scolaires enregistrée
+              {t('session_view.academic_notice', 'Présence aux cours scolaires enregistrée')}
             </div>
           )}
 
@@ -158,7 +173,7 @@ const SessionViewModal = ({
                 onClick={() => { onClose(); onEdit(session); }}
                 className="flex-1 sm:flex-initial py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs transition-all"
               >
-                ✏️ Modifier
+                ✏️ {t('action.edit', 'Modifier')}
               </button>
             )}
             <button
@@ -166,7 +181,7 @@ const SessionViewModal = ({
               onClick={onClose}
               className="flex-1 sm:flex-initial py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold text-xs transition-all"
             >
-              Fermer
+              {t('action.close', 'Fermer')}
             </button>
           </div>
         </div>

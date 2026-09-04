@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import { useLanguage } from '../../context/LanguageContext';
 import Card from '../ui/Card';
 import ProgressBar from '../ui/ProgressBar';
 
 const StreakCounter = ({ streak = 0 }) => {
+  const { t } = useLanguage();
   const [longestStreak, setLongestStreak] = useState(0);
 
   useEffect(() => {
@@ -28,10 +30,12 @@ const StreakCounter = ({ streak = 0 }) => {
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h4 className="text-xs uppercase font-extrabold text-slate-400 dark:text-white/40 tracking-wider">Série d'Études</h4>
+          <h4 className="text-xs uppercase font-extrabold text-slate-400 dark:text-white/40 tracking-wider">
+            {t('gamification.streak_title')}
+          </h4>
           <div className="flex items-baseline gap-1 mt-1">
             <span className="text-4xl font-black text-slate-800 dark:text-white">{streak}</span>
-            <span className="text-sm font-semibold text-slate-500 dark:text-white/50">jours d'affilée</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-white/50">{t('gamification.days_streak')}</span>
           </div>
         </div>
         <span className="text-4xl animate-bounce">🔥</span>
@@ -40,15 +44,15 @@ const StreakCounter = ({ streak = 0 }) => {
       {/* Progress to next 7-day milestone */}
       <div className="space-y-2">
         <div className="flex justify-between text-[11px] font-semibold text-slate-500 dark:text-white/50">
-          <span>Prochain palier : {nextMilestone} jours</span>
-          <span>{progressToNext}/7 jours</span>
+          <span>{t('gamification.next_milestone', { n: nextMilestone })}</span>
+          <span>{progressToNext}/7 {t('dashboard.days_plural')}</span>
         </div>
         <ProgressBar value={progressToNext} max={7} showLabel={false} />
       </div>
 
       <div className="flex justify-between items-center border-t border-slate-100 dark:border-white/5 mt-4 pt-3 text-[11px] text-slate-500 dark:text-white/40">
-        <span>🏆 Record personnel</span>
-        <span className="font-bold text-amber-600 dark:text-amber-400">{longestStreak} jours</span>
+        <span>{t('gamification.personal_record')}</span>
+        <span className="font-bold text-amber-600 dark:text-amber-400">{longestStreak} {t('dashboard.days_plural')}</span>
       </div>
     </Card>
   );

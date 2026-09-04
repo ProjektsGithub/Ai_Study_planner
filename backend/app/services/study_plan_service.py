@@ -25,6 +25,7 @@ from app.models.study_session import StudySession
 from app.services.planning_engine import PlanningEngine
 from app.services.ai_service import AIService
 from app.services.validation_service import ValidationService
+from app.services.curriculum_topics import enrich_session_note, is_note_vague
 
 
 class StudyPlanService:
@@ -499,8 +500,40 @@ class StudyPlanService:
         if not profile:
             return {"success": False, "error": "profile_not_found", "message": "Student profile not found. Please create your profile first."}
         
-        # Get subjects
-        subjects = self.db.query(Subject).filter(Subject.user_id == user_id).all()
+        # Get subjects (filtered to active track if cursus_id is set)
+        if profile and profile.cursus_id:
+            from app.models.semester import Semester
+            from app.models.course import Course
+            sem_numbers = [profile.current_semester] + (profile.retake_semesters or []) if profile.current_semester else []
+            valid_sem_ids = [
+                s.id for s in self.db.query(Semester.id).filter(
+                    Semester.academic_track_id == profile.cursus_id,
+                    Semester.semester_number.in_(sem_numbers),
+                    Semester.is_deleted == False
+                ).all()
+            ] if sem_numbers else []
+
+            valid_course_ids = {
+                c.id for c in self.db.query(Course.id).filter(
+                    Course.semester_id.in_(valid_sem_ids),
+                    Course.is_deleted == False
+                ).all()
+            } if valid_sem_ids else set()
+
+            all_subjects = self.db.query(Subject).filter(Subject.user_id == user_id).all()
+            subjects = [
+                s for s in all_subjects
+                if s.catalog_course_id is None or s.catalog_course_id in valid_course_ids
+            ]
+            if not subjects and valid_course_ids:
+                from app.services.academic_profile_service import academic_profile_service
+                academic_profile_service._sync_courses_on_track_change(self.db, profile)
+                subjects = self.db.query(Subject).filter(
+                    Subject.user_id == user_id,
+                    (Subject.catalog_course_id.in_(valid_course_ids)) | (Subject.catalog_course_id == None)
+                ).all()
+        else:
+            subjects = self.db.query(Subject).filter(Subject.user_id == user_id).all()
         
         # Get availabilities
         availabilities = self.db.query(Availability).filter(Availability.user_id == user_id).all()
@@ -586,6 +619,11 @@ class StudyPlanService:
                         print(f"[SAVE_PLAN] Invalid end_time format: {end_time_str}, skipping session")
                         continue
                 
+                enriched_note = enrich_session_note(
+                    subject_name,
+                    session_data.get("task_type", "exercise_practice"),
+                    session_data.get("notes", "")
+                )
                 session = StudySession(
                     study_plan_id=study_plan.id,
                     subject_id=subject_id,
@@ -593,7 +631,7 @@ class StudyPlanService:
                     start_time=start_time,
                     end_time=end_time,
                     task_type=session_data.get("task_type"),
-                    notes=session_data.get("notes", "")
+                    notes=enriched_note
                 )
                 
                 self.db.add(session)

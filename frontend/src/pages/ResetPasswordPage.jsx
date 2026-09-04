@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 
@@ -8,6 +9,7 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { t } = useLanguage();
 
   const [formData, setFormData] = useState({ new_password: '', confirm_password: '' });
   const [errors, setErrors] = useState({});
@@ -74,11 +76,11 @@ const ResetPasswordPage = () => {
     if (/[A-Z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    if (score <= 1) return { score, label: 'Très faible', color: '#ef4444' };
-    if (score === 2) return { score, label: 'Faible', color: '#f97316' };
-    if (score === 3) return { score, label: 'Moyen', color: '#eab308' };
-    if (score === 4) return { score, label: 'Fort', color: '#22c55e' };
-    return { score, label: 'Très fort', color: '#10b981' };
+    if (score <= 1) return { score, label: t('auth.strength_very_weak'), color: '#ef4444' };
+    if (score === 2) return { score, label: t('auth.strength_weak'), color: '#f97316' };
+    if (score === 3) return { score, label: t('auth.strength_medium'), color: '#eab308' };
+    if (score === 4) return { score, label: t('auth.strength_strong'), color: '#22c55e' };
+    return { score, label: t('auth.strength_very_strong'), color: '#10b981' };
   };
 
   const strength = getPasswordStrength(formData.new_password);
@@ -101,9 +103,9 @@ const ResetPasswordPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Nouveau mot de passe</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">{t('auth.reset_pwd_title')}</h1>
             <p className="text-sm text-white/50">
-              Choisissez un mot de passe sécurisé pour votre compte.
+              {t('auth.reset_pwd_desc')}
             </p>
           </div>
 
@@ -116,41 +118,32 @@ const ResetPasswordPage = () => {
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white mb-2">Mot de passe mis à jour !</h2>
+                <h2 className="text-lg font-bold text-white mb-2">{t('auth.reset_pwd_success_title')}</h2>
                 <p className="text-sm text-white/55 leading-relaxed">
-                  Votre mot de passe a été réinitialisé avec succès.
-                  Vous allez être redirigé vers la page de connexion…
+                  {t('auth.reset_pwd_success_desc')}
                 </p>
               </div>
-              <div className="flex gap-2 justify-center">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: '#818cf8',
-                    animation: `bounce 1.2s ease-in-out infinite`,
-                    animationDelay: `${i * 0.2}s`,
-                  }} />
-                ))}
+              <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full animate-[pulse_1s_ease-in-out_infinite]" style={{ width: '100%' }} />
               </div>
               <Link
                 to="/login"
                 className="block text-center text-sm text-violet-400 hover:text-violet-300 transition-colors font-medium"
               >
-                Aller à la connexion →
+                {t('auth.sign_in')} →
               </Link>
-              <style>{`@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}`}</style>
             </div>
           ) : (
             /* ── Formulaire ── */
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Input
-                  label="Nouveau mot de passe"
+                  label={t('auth.reset_pwd_new_password')}
                   type="password"
                   name="new_password"
                   value={formData.new_password}
                   onChange={handleChange}
-                  placeholder="••••••••"
+                  placeholder={t('auth.password_placeholder')}
                   error={errors.new_password}
                   required
                   autoComplete="new-password"
@@ -160,33 +153,36 @@ const ResetPasswordPage = () => {
                     </svg>
                   }
                 />
-                {/* Indicateur de force */}
+                {/* Jauge de force */}
                 {formData.new_password && (
                   <div className="mt-2 space-y-1">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((lvl) => (
+                    <div className="flex gap-1 h-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
                         <div
-                          key={lvl}
+                          key={i}
+                          className="flex-1 rounded-full transition-all duration-300"
                           style={{
-                            flex: 1, height: 3, borderRadius: 4,
-                            background: lvl <= strength.score ? strength.color : 'rgba(255,255,255,0.1)',
-                            transition: 'background 0.3s',
+                            backgroundColor: i <= strength.score ? strength.color : 'rgba(255,255,255,0.1)',
                           }}
                         />
                       ))}
                     </div>
-                    <p style={{ fontSize: 11, color: strength.color }}>{strength.label}</p>
+                    {strength.label && (
+                      <p className="text-[11px] text-white/40 text-right">
+                        Force : <span style={{ color: strength.color }} className="font-medium">{strength.label}</span>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
 
               <Input
-                label="Confirmer le mot de passe"
+                label={t('auth.reset_pwd_confirm')}
                 type="password"
                 name="confirm_password"
                 value={formData.confirm_password}
                 onChange={handleChange}
-                placeholder="••••••••"
+                placeholder={t('auth.password_placeholder')}
                 error={errors.confirm_password}
                 required
                 autoComplete="new-password"
@@ -197,7 +193,6 @@ const ResetPasswordPage = () => {
                 }
               />
 
-              {/* Erreur générale */}
               {errors.submit && (
                 <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3.5 flex items-start gap-3">
                   <svg className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -216,15 +211,18 @@ const ResetPasswordPage = () => {
                   loading={loading}
                   disabled={loading}
                 >
-                  Réinitialiser le mot de passe
+                  {t('auth.reset_pwd_btn')}
                 </Button>
               </div>
 
-              <p className="text-center text-sm text-white/50 pt-1">
-                <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                  ← Retour à la connexion
+              <div className="text-center pt-2">
+                <Link
+                  to="/login"
+                  className="text-xs text-white/50 hover:text-white/80 transition-colors inline-flex items-center gap-1"
+                >
+                  ← {t('auth.back_to_login')}
                 </Link>
-              </p>
+              </div>
             </form>
           )}
         </div>

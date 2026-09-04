@@ -19,6 +19,7 @@ from app.models.student_profile import StudentProfile
 from app.models.class_schedule import ClassSchedule
 from app.models.study_program import StudyProgram
 from app.models.semester import Semester
+from app.models.course import Course
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,40 @@ class PlanningEngine:
         ).all()
 
         profile = self.db.query(StudentProfile).filter(StudentProfile.user_id == self.user_id).first()
+
+        # If student has an academic track, ensure subjects match active track only
+        if profile and profile.cursus_id:
+            sem_numbers = [profile.current_semester] + (profile.retake_semesters or []) if profile.current_semester else []
+            valid_sem_ids = [
+                s.id for s in self.db.query(Semester.id).filter(
+                    Semester.academic_track_id == profile.cursus_id,
+                    Semester.semester_number.in_(sem_numbers),
+                    Semester.is_deleted == False
+                ).all()
+            ] if sem_numbers else []
+
+            valid_course_ids = {
+                c.id for c in self.db.query(Course.id).filter(
+                    Course.semester_id.in_(valid_sem_ids),
+                    Course.is_deleted == False
+                ).all()
+            } if valid_sem_ids else set()
+
+            filtered = [
+                s for s in self.subjects
+                if s.catalog_course_id is None or s.catalog_course_id in valid_course_ids
+            ]
+
+            if not filtered and valid_course_ids:
+                from app.services.academic_profile_service import academic_profile_service
+                academic_profile_service._sync_courses_on_track_change(self.db, profile)
+                self.subjects = self.db.query(Subject).filter(
+                    Subject.user_id == self.user_id,
+                    (Subject.catalog_course_id.in_(valid_course_ids)) | (Subject.catalog_course_id == None)
+                ).all()
+            else:
+                self.subjects = filtered
+
         self.academic_schedules = []
         if profile and profile.filiere_id:
             prog = self.db.query(StudyProgram).filter(StudyProgram.id == profile.filiere_id).first()

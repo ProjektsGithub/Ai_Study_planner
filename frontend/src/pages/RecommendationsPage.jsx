@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAcademicData } from '../context/AcademicDataContext';
+import { useLanguage } from '../context/LanguageContext';
 import PriorityList from '../components/recommendations/PriorityList';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -19,6 +20,8 @@ const RecommendationsPage = () => {
     loading
   } = useAcademicData();
 
+  const { lang, t, formatEuroDate } = useLanguage();
+
   const [dismissedIds, setDismissedIds] = useState(() => {
     const saved = localStorage.getItem('dismissed_recommendations');
     return saved ? JSON.parse(saved) : [];
@@ -26,7 +29,7 @@ const RecommendationsPage = () => {
 
   const [freshnessTime, setFreshnessTime] = useState(() => {
     const saved = localStorage.getItem('recommendations_freshness');
-    return saved ? saved : new Date().toLocaleString('fr-FR');
+    return saved ? saved : new Date().toLocaleString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US');
   });
 
   const [activeTab, setActiveTab] = useState('all');
@@ -49,8 +52,12 @@ const RecommendationsPage = () => {
         if ((s.priority && s.priority >= 4) || (s.difficulty && s.difficulty >= 4)) {
           recs.push({
             id: `subject-priority-${s.id}`,
-            title: `🎯 Stratégie d'étude : ${s.name}`,
-            description: `Matière à forte priorité (${s.priority || 4}/5) et difficulté (${s.difficulty || 4}/5). Allouez au moins ${s.target_weekly_hours || 4}h cette semaine avec une alternance de théorie et d'exercices ciblés.`,
+            title: `🎯 ${s.name}`,
+            description: lang === 'fr'
+              ? `Matière à forte priorité (${s.priority || 4}/5) et difficulté (${s.difficulty || 4}/5). Allouez au moins ${s.target_weekly_hours || 4}h cette semaine avec une alternance de théorie et d'exercices ciblés.`
+              : lang === 'de'
+              ? `Fach mit hoher Priorität (${s.priority || 4}/5) und Schwierigkeit (${s.difficulty || 4}/5). Planen Sie mindestens ${s.target_weekly_hours || 4} Std. pro Woche ein.`
+              : `High-priority course (${s.priority || 4}/5) and difficulty (${s.difficulty || 4}/5). Allocate at least ${s.target_weekly_hours || 4}h this week with focused exercises.`,
             category: 'priority',
             priority: Math.min(5, Math.max(3, s.priority || 4)),
             subjectId: s.id,
@@ -63,8 +70,12 @@ const RecommendationsPage = () => {
           const topicsStr = Array.isArray(s.weak_topics) ? s.weak_topics.join(', ') : s.weak_topics;
           recs.push({
             id: `subject-weak-${s.id}`,
-            title: `⚠️ Chapitres à renforcer : ${s.name}`,
-            description: `Notions signalées comme fragiles : ${topicsStr}. Planifiez des séances de révision ciblées et des fiches de synthèse.`,
+            title: `⚠️ ${s.name}`,
+            description: lang === 'fr'
+              ? `Notions signalées comme fragiles : ${topicsStr}. Planifiez des séances de révision ciblées et des fiches de synthèse.`
+              : lang === 'de'
+              ? `Schwierige Themenbereiche: ${topicsStr}. Planen Sie gezielte Wiederholungseinheiten ein.`
+              : `Challenging topics identified: ${topicsStr}. Schedule targeted revision sessions.`,
             category: 'alert',
             priority: 4,
             subjectId: s.id,
@@ -76,10 +87,15 @@ const RecommendationsPage = () => {
         if (s.exam_date) {
           const examD = new Date(s.exam_date);
           const daysLeft = Math.ceil((examD - new Date()) / (1000 * 60 * 60 * 24));
+          const examFormatted = examD.toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US');
           recs.push({
             id: `subject-exam-${s.id}`,
-            title: `📅 Évaluation prévue : ${s.name}`,
-            description: `Examen prévu le ${examD.toLocaleDateString('fr-FR')} ${daysLeft > 0 ? `(dans ${daysLeft} jours)` : ''}. ${s.exam_type ? `Format: ${s.exam_type}.` : ''} Priorisez les annales et examens blancs.`,
+            title: `📅 ${s.name}`,
+            description: lang === 'fr'
+              ? `Examen prévu le ${examFormatted} ${daysLeft > 0 ? `(dans ${daysLeft} jours)` : ''}. ${s.exam_type ? `Format: ${s.exam_type}.` : ''} Priorisez les annales et examens blancs.`
+              : lang === 'de'
+              ? `Prüfung am ${examFormatted} ${daysLeft > 0 ? `(in ${daysLeft} Tagen)` : ''}. ${s.exam_type ? `Format: ${s.exam_type}.` : ''}`
+              : `Exam scheduled on ${examFormatted} ${daysLeft > 0 ? `(in ${daysLeft} days)` : ''}. ${s.exam_type ? `Format: ${s.exam_type}.` : ''}`,
             category: 'priority',
             priority: daysLeft <= 7 ? 5 : 4,
             subjectId: s.id,
@@ -90,8 +106,12 @@ const RecommendationsPage = () => {
         // General study card per enrolled subject
         recs.push({
           id: `subject-general-${s.id}`,
-          title: `📚 Programme de travail : ${s.name}`,
-          description: `Objectif hebdomadaire conseillé : ${s.target_weekly_hours || 3}h. ECTS : ${s.ects_credits || 3}. Répartissez la charge sur plusieurs sessions de 45 à 90 minutes.`,
+          title: `📚 ${s.name}`,
+          description: lang === 'fr'
+            ? `Objectif hebdomadaire conseillé : ${s.target_weekly_hours || 3}h. ECTS : ${s.ects_credits || 3}. Répartissez la charge sur plusieurs sessions de 45 à 90 minutes.`
+            : lang === 'de'
+            ? `Empfohlenes Wochenziel: ${s.target_weekly_hours || 3} Std. ECTS: ${s.ects_credits || 3}. Verteilen Sie die Einheiten auf 45–90 Min.`
+            : `Recommended weekly target: ${s.target_weekly_hours || 3}h. ECTS: ${s.ects_credits || 3}. Split study sessions into 45-90 min blocks.`,
           category: 'suggestion',
           priority: 3,
           subjectId: s.id,
@@ -106,8 +126,12 @@ const RecommendationsPage = () => {
         if (p.priority_score > 35) {
           recs.push({
             id: `priority-${p.course_id || p.id}`,
-            title: `Intensifier la révision : ${p.course_name}`,
-            description: `Matière prioritaire avec un score de ${p.priority_score.toFixed(0)}/100. Consacrez environ ${p.recommended_weekly_hours?.toFixed(1) || '3'}h cette semaine pour maximiser vos chances.`,
+            title: `${p.course_name}`,
+            description: lang === 'fr'
+              ? `Matière prioritaire avec un score de ${p.priority_score.toFixed(0)}/100. Consacrez environ ${p.recommended_weekly_hours?.toFixed(1) || '3'}h cette semaine.`
+              : lang === 'de'
+              ? `Prioritätsfach mit einer Bewertung von ${p.priority_score.toFixed(0)}/100. Wöchentliche Empfehlung: ca. ${p.recommended_weekly_hours?.toFixed(1) || '3'} Std.`
+              : `High-priority course with score ${p.priority_score.toFixed(0)}/100. Dedicate approx. ${p.recommended_weekly_hours?.toFixed(1) || '3'}h this week.`,
             category: 'priority',
             priority: Math.min(5, Math.max(1, Math.ceil(p.priority_score / 20))),
             subjectId: p.course_id,
@@ -123,8 +147,12 @@ const RecommendationsPage = () => {
         if (r.risk_level === 'high' || r.risk_level === 'medium') {
           recs.push({
             id: `risk-${r.course_id || r.id}`,
-            title: `Alerte risque ${r.risk_level === 'high' ? 'Élevé' : 'Moyen'} : ${r.course_name || 'Matière'}`,
-            description: `Matière présentant un risque d'échec significatif. Concentrez-vous sur les travaux pratiques et les révisions ciblées.`,
+            title: `${r.course_name || 'Matière'}`,
+            description: lang === 'fr'
+              ? `Matière présentant un risque d'échec significatif. Concentrez-vous sur les travaux pratiques et les révisions ciblées.`
+              : lang === 'de'
+              ? `Fach mit erhöhtem Prüfungsrisiko. Konzentrieren Sie sich auf Übungsaufgaben und gezielte Wiederholung.`
+              : `Course with notable risk of failure. Focus on practice problems and targeted review.`,
             category: 'alert',
             priority: r.risk_level === 'high' ? 5 : 4,
             subjectId: r.course_id,
@@ -139,8 +167,12 @@ const RecommendationsPage = () => {
       failedCourses.forEach((fc) => {
         recs.push({
           id: `failed-${fc.course_id}`,
-          title: `Rattrapage requis : ${fc.course_name}`,
-          description: `Cours non validé (Tentatives: ${fc.attempt_count}). ${fc.is_prerequisite_blocker ? `ATTENTION : Matière bloquante empêchant la validation de : ${fc.blocks_courses?.join(', ') || 'autres cours'}.` : ''} Planifiez des révisions prioritaires.`,
+          title: `${fc.course_name}`,
+          description: lang === 'fr'
+            ? `Cours non validé (Tentatives: ${fc.attempt_count}). ${fc.is_prerequisite_blocker ? `ATTENTION : Matière bloquante empêchant la validation d'autres cours.` : ''} Planifiez des révisions prioritaires.`
+            : lang === 'de'
+            ? `Nicht bestandener Kurs (Versuche: ${fc.attempt_count}). ${fc.is_prerequisite_blocker ? `WICHTIG: Voraussetzungsfach für Folgemodule.` : ''} Bitte vorrangig wiederholen.`
+            : `Course not passed (Attempts: ${fc.attempt_count}). ${fc.is_prerequisite_blocker ? `IMPORTANT: Prerequisite course blocking future subjects.` : ''} Schedule priority revision.`,
           category: 'alert',
           priority: fc.is_prerequisite_blocker ? 5 : 4,
           subjectId: fc.course_id,
@@ -158,8 +190,12 @@ const RecommendationsPage = () => {
 
       recs.push({
         id: 'ects-progression-rec',
-        title: 'Analyse ECTS & Avancement du Diplôme',
-        description: `Vous avez validé ${Number(obtained).toFixed(1)} ECTS sur un objectif total de ${Number(target).toFixed(1)} ECTS (${Number(percentage).toFixed(1)}% accomplis). Il reste ${Number(remaining).toFixed(1)} ECTS à valider.`,
+        title: t('progression.graduation_goal'),
+        description: lang === 'fr'
+          ? `Vous avez validé ${Number(obtained).toFixed(1)} ECTS sur un objectif total de ${Number(target).toFixed(1)} ECTS (${Number(percentage).toFixed(1)}% accomplis). Il reste ${Number(remaining).toFixed(1)} ECTS à valider.`
+          : lang === 'de'
+          ? `Sie haben ${Number(obtained).toFixed(1)} von ${Number(target).toFixed(1)} ECTS erreicht (${Number(percentage).toFixed(1)}%). Noch ${Number(remaining).toFixed(1)} ECTS erforderlich.`
+          : `You have obtained ${Number(obtained).toFixed(1)} of ${Number(target).toFixed(1)} ECTS (${Number(percentage).toFixed(1)}% complete). ${Number(remaining).toFixed(1)} ECTS remaining.`,
         category: 'analysis',
         priority: 3,
       });
@@ -170,10 +206,15 @@ const RecommendationsPage = () => {
       upcomingExams.forEach((ex) => {
         const days = ex.days_until ?? 10;
         if (days <= 7) {
+          const exDateStr = new Date(ex.exam_date).toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US');
           recs.push({
             id: `exam-upcoming-${ex.id}`,
-            title: `Examen Imminent : ${ex.course_name || ex.subject_name}`,
-            description: `Épreuve le ${new Date(ex.exam_date).toLocaleDateString('fr-FR')} (dans ${days} jours). Préparation conseillée : au moins ${ex.preparation_time_recommended || '10'}h cette semaine.`,
+            title: `${ex.course_name || ex.subject_name}`,
+            description: lang === 'fr'
+              ? `Épreuve le ${exDateStr} (dans ${days} jours). Préparation conseillée : au moins ${ex.preparation_time_recommended || '10'}h cette semaine.`
+              : lang === 'de'
+              ? `Prüfung am ${exDateStr} (in ${days} Tagen). Empfohlene Vorbereitungszeit: mind. ${ex.preparation_time_recommended || '10'} Std.`
+              : `Exam on ${exDateStr} (in ${days} days). Recommended study volume: at least ${ex.preparation_time_recommended || '10'}h this week.`,
             category: 'priority',
             priority: days <= 2 ? 5 : 4,
             subjectId: ex.subject_id,
@@ -186,16 +227,24 @@ const RecommendationsPage = () => {
     // 7. General Pedagogical Suggestions
     recs.push({
       id: 'suggest-spaced-repetition',
-      title: 'Technique d\'Étude : Répétition Espacée',
-      description: 'Revoyez vos fiches de cours à des intervalles de 1, 3 et 7 jours pour ancrer les connaissances durablement.',
+      title: lang === 'fr' ? 'Technique : Répétition Espacée' : lang === 'de' ? 'Methode: Spaced Repetition' : 'Study Tip: Spaced Repetition',
+      description: lang === 'fr'
+        ? 'Revoyez vos fiches de cours à des intervalles de 1, 3 et 7 jours pour ancrer les connaissances durablement.'
+        : lang === 'de'
+        ? 'Wiederholen Sie Ihre Lerninhalte in Intervallen von 1, 3 und 7 Tagen für langfristiges Behalten.'
+        : 'Review summary sheets at intervals of 1, 3, and 7 days to reinforce long-term retention.',
       category: 'suggestion',
       priority: 2
     });
 
     recs.push({
       id: 'suggest-pomodoro',
-      title: 'Optimisation de la Concentration (Pomodoro)',
-      description: 'Appliquez des sessions de 25 minutes de travail intense suivies de 5 minutes de pause pour maintenir une bonne énergie.',
+      title: lang === 'fr' ? 'Concentration : Méthode Pomodoro' : lang === 'de' ? 'Konzentration: Pomodoro-Technik' : 'Focus: Pomodoro Technique',
+      description: lang === 'fr'
+        ? 'Appliquez des sessions de 25 minutes de travail intense suivies de 5 minutes de pause pour maintenir une bonne énergie.'
+        : lang === 'de'
+        ? 'Arbeiten Sie 25 Minuten hochkonzentriert, gefolgt von 5 Minuten Pause für optimale geistige Frische.'
+        : 'Use 25-minute deep work sessions followed by 5-minute short breaks to maintain high focus.',
       category: 'suggestion',
       priority: 2
     });
@@ -211,11 +260,11 @@ const RecommendationsPage = () => {
     }
 
     return uniqueRecs;
-  }, [subjects, priorities, riskScores, failedCourses, ectsProgression, upcomingExams, dismissedIds]);
+  }, [subjects, priorities, riskScores, failedCourses, ectsProgression, upcomingExams, dismissedIds, lang, t]);
 
   const handleDismiss = (id, feedback) => {
     setDismissedIds((prev) => [...prev, id]);
-    showToast(`Recommandation masquée (Raison: ${feedback})`);
+    showToast(`${t('recommendations.toast_dismissed')} (${feedback})`);
   };
 
   const handleGenerate = async () => {
@@ -230,13 +279,13 @@ const RecommendationsPage = () => {
       }
       // Reset dismissed items to refresh recommendations
       setDismissedIds([]);
-      const nowStr = new Date().toLocaleString('fr-FR');
+      const nowStr = new Date().toLocaleString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US');
       setFreshnessTime(nowStr);
       localStorage.setItem('recommendations_freshness', nowStr);
-      showToast('✨ Recommandations IA mises à jour d\'après vos cours et votre progression !');
+      showToast(t('recommendations.toast_updated'));
     } catch (err) {
       console.error('Error generating recommendations:', err);
-      showToast('Erreur lors de la génération', 'error');
+      showToast(t('recommendations.toast_error'), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -248,11 +297,11 @@ const RecommendationsPage = () => {
   };
 
   const tabs = [
-    { id: 'all', label: 'Toutes' },
-    { id: 'priority', label: 'Priorités d\'Étude' },
-    { id: 'alert', label: 'Alertes de Risque' },
-    { id: 'suggestion', label: 'Organisation' },
-    { id: 'analysis', label: 'Analyses ECTS' }
+    { id: 'all', label: t('recommendations.tab.all') },
+    { id: 'priority', label: t('recommendations.tab.priority') },
+    { id: 'alert', label: t('recommendations.tab.alert') },
+    { id: 'suggestion', label: t('recommendations.tab.suggestion') },
+    { id: 'analysis', label: t('recommendations.tab.analysis') }
   ];
 
   const isLoading = loading || isGenerating;
@@ -275,11 +324,11 @@ const RecommendationsPage = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <span>Recommandations Pédagogiques IA</span>
-            <Badge variant="cyan">Mise à jour: {freshnessTime}</Badge>
+            <span>{t('recommendations.title')}</span>
+            <Badge variant="cyan">{t('recommendations.updated_at')}: {freshnessTime}</Badge>
           </h1>
           <p className="text-slate-500 dark:text-white/40 text-sm mt-1">
-            Conseils personnalisés générés par l'IA et adaptés à vos cours actuels, examens et progression académique.
+            {t('recommendations.subtitle')}
           </p>
         </div>
 
@@ -294,14 +343,14 @@ const RecommendationsPage = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Calcul en cours...
+              {t('recommendations.calculating')}
             </>
           ) : (
             <>
               <svg className="w-4 h-4 mr-2 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2" />
               </svg>
-              Actualiser les conseils IA
+              {t('recommendations.refresh_btn')}
             </>
           )}
         </Button>

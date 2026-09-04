@@ -4,24 +4,18 @@ import apiClient from '../api/client';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
 import Input from './ui/Input';
+import { useLanguage } from '../context/LanguageContext';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAY_LABELS = {
-  Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday',
-  Thursday: 'Thursday', Friday: 'Friday', Saturday: 'Saturday', Sunday: 'Sunday',
-};
-const DAY_ABBR = {
-  Monday: 'Mo', Tuesday: 'Tu', Wednesday: 'We',
-  Thursday: 'Th', Friday: 'Fr', Saturday: 'Sa', Sunday: 'Su',
-};
 
 const ENERGY_CONFIG = {
-  high: { label: 'High', color: 'text-emerald-400', dot: 'bg-emerald-400' },
-  medium: { label: 'Medium', color: 'text-amber-400', dot: 'bg-amber-400' },
-  low: { label: 'Low', color: 'text-red-400', dot: 'bg-red-400' },
+  high: { color: 'text-emerald-400', dot: 'bg-emerald-400' },
+  medium: { color: 'text-amber-400', dot: 'bg-amber-400' },
+  low: { color: 'text-red-400', dot: 'bg-red-400' },
 };
 
 const AvailabilityManager = () => {
+  const { t } = useLanguage();
   const [availabilities, setAvailabilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [academicData, setAcademicData] = useState({ has_preferences: false, program_name: null, total_class_hours: 0, academic_schedule: [] });
@@ -76,7 +70,7 @@ const AvailabilityManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this availability slot?')) return;
+    if (!window.confirm(t('availabilities.confirm_delete', 'Delete this availability slot?'))) return;
     try {
       await apiClient.delete(`/api/v1/availabilities/${id}`);
       setAvailabilities((prev) => prev.filter((a) => a.id !== id));
@@ -93,7 +87,7 @@ const AvailabilityManager = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (formData.start_time >= formData.end_time) newErrors.end_time = 'End time must be after start time';
+    if (formData.start_time >= formData.end_time) newErrors.end_time = t('session_editor.error_time_order', 'End time must be after start time');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -158,11 +152,11 @@ const AvailabilityManager = () => {
                 className="px-3 py-1 rounded-full text-xs font-bold border border-indigo-200"
                 style={{ backgroundColor: '#eef2ff', color: '#4338ca' }}
               >
-                🏛️ Emploi du Temps Universitaire
+                🏛️ {t('availabilities.academic_schedule', 'Emploi du Temps Universitaire')}
               </span>
             </div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2" style={{ color: '#0f172a' }}>
-              Programme Scolaire Détecté
+              {t('availabilities.academic_schedule', 'Programme Scolaire Détecté')}
             </h2>
             {academicData.has_preferences && (
               <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
@@ -176,13 +170,13 @@ const AvailabilityManager = () => {
                   className="px-3 py-1.5 rounded-xl font-bold border border-cyan-200"
                   style={{ backgroundColor: '#ecfeff', color: '#0e7490' }}
                 >
-                  ⏱️ {academicData.total_class_hours}h / semaine
+                  ⏱️ {academicData.total_class_hours}h / {t('label.week', 'semaine')}
                 </span>
                 <span
                   className="px-3 py-1.5 rounded-xl font-bold border border-emerald-200"
                   style={{ backgroundColor: '#ecfdf5', color: '#047857' }}
                 >
-                  📚 {academicData.academic_schedule?.length || 0} cours fixes
+                  📚 {academicData.academic_schedule?.length || 0} {t('subjects.title', 'cours')}
                 </span>
               </div>
             )}
@@ -192,7 +186,7 @@ const AvailabilityManager = () => {
             className="self-start md:self-auto inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border border-indigo-200 transition-all shadow-sm hover:shadow"
             style={{ backgroundColor: '#4f46e5', color: '#ffffff' }}
           >
-            <span>Modifier mes préférences</span>
+            <span>{t('nav.preferences', 'Modifier mes préférences')}</span>
             <span>→</span>
           </Link>
         </div>
@@ -203,6 +197,7 @@ const AvailabilityManager = () => {
             {DAYS_OF_WEEK.map((day) => {
               const dayClasses = academicData.academic_schedule.filter((c) => c.day_of_week === day);
               if (dayClasses.length === 0) return null;
+              const dayLabel = t(`days.${day}`, day);
               return (
                 <div
                   key={day}
@@ -215,10 +210,10 @@ const AvailabilityManager = () => {
                       className="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider shadow-sm"
                       style={{ backgroundColor: '#4f46e5', color: '#ffffff' }}
                     >
-                      {DAY_LABELS[day]}
+                      {dayLabel}
                     </span>
                     <span className="text-xs font-extrabold" style={{ color: '#334155' }}>
-                      {dayClasses.length} {dayClasses.length > 1 ? 'cours' : 'cours'}
+                      {dayClasses.length} {t('subjects.title', 'cours')}
                     </span>
                   </div>
 
@@ -253,7 +248,6 @@ const AvailabilityManager = () => {
                           </span>
                         </div>
 
-                        {/* Course Title (CRISP BOLD JET BLACK TEXT) */}
                         <h4
                           className="font-black text-xs leading-snug pt-1"
                           style={{ color: '#0f172a' }}
@@ -261,7 +255,6 @@ const AvailabilityManager = () => {
                           {item.course_name}
                         </h4>
 
-                        {/* Room Location */}
                         {item.room_location && (
                           <div
                             className="text-[11px] font-bold flex items-center gap-1.5 pt-2 border-t border-slate-100"
@@ -283,8 +276,8 @@ const AvailabilityManager = () => {
             <div className="text-2xl">🎓</div>
             <p className="text-xs font-bold max-w-md mx-auto" style={{ color: '#334155' }}>
               {academicData.has_preferences
-                ? 'Aucun créneau de cours fixe n\'a été importé pour cette filière pour le moment.'
-                : 'Veuillez configurer votre filière et votre semestre dans la page des préférences pour afficher votre emploi du temps universitaire.'}
+                ? t('availabilities.no_availabilities', 'Aucun créneau de cours fixe n\'a été importé pour cette filière pour le moment.')
+                : t('dashboard.setup_banner_desc', 'Veuillez configurer votre filière et votre semestre dans la page des préférences pour afficher votre emploi du temps universitaire.')}
             </p>
           </div>
         )}
@@ -293,12 +286,12 @@ const AvailabilityManager = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">My Availabilities</h2>
+          <h2 className="text-2xl font-bold text-white">{t('availabilities.title', 'Mes Disponibilités')}</h2>
           <p className="text-white/40 text-sm mt-1">
-            {availabilities.length} slot(s) · <span className="text-cyan-400">{totalHours.toFixed(1)}h</span> free for study / week
+            {availabilities.length} {t('label.day', 'créneaux')} · <span className="text-cyan-400">{totalHours.toFixed(1)}h</span> {t('availabilities.subtitle', 'libres pour vos études / semaine')}
           </p>
         </div>
-        <Button onClick={handleAdd}>+ Add Availability</Button>
+        <Button onClick={handleAdd}>+ {t('availabilities.add_btn', 'Ajouter une disponibilité')}</Button>
       </div>
 
       {availabilities.length === 0 ? (
@@ -308,29 +301,32 @@ const AvailabilityManager = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h3 className="text-white/60 font-medium mb-1">No availabilities defined</h3>
-          <p className="text-white/30 text-sm">Define your available study time slots.</p>
+          <h3 className="text-white/60 font-medium mb-1">{t('availabilities.no_availabilities', 'Aucune disponibilité définie')}</h3>
+          <p className="text-white/30 text-sm">{t('availabilities.subtitle', 'Définissez vos plages horaires disponibles pour les sessions d\'études.')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {DAYS_OF_WEEK.map((day) => {
             const slots = grouped[day];
             if (slots.length === 0) return null;
+            const dayLabel = t(`days.${day}`, day);
+            const dayAbbr = t(`days.short.${day}`, day.substring(0, 3));
             return (
               <div key={day} className="rounded-2xl border border-white/10 bg-white/[0.05] backdrop-blur-md overflow-hidden hover:border-violet-500/20 transition-all duration-300">
                 {/* Day header */}
                 <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                      <span className="text-xs font-bold text-violet-400">{DAY_ABBR[day]}</span>
+                      <span className="text-xs font-bold text-violet-400">{dayAbbr}</span>
                     </div>
-                    <span className="font-semibold text-white text-sm">{DAY_LABELS[day]}</span>
+                    <span className="font-semibold text-white text-sm">{dayLabel}</span>
                   </div>
-                  <span className="text-xs text-white/30">{slots.length} slot{slots.length > 1 ? 's' : ''}</span>
+                  <span className="text-xs text-white/30">{slots.length}</span>
                 </div>
                 <div className="p-3 space-y-2">
                   {slots.map((av) => {
                     const energy = ENERGY_CONFIG[av.energy_level];
+                    const energyLabel = av.energy_level ? t(`availabilities.energy.${av.energy_level}`, av.energy_level) : null;
                     return (
                       <div key={av.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/5 group transition-all">
                         <div className="flex items-center gap-2.5">
@@ -344,7 +340,7 @@ const AvailabilityManager = () => {
                             {energy && (
                               <div className="flex items-center gap-1 mt-0.5">
                                 <div className={`w-1.5 h-1.5 rounded-full ${energy.dot}`} />
-                                <span className={`text-[10px] ${energy.color}`}>{energy.label}</span>
+                                <span className={`text-[10px] ${energy.color}`}>{energyLabel}</span>
                               </div>
                             )}
                           </div>
@@ -376,42 +372,41 @@ const AvailabilityManager = () => {
               onClick={handleAdd}
               className="rounded-2xl border border-dashed border-white/8 bg-white/[0.02] p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-violet-500/30 hover:bg-white/[0.04] transition-all min-h-[100px] group"
             >
-              <span className="text-xs text-white/20 group-hover:text-violet-400/60 transition-colors font-medium">{DAY_LABELS[day]}</span>
-              <span className="text-xs text-white/15 group-hover:text-white/30 transition-colors">+ Add Slot</span>
+              <span className="text-xs text-white/20 group-hover:text-violet-400/60 transition-colors font-medium">{t(`days.${day}`, day)}</span>
+              <span className="text-xs text-white/15 group-hover:text-white/30 transition-colors">+ {t('action.add', 'Ajouter')}</span>
             </div>
           ))}
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingAvailability ? 'Edit Availability Slot' : 'New Availability Slot'}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingAvailability ? t('availabilities.modal_edit_title', 'Modifier la disponibilité') : t('availabilities.modal_add_title', 'Ajouter une disponibilité')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Day of the Week *</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5">{t('label.day', 'Jour')} *</label>
             <select name="day_of_week" value={formData.day_of_week} onChange={handleChange} required>
-              {DAYS_OF_WEEK.map((day) => <option key={day} value={day}>{DAY_LABELS[day]}</option>)}
+              {DAYS_OF_WEEK.map((day) => <option key={day} value={day}>{t(`days.${day}`, day)}</option>)}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Start Time *" type="time" name="start_time" value={formData.start_time} onChange={handleChange} error={errors.start_time} required />
-            <Input label="End Time *" type="time" name="end_time" value={formData.end_time} onChange={handleChange} error={errors.end_time} required />
+            <Input label={`${t('label.start_time', 'Heure de début')} *`} type="time" name="start_time" value={formData.start_time} onChange={handleChange} error={errors.start_time} required />
+            <Input label={`${t('label.end_time', 'Heure de fin')} *`} type="time" name="end_time" value={formData.end_time} onChange={handleChange} error={errors.end_time} required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Energy Level</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5">{t('availabilities.energy_level', 'Niveau d\'énergie')}</label>
             <select name="energy_level" value={formData.energy_level} onChange={handleChange}>
-              <option value="">Unspecified</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
+              <option value="">{t('label.optional', 'Optionnel')}</option>
+              <option value="high">{t('availabilities.energy.high', 'Élevé')}</option>
+              <option value="medium">{t('availabilities.energy.medium', 'Moyen')}</option>
+              <option value="low">{t('availabilities.energy.low', 'Faible')}</option>
             </select>
-            <p className="text-xs text-white/30 mt-1">Your typical energy level during this time slot</p>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>{t('action.cancel', 'Annuler')}</Button>
             <Button type="submit" variant="primary" loading={saving} disabled={saving}>
-              {editingAvailability ? 'Save' : 'Add'}
+              {editingAvailability ? t('action.save', 'Enregistrer') : t('action.add', 'Ajouter')}
             </Button>
           </div>
         </form>

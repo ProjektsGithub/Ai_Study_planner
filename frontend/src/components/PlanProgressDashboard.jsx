@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { useLanguage } from '../context/LanguageContext';
 
 const TASK_CONFIG = {
-  lecture_review:    { label: 'Cours',      icon: '📖', color: '#4f46e5', bg: '#f5f3ff' },
-  exercise_practice: { label: 'Exercices',  icon: '✏️', color: '#c2410c', bg: '#fff7ed' },
-  exam_preparation:  { label: 'Exam prep',  icon: '📝', color: '#b91c1c', bg: '#fef2f2' },
-  project_work:      { label: 'Projet',     icon: '🔧', color: '#047857', bg: '#ecfdf5' },
-  reading:           { label: 'Lecture',    icon: '📚', color: '#1d4ed8', bg: '#eff6ff' },
+  lecture_review:    { icon: '📖', color: '#4f46e5', bg: '#f5f3ff' },
+  exercise_practice: { icon: '✏️', color: '#c2410c', bg: '#fff7ed' },
+  exam_preparation:  { icon: '📝', color: '#b91c1c', bg: '#fef2f2' },
+  project_work:      { icon: '🔧', color: '#047857', bg: '#ecfdf5' },
+  reading:           { icon: '📚', color: '#1d4ed8', bg: '#eff6ff' },
+  practice:          { icon: '🎯', color: '#be185d', bg: '#fdf2f8' },
 };
 
 // ── Animated progress bar (Light Theme) ───────────────────────────────────────
@@ -26,8 +28,9 @@ function ProgressBar({ value, color, height = 6 }) {
 }
 ProgressBar.propTypes = { value: PropTypes.number, color: PropTypes.string, height: PropTypes.number };
 
-// ── Main Dashboard Component (Light Theme) ────────────────────────────────────
+// ── Main Dashboard Component ────────────────────────────────────
 const PlanProgressDashboard = ({ sessions = [] }) => {
+  const { t } = useLanguage();
 
   const stats = useMemo(() => {
     if (!sessions.length) return null;
@@ -74,7 +77,7 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
         background: '#f9fafb', padding: 24, textAlign: 'center',
         color: '#6b7280', fontSize: 14,
       }}>
-        Génère un plan IA pour voir le suivi de progression 📊
+        {t('progress_dashboard.no_sessions', 'Génère un plan IA pour voir le suivi de progression 📊')}
       </div>
     );
   }
@@ -100,7 +103,7 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
         }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <h3 style={{ color: '#111827', fontWeight: 700, fontSize: 14, margin: 0 }}>
-            📊 Progression globale
+            📊 {t('progress_dashboard.title', 'Progression globale')}
           </h3>
           <span style={{
             fontSize: 26, fontWeight: 800,
@@ -111,8 +114,8 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
         <ProgressBar value={stats.pct} color="linear-gradient(90deg, #6366f1, #4f46e5)" height={8} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: '#4b5563' }}>
-          <span>{stats.completed} sessions complétées</span>
-          <span>{stats.total} au total</span>
+          <span>{stats.completed} {t('progress_dashboard.sessions_done', 'sessions complétées')}</span>
+          <span>{stats.total} {t('label.total', 'au total')}</span>
         </div>
 
         {/* Today highlight */}
@@ -121,9 +124,9 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
             marginTop: 14, padding: '10px 12px', borderRadius: 8,
             background: '#eef2ff', border: '1px solid #c7d2fe',
           }}>
-            <div style={{ fontSize: 11, color: '#4f46e5', fontWeight: 700, marginBottom: 4 }}>Aujourd&apos;hui</div>
+            <div style={{ fontSize: 11, color: '#4f46e5', fontWeight: 700, marginBottom: 4 }}>{t('calendar.today', 'Aujourd\'hui')}</div>
             <div style={{ fontSize: 13, color: '#1f2937', fontWeight: 600, marginBottom: 6 }}>
-              {stats.todayCompleted}/{stats.todaySessions.length} sessions complétées
+              {stats.todayCompleted}/{stats.todaySessions.length} {t('progress_dashboard.sessions_done', 'sessions complétées')}
             </div>
             <ProgressBar
               value={stats.todaySessions.length > 0 ? (stats.todayCompleted / stats.todaySessions.length) * 100 : 0}
@@ -145,12 +148,13 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
           background: 'linear-gradient(90deg, #f97316, #ea580c)',
         }} />
         <h3 style={{ color: '#111827', fontWeight: 700, fontSize: 14, margin: '0 0 14px' }}>
-          🎯 Par type d&apos;activité
+          🎯 {t('session_editor.task_type', 'Par type d\'activité')}
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {Object.entries(stats.byType).sort((a,b) => b[1].total - a[1].total).map(([type, data]) => {
             const cfg = TASK_CONFIG[type] || TASK_CONFIG.lecture_review;
             const pct = data.total > 0 ? (data.completed / data.total) * 100 : 0;
+            const label = t(`task.${type}`, type);
             return (
               <div key={type}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
@@ -158,7 +162,7 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
                     <span style={{
                       padding: '2px 8px', borderRadius: 20, fontSize: 11,
                       background: cfg.bg, color: cfg.color, fontWeight: 700,
-                    }}>{cfg.icon} {cfg.label}</span>
+                    }}>{cfg.icon} {label}</span>
                   </span>
                   <span style={{ color: '#4b5563', fontWeight: 600 }}>{data.completed}/{data.total}</span>
                 </div>
@@ -181,7 +185,7 @@ const PlanProgressDashboard = ({ sessions = [] }) => {
           background: 'linear-gradient(90deg, #10b981, #059669)',
         }} />
         <h3 style={{ color: '#111827', fontWeight: 700, fontSize: 14, margin: '0 0 14px' }}>
-          📚 Par matière
+          📚 {t('progress_dashboard.subject_breakdown', 'Par matière')}
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
           {Object.entries(stats.bySubject)

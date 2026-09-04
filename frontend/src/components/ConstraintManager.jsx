@@ -3,13 +3,7 @@ import apiClient from '../api/client';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
 import Input from './ui/Input';
-
-const CONSTRAINT_TYPES = {
-  forbidden_slot: 'Forbidden Slot',
-  max_daily_hours: 'Max Hours / Day',
-  required_break: 'Required Break',
-  fixed_slot: 'Fixed Slot',
-};
+import { useLanguage } from '../context/LanguageContext';
 
 const CONSTRAINT_ICONS = {
   forbidden_slot: {
@@ -39,12 +33,9 @@ const CONSTRAINT_ICONS = {
 };
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAY_LABELS = {
-  Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday',
-  Thursday: 'Thursday', Friday: 'Friday', Saturday: 'Saturday', Sunday: 'Sunday',
-};
 
 const ConstraintManager = () => {
+  const { t } = useLanguage();
   const [constraints, setConstraints] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +88,7 @@ const ConstraintManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this constraint?')) return;
+    if (!window.confirm(t('constraints.confirm_delete', 'Delete this constraint?'))) return;
     try {
       await apiClient.delete(`/api/v1/constraints/${id}`);
       setConstraints((prev) => prev.filter((c) => c.id !== id));
@@ -119,13 +110,13 @@ const ConstraintManager = () => {
     const newErrors = {};
     const type = formData.constraint_type;
     if (['forbidden_slot', 'fixed_slot'].includes(type)) {
-      if (formData.start_time >= formData.end_time) newErrors.end_time = 'End time must be after start time';
-      if (type === 'fixed_slot' && !formData.subject_id) newErrors.subject_id = 'Subject is required';
+      if (formData.start_time >= formData.end_time) newErrors.end_time = t('session_editor.error_time_order', 'End time must be after start time');
+      if (type === 'fixed_slot' && !formData.subject_id) newErrors.subject_id = t('session_editor.error_subject_required', 'Subject is required');
     }
-    if (type === 'max_daily_hours' && (formData.max_hours < 1 || formData.max_hours > 24)) newErrors.max_hours = 'Must be between 1 and 24 hours';
+    if (type === 'max_daily_hours' && (formData.max_hours < 1 || formData.max_hours > 24)) newErrors.max_hours = '1 - 24 h';
     if (type === 'required_break') {
-      if (formData.duration_minutes < 5 || formData.duration_minutes > 120) newErrors.duration_minutes = 'Must be between 5 and 120 min';
-      if (formData.after_minutes < 30 || formData.after_minutes > 240) newErrors.after_minutes = 'Must be between 30 and 240 min';
+      if (formData.duration_minutes < 5 || formData.duration_minutes > 120) newErrors.duration_minutes = '5 - 120 min';
+      if (formData.after_minutes < 30 || formData.after_minutes > 240) newErrors.after_minutes = '30 - 240 min';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -164,12 +155,13 @@ const ConstraintManager = () => {
 
   const getDescription = (c) => {
     const p = c.parameters;
+    const dayLabel = t(`days.${p.day_of_week}`, p.day_of_week);
     switch (c.constraint_type) {
-      case 'forbidden_slot': return `${DAY_LABELS[p.day_of_week]} · ${p.start_time?.substring(0, 5)} – ${p.end_time?.substring(0, 5)}`;
-      case 'max_daily_hours': return `Maximum ${p.max_hours}h per day`;
-      case 'required_break': return `Break of ${p.duration_minutes}min every ${p.after_minutes}min`;
-      case 'fixed_slot': { const sub = subjects.find((s) => s.id === p.subject_id); return `${DAY_LABELS[p.day_of_week]} · ${p.start_time?.substring(0, 5)} – ${p.end_time?.substring(0, 5)} (${sub?.name || '?'})`; }
-      default: return 'Constraint';
+      case 'forbidden_slot': return `${dayLabel} · ${p.start_time?.substring(0, 5)} – ${p.end_time?.substring(0, 5)}`;
+      case 'max_daily_hours': return `${t('constraints.max_hours_day', 'Maximum')} ${p.max_hours}h / ${t('label.day', 'jour')}`;
+      case 'required_break': return `${t('constraints.required_break', 'Pause')} ${p.duration_minutes}min (${p.after_minutes}min)`;
+      case 'fixed_slot': { const sub = subjects.find((s) => s.id === p.subject_id); return `${dayLabel} · ${p.start_time?.substring(0, 5)} – ${p.end_time?.substring(0, 5)} (${sub?.name || '?'})`; }
+      default: return t('constraints.title', 'Contrainte');
     }
   };
 
@@ -183,24 +175,25 @@ const ConstraintManager = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">My Constraints</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t('constraints.title', 'Jours de repos & Contraintes')}</h2>
           <p className="text-slate-400 dark:text-white/40 text-sm mt-1">
-            {constraints.length} constraint(s) · <span className="text-emerald-600 dark:text-emerald-400 font-bold">{constraints.filter((c) => c.active).length} active</span>
+            {constraints.length} {t('constraints.type', 'contrainte(s)')} · <span className="text-emerald-600 dark:text-emerald-400 font-bold">{constraints.filter((c) => c.active).length} {t('label.active', 'actives')}</span>
           </p>
         </div>
-        <Button onClick={handleAdd}>+ Add Constraint</Button>
+        <Button onClick={handleAdd}>+ {t('constraints.add_btn', 'Ajouter une contrainte')}</Button>
       </div>
 
       {constraints.length === 0 ? (
         <div className="empty-state">
           <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-white/5 flex items-center justify-center mx-auto mb-4 text-2xl">⚙️</div>
-          <h3 className="text-slate-655 font-bold mb-1 dark:text-white/60">No constraints defined</h3>
-          <p className="text-slate-400 dark:text-white/30 text-sm">Add constraints to customize your study plan schedule.</p>
+          <h3 className="text-slate-655 font-bold mb-1 dark:text-white/60">{t('constraints.no_constraints', 'Aucune contrainte enregistrée')}</h3>
+          <p className="text-slate-400 dark:text-white/30 text-sm">{t('constraints.subtitle', 'Configurez vos limites d\'étude, pauses et jours sans révision.')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {constraints.map((constraint) => {
             const cfg = CONSTRAINT_ICONS[constraint.constraint_type] || CONSTRAINT_ICONS.forbidden_slot;
+            const typeLabel = t(`constraints.${constraint.constraint_type}`, constraint.constraint_type);
             return (
               <div
                 key={constraint.id}
@@ -213,10 +206,10 @@ const ConstraintManager = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${cfg.badge}`}>
-                          {CONSTRAINT_TYPES[constraint.constraint_type]}
+                          {typeLabel}
                         </span>
                         {!constraint.active && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/40 font-bold">Disabled</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/40 font-bold">{t('label.inactive', 'Désactivé')}</span>
                         )}
                       </div>
                       <p className="text-sm text-slate-700 dark:text-white/80 font-semibold">{getDescription(constraint)}</p>
@@ -225,7 +218,7 @@ const ConstraintManager = () => {
                   <div className="flex gap-1.5 ml-4 flex-shrink-0">
                     <button
                       onClick={() => toggleActive(constraint)}
-                      title={constraint.active ? 'Disable' : 'Enable'}
+                      title={constraint.active ? 'Désactiver' : 'Activer'}
                       className={`p-1.5 rounded-lg transition-all ${constraint.active ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10' : 'text-slate-400 dark:text-white/30 hover:bg-slate-100 dark:hover:bg-white/8'}`}
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -250,32 +243,35 @@ const ConstraintManager = () => {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingConstraint ? 'Edit Constraint' : 'New Constraint'}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingConstraint ? t('constraints.modal_edit_title', 'Modifier la contrainte') : t('constraints.modal_add_title', 'Ajouter une contrainte')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5">Constraint Type *</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5">{t('constraints.type', 'Type de contrainte')} *</label>
             <select name="constraint_type" value={formData.constraint_type} onChange={handleChange} required disabled={!!editingConstraint}>
-              {Object.entries(CONSTRAINT_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="forbidden_slot">{t('constraints.forbidden_slot', 'Plage horaire interdite')}</option>
+              <option value="max_daily_hours">{t('constraints.max_hours_day', 'Heures d\'étude max par jour')}</option>
+              <option value="required_break">{t('constraints.required_break', 'Pause obligatoire')}</option>
+              <option value="fixed_slot">{t('constraints.fixed_slot', 'Créneau d\'étude fixe')}</option>
             </select>
           </div>
 
           {['forbidden_slot', 'fixed_slot'].includes(formData.constraint_type) && (
             <>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1.5">Day of the Week *</label>
+                <label className="block text-sm font-medium text-white/70 mb-1.5">{t('label.day', 'Jour')} *</label>
                 <select name="day_of_week" value={formData.day_of_week} onChange={handleChange} required>
-                  {DAYS_OF_WEEK.map((d) => <option key={d} value={d}>{DAY_LABELS[d]}</option>)}
+                  {DAYS_OF_WEEK.map((d) => <option key={d} value={d}>{t(`days.${d}`, d)}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Start Time *" type="time" name="start_time" value={formData.start_time} onChange={handleChange} error={errors.start_time} required />
-                <Input label="End Time *" type="time" name="end_time" value={formData.end_time} onChange={handleChange} error={errors.end_time} required />
+                <Input label={`${t('label.start_time', 'Heure de début')} *`} type="time" name="start_time" value={formData.start_time} onChange={handleChange} error={errors.start_time} required />
+                <Input label={`${t('label.end_time', 'Heure de fin')} *`} type="time" name="end_time" value={formData.end_time} onChange={handleChange} error={errors.end_time} required />
               </div>
               {formData.constraint_type === 'fixed_slot' && (
                 <div>
-                  <label className="block text-sm font-medium text-white/70 mb-1.5">Subject *</label>
+                  <label className="block text-sm font-medium text-white/70 mb-1.5">{t('session_editor.subject', 'Matière')} *</label>
                   <select name="subject_id" value={formData.subject_id} onChange={handleChange} required>
-                    <option value="">Select a subject</option>
+                    <option value="">{t('session_editor.select_subject', '-- Matière --')}</option>
                     {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                   {errors.subject_id && <p className="mt-1 text-xs text-red-400">{errors.subject_id}</p>}
@@ -285,25 +281,25 @@ const ConstraintManager = () => {
           )}
 
           {formData.constraint_type === 'max_daily_hours' && (
-            <Input label="Maximum Hours per Day *" type="number" name="max_hours" value={formData.max_hours} onChange={handleChange} min="1" max="24" step="0.5" error={errors.max_hours} required />
+            <Input label={`${t('constraints.max_hours_day', 'Heures max par jour')} *`} type="number" name="max_hours" value={formData.max_hours} onChange={handleChange} min="1" max="24" step="0.5" error={errors.max_hours} required />
           )}
 
           {formData.constraint_type === 'required_break' && (
             <>
-              <Input label="Break Duration (minutes) *" type="number" name="duration_minutes" value={formData.duration_minutes} onChange={handleChange} min="5" max="120" error={errors.duration_minutes} required />
-              <Input label="Frequency (every X minutes) *" type="number" name="after_minutes" value={formData.after_minutes} onChange={handleChange} min="30" max="240" error={errors.after_minutes} required />
+              <Input label={`${t('constraints.break_duration', 'Durée minimale des pauses')} (min) *`} type="number" name="duration_minutes" value={formData.duration_minutes} onChange={handleChange} min="5" max="120" error={errors.duration_minutes} required />
+              <Input label={`${t('label.frequency', 'Fréquence')} (min) *`} type="number" name="after_minutes" value={formData.after_minutes} onChange={handleChange} min="30" max="240" error={errors.after_minutes} required />
             </>
           )}
 
           <label className="flex items-center gap-3 cursor-pointer group">
             <input type="checkbox" name="active" checked={formData.active} onChange={handleChange} />
-            <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors">Active constraint</span>
+            <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors">{t('label.status', 'Contrainte active')}</span>
           </label>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} disabled={saving}>{t('action.cancel', 'Annuler')}</Button>
             <Button type="submit" variant="primary" loading={saving} disabled={saving}>
-              {editingConstraint ? 'Save' : 'Add'}
+              {editingConstraint ? t('action.save', 'Enregistrer') : t('action.add', 'Ajouter')}
             </Button>
           </div>
         </form>

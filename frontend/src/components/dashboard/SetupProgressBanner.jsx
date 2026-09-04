@@ -1,64 +1,5 @@
-/**
- * SetupProgressBanner
- *
- * Shown on the dashboard when a student has not completed all onboarding steps.
- * Guides them through: Preferences → Courses → Availabilities → Generate Plan
- *
- * Disappears automatically once all 4 steps are done.
- */
 import { Link } from 'react-router-dom';
-
-const STEPS = [
-  {
-    id: 'preferences',
-    number: 1,
-    title: 'Set your academic profile',
-    description: 'Choose your university, program, and semester',
-    href: '/preferences',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'courses',
-    number: 2,
-    title: 'Select your courses',
-    description: 'Mark which courses you are taking this semester',
-    href: '/subjects',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    ),
-  },
-  {
-    id: 'availabilities',
-    number: 3,
-    title: 'Set your free time slots',
-    description: 'Tell the AI when you are available to study',
-    href: '/availabilities',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'plan',
-    number: 4,
-    title: 'Generate your AI study plan',
-    description: 'Let the AI build your personalized weekly schedule',
-    href: '/planner',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    ),
-  },
-];
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * @param {object} props
@@ -68,15 +9,67 @@ const STEPS = [
  * @param {boolean} props.hasPlan        - student has an active study plan
  */
 const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPlan }) => {
+  const { t } = useLanguage();
   const stepDone = [hasProfile, hasCourses, hasAvailabilities, hasPlan];
   const completedCount = stepDone.filter(Boolean).length;
 
   // All done → hide banner
   if (completedCount === 4) return null;
 
+  const steps = [
+    {
+      id: 'preferences',
+      number: 1,
+      title: t('dashboard.step.preferences_title'),
+      description: t('dashboard.step.preferences_desc'),
+      href: '/preferences',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'courses',
+      number: 2,
+      title: t('dashboard.step.courses_title'),
+      description: t('dashboard.step.courses_desc'),
+      href: '/subjects',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      ),
+    },
+    {
+      id: 'availabilities',
+      number: 3,
+      title: t('dashboard.step.availabilities_title'),
+      description: t('dashboard.step.availabilities_desc'),
+      href: '/availabilities',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'plan',
+      number: 4,
+      title: t('dashboard.step.plan_title'),
+      description: t('dashboard.step.plan_desc'),
+      href: '/ai-plan',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+    },
+  ];
+
   // Find the first incomplete step for the primary CTA
   const nextStepIndex = stepDone.findIndex((done) => !done);
-  const nextStep = STEPS[nextStepIndex];
 
   return (
     <div className="mb-8 rounded-2xl border border-violet-200 dark:border-violet-500/20 bg-gradient-to-br from-violet-500/5 via-indigo-500/5 to-transparent p-6 relative overflow-hidden">
@@ -88,16 +81,16 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg animate-bounce">🚀</span>
-            <h2 className="text-lg font-bold text-slate-850 dark:text-white">Get started in 4 steps</h2>
+            <h2 className="text-lg font-bold text-slate-850 dark:text-white">{t('dashboard.setup_title')}</h2>
           </div>
           <p className="text-sm text-slate-500 dark:text-white/45">
-            Complete your setup so the AI can generate a personalized study plan for you.
+            {t('dashboard.setup_subtitle')}
           </p>
         </div>
         {/* Progress indicator */}
         <div className="flex-shrink-0 text-right">
           <p className="text-2xl font-bold text-slate-800 dark:text-white">{completedCount}<span className="text-slate-400 dark:text-white/30 text-base font-normal">/4</span></p>
-          <p className="text-xs text-slate-400 dark:text-white/35 mt-0.5">steps done</p>
+          <p className="text-xs text-slate-400 dark:text-white/35 mt-0.5">{t('dashboard.steps_done')}</p>
         </div>
       </div>
 
@@ -111,7 +104,7 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
 
       {/* Steps */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {STEPS.map((step, idx) => {
+        {steps.map((step, idx) => {
           const done = stepDone[idx];
           const isNext = idx === nextStepIndex;
 
@@ -149,11 +142,11 @@ const SetupProgressBanner = ({ hasProfile, hasCourses, hasAvailabilities, hasPla
                 </div>
                 {isNext && (
                   <span className="text-[10px] font-bold text-violet-750 bg-violet-100 dark:text-violet-300 dark:bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-200 dark:border-violet-500/30">
-                    NEXT
+                    {t('dashboard.step_next')}
                   </span>
                 )}
                 {done && (
-                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">DONE</span>
+                  <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">{t('dashboard.step_done')}</span>
                 )}
               </div>
 

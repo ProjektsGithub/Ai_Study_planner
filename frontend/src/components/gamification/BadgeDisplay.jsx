@@ -1,12 +1,15 @@
 import PropTypes from 'prop-types';
+import { useLanguage } from '../../context/LanguageContext';
 import Card from '../ui/Card';
 import Tooltip from '../ui/Tooltip';
 
 const BadgeDisplay = ({ badges = [] }) => {
+  const { t } = useLanguage();
+
   return (
     <Card className="p-6 border border-slate-100 dark:border-white/10 bg-white shadow-sm">
       <h3 className="text-lg font-bold text-slate-850 dark:text-white mb-6 flex items-center justify-between gap-2">
-        <span>🏆 Mes Badges</span>
+        <span>{t('gamification.my_badges')}</span>
         <span className="text-xs font-semibold px-2 py-0.5 rounded bg-violet-50 text-violet-755 border border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30">
           {badges.filter((b) => b.isEarned).length} / {badges.length}
         </span>
@@ -46,7 +49,7 @@ const BadgeDisplay = ({ badges = [] }) => {
               <span className={`text-[9px] uppercase font-black mt-1 ${
                 badge.isEarned ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-white/30'
               }`}>
-                {badge.isEarned ? 'Débloqué' : 'Verrouillé'}
+                {badge.isEarned ? t('gamification.unlocked') : t('gamification.locked')}
               </span>
             </div>
           </Tooltip>

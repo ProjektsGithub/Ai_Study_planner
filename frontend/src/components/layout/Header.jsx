@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import PropTypes from 'prop-types';
+import ColabStatusBadge from '../ColabStatusBadge';
 
 const NavLink = ({ to, children }) => {
   const { pathname } = useLocation();
@@ -55,7 +56,7 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
             )}
           </div>
 
-          {/* Search Bar - Schoooli Style */}
+          {/* Search Bar */}
           {isAuthenticated && (
             <div className="hidden md:flex items-center flex-1 max-w-sm ml-6 mr-auto">
               <div className="relative w-full">
@@ -66,7 +67,7 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Search anything here"
+                  placeholder={t('header.search_placeholder')}
                   className="w-full pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-white/5 border border-transparent dark:border-white/10 rounded-full transition-all duration-300 focus:outline-none focus:bg-white focus:border-violet-500/30 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.08)] placeholder:text-slate-450 dark:placeholder:text-white/20"
                 />
               </div>
@@ -77,13 +78,16 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
+                {/* Colab / AI Backend Live Status Badge */}
+                <ColabStatusBadge variant="badge" className="hidden lg:inline-block" />
+
                 {/* Chat Bot Button / Trigger Indicator */}
                 <button
                   id="header-chat-btn"
                   className="relative p-2.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/8 transition-all duration-200"
                   aria-label="Messages"
                   onClick={() => {
-                    const chatTrigger = document.getElementById('chat-trigger-btn');
+                    const chatTrigger = document.getElementById('chatbot-toggle-btn');
                     if (chatTrigger) chatTrigger.click();
                   }}
                 >
@@ -97,7 +101,7 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                   id="notifications-btn"
                   onClick={onNotificationClick}
                   className="relative p-2.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-white/50 dark:hover:text-white dark:hover:bg-white/8 transition-all duration-200"
-                  aria-label="Notifications"
+                  aria-label={t('notifications.title')}
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -107,7 +111,7 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                   )}
                 </button>
 
-                {/* Language Selector Dropdown next to notifications */}
+                {/* Language Selector Dropdown */}
                 <div className="relative">
                   <button
                     onClick={() => setLangMenuOpen(!langMenuOpen)}
@@ -205,7 +209,7 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                         </Link>
                         <div className="h-px bg-slate-100 dark:bg-white/10 my-1" />
                         <div className="px-4 py-1 text-[9px] font-bold text-slate-400 dark:text-white/30 uppercase tracking-wider">
-                          Language / Langue
+                          {t('header.language')}
                         </div>
                         <button
                           onClick={() => {
@@ -259,14 +263,14 @@ const Header = ({ onNotificationClick, unreadCount = 0, onMenuClick }) => {
                   id="login-link"
                   className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 rounded-xl hover:bg-slate-100 dark:text-white/60 dark:hover:text-white dark:hover:bg-white/8 transition-all duration-200"
                 >
-                  Login
+                  {t('header.login')}
                 </Link>
                 <Link
                   to="/register"
                   id="register-link"
                   className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-500 rounded-xl shadow-glow-sm hover:shadow-glow-violet hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  Register
+                  {t('header.register')}
                 </Link>
               </div>
             )}

@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useLanguage } from '../../context/LanguageContext';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 
 const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) => {
+  const { t } = useLanguage();
+
   const [formData, setFormData] = useState({
     course_id: '',
     course_name: '',
@@ -58,8 +61,8 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.course_id) newErrors.course_id = 'Subject is required';
-    if (!formData.exam_date) newErrors.exam_date = 'Date is required';
+    if (!formData.course_id) newErrors.course_id = t('session_editor.error_subject_required');
+    if (!formData.exam_date) newErrors.exam_date = 'Date requise';
     
     // Validate future date
     if (formData.exam_date) {
@@ -67,12 +70,12 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
       today.setHours(0, 0, 0, 0);
       const selected = new Date(formData.exam_date);
       if (selected < today) {
-        newErrors.exam_date = "Exam date cannot be in the past";
+        newErrors.exam_date = "La date d'examen ne peut pas être passée";
       }
     }
 
     if (formData.weight < 0.0 || formData.weight > 1.0) {
-      newErrors.weight = 'Weight must be between 0.0 and 1.0';
+      newErrors.weight = 'Le coefficient doit être compris entre 0.0 et 1.0';
     }
 
     setErrors(newErrors);
@@ -88,9 +91,15 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Subject *</label>
-        <select name="course_id" value={formData.course_id} onChange={handleChange} required>
-          <option value="">Select a subject</option>
+        <label className="block text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider mb-2">{t('exams.form_subject')}</label>
+        <select
+          name="course_id"
+          value={formData.course_id}
+          onChange={handleChange}
+          required
+          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:border-violet-500"
+        >
+          <option value="">{t('exams.form_select_subject')}</option>
           {subjects.map((sub) => (
             <option key={sub.id} value={sub.id}>{sub.name}</option>
           ))}
@@ -100,7 +109,7 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Exam Date *"
+          label={t('exams.form_date')}
           type="date"
           name="exam_date"
           value={formData.exam_date}
@@ -109,7 +118,7 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
           required
         />
         <Input
-          label="Exam Time"
+          label={t('exams.form_time')}
           type="time"
           name="exam_time"
           value={formData.exam_time}
@@ -119,16 +128,16 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
       </div>
 
       <Input
-        label="Location / Exam Room"
+        label={t('exams.form_location')}
         name="location"
         value={formData.location}
         onChange={handleChange}
-        placeholder="e.g., Room 101, Online..."
+        placeholder={t('exams.form_location_placeholder')}
       />
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Duration (minutes)"
+          label={t('exams.form_duration')}
           type="number"
           name="duration_minutes"
           value={formData.duration_minutes}
@@ -138,7 +147,7 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
           required
         />
         <Input
-          label="Weight in final grade (0.0 to 1.0)"
+          label={t('exams.form_weight')}
           type="number"
           name="weight"
           value={formData.weight}
@@ -152,28 +161,33 @@ const ExamForm = ({ initialData, subjects = [], onSubmit, onCancel, saving }) =>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Exam Type</label>
-        <select name="exam_type" value={formData.exam_type} onChange={handleChange}>
-          <option value="midterm">Midterm</option>
-          <option value="final">Final Exam</option>
-          <option value="practical">Practical / Lab</option>
-          <option value="oral">Oral Exam</option>
-          <option value="project">Project / Submission</option>
+        <label className="block text-xs font-semibold text-slate-500 dark:text-white/50 uppercase tracking-wider mb-2">{t('exams.form_type')}</label>
+        <select
+          name="exam_type"
+          value={formData.exam_type}
+          onChange={handleChange}
+          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:border-violet-500"
+        >
+          <option value="midterm">{t('exams.type_midterm')}</option>
+          <option value="final">{t('exams.type_final')}</option>
+          <option value="practical">{t('exams.type_practical')}</option>
+          <option value="oral">{t('exams.type_oral')}</option>
+          <option value="project">{t('exams.type_project')}</option>
         </select>
       </div>
 
       <Input
-        label="Additional Notes"
+        label={t('exams.form_notes')}
         name="notes"
         value={formData.notes}
         onChange={handleChange}
-        placeholder="e.g., Chapters 1 to 4, calculator allowed..."
+        placeholder={t('exams.form_notes_placeholder')}
       />
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
-        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
+      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={saving}>{t('action.cancel')}</Button>
         <Button type="submit" variant="primary" loading={saving} disabled={saving}>
-          {initialData ? 'Update' : 'Schedule Exam'}
+          {initialData ? t('exams.form_update') : t('exams.modal_add_title')}
         </Button>
       </div>
     </form>

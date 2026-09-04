@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAcademicData } from '../context/AcademicDataContext';
+import { useLanguage } from '../context/LanguageContext';
 import SemesterTimeline from '../components/progression/SemesterTimeline';
 import SubjectValidationStatus from '../components/progression/SubjectValidationStatus';
 import ECTSBreakdown from '../components/progression/ECTSBreakdown';
@@ -15,6 +16,8 @@ const ProgressionPage = () => {
     fetchECTSProgression,
     loading
   } = useAcademicData();
+
+  const { t } = useLanguage();
 
   const [selectedSemester, setSelectedSemester] = useState('S1');
 
@@ -42,7 +45,6 @@ const ProgressionPage = () => {
   const target = ectsProgression?.ects_required ?? ectsProgression?.target ?? 180.0;
 
   // Map backend breakdown format to the format required by ECTSBreakdown
-  // Backend returns: semester_breakdown list with ects_obtained and ects_required
   const rawBreakdownList = ectsBreakdown?.semester_breakdown || ectsBreakdown?.by_semester || [];
   const mappedBreakdown = rawBreakdownList.map(b => ({
     semester: typeof b.semester === 'number' ? `S${b.semester}` : String(b.semester),
@@ -54,8 +56,8 @@ const ProgressionPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slide-up">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1.5">Academic Progression</h1>
-        <p className="text-white/40 text-sm">Visualize your ECTS credits and progress throughout your program.</p>
+        <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-1.5">{t('progression.title')}</h1>
+        <p className="text-slate-500 dark:text-white/40 text-sm">{t('progression.subtitle')}</p>
       </div>
 
       {/* Graduation progression overview card */}
@@ -63,12 +65,12 @@ const ProgressionPage = () => {
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 to-indigo-500" />
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-white mb-1">Graduation Goal</h2>
-            <p className="text-white/40 text-xs">Cumulative progress across your studies</p>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-1">{t('progression.graduation_goal')}</h2>
+            <p className="text-slate-500 dark:text-white/40 text-xs">{t('progression.cumulative_progress')}</p>
           </div>
           <div className="flex items-baseline gap-2.5 flex-shrink-0">
-            <span className="text-4xl font-extrabold text-white">{obtained.toFixed(1)}</span>
-            <span className="text-sm text-white/30">/ {target.toFixed(1)} ECTS obtained</span>
+            <span className="text-4xl font-extrabold text-slate-800 dark:text-white">{obtained.toFixed(1)}</span>
+            <span className="text-sm text-slate-400 dark:text-white/30">/ {target.toFixed(1)} {t('progression.ects_obtained_of')}</span>
           </div>
         </div>
         <div className="mt-6">
@@ -89,8 +91,10 @@ const ProgressionPage = () => {
         {/* Selected semester detail list */}
         <Card className="lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-white">Subjects of {selectedSemester}</h2>
-            <span className="text-xs text-white/40">{semesterSubjects.length} subject(s)</span>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white">
+              {t('progression.subjects_of_sem', { sem: selectedSemester })}
+            </h2>
+            <span className="text-xs text-slate-400 dark:text-white/40">{semesterSubjects.length} {t('subjects.total_enrolled')}</span>
           </div>
 
           {loading ? (
@@ -98,13 +102,13 @@ const ProgressionPage = () => {
               <div className="w-8 h-8 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
             </div>
           ) : semesterSubjects.length === 0 ? (
-            <div className="empty-state py-12">
-              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="empty-state py-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-slate-400 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13" />
                 </svg>
               </div>
-              <p className="text-sm text-white/50">No subjects registered for this semester.</p>
+              <p className="text-sm text-slate-500 dark:text-white/50">{t('progression.no_subjects_sem')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -117,7 +121,7 @@ const ProgressionPage = () => {
 
         {/* ECTS Breakdown sidebar */}
         <Card>
-          <h2 className="text-lg font-bold text-white mb-6">Breakdown by Semester</h2>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-6">{t('progression.breakdown_by_semester')}</h2>
           <ECTSBreakdown breakdown={mappedBreakdown} />
         </Card>
       </div>

@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useAcademicData } from '../../context/AcademicDataContext';
+import { useLanguage } from '../../context/LanguageContext';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
 const UpcomingExamsWidget = () => {
   const navigate = useNavigate();
   const { upcomingExams, loading } = useAcademicData();
+  const { lang, t, formatEuroDate } = useLanguage();
 
   if (loading && upcomingExams.length === 0) {
     return (
@@ -23,7 +25,7 @@ const UpcomingExamsWidget = () => {
   const nextExams = upcomingExams.slice(0, 3);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US', {
       day: 'numeric',
       month: 'short',
     });
@@ -38,7 +40,9 @@ const UpcomingExamsWidget = () => {
 
       <div>
         <div className="flex justify-between items-center mb-4">
-          <span className="text-xs text-slate-400 dark:text-white/40 font-semibold uppercase tracking-wider">Upcoming Exams</span>
+          <span className="text-xs text-slate-400 dark:text-white/40 font-semibold uppercase tracking-wider">
+            {t('dashboard.exams_widget_title')}
+          </span>
           <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 flex items-center justify-center">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -68,7 +72,7 @@ const UpcomingExamsWidget = () => {
                     </span>
                   </div>
                   <Badge variant={isUrgent ? 'error' : 'info'} className={isUrgent ? 'animate-pulse' : ''}>
-                    {daysUntil === 0 ? "Today" : daysUntil === 1 ? 'Tomorrow' : `${daysUntil} days left`}
+                    {daysUntil === 0 ? t('dashboard.exam_today') : daysUntil === 1 ? t('dashboard.exam_tomorrow') : `${daysUntil} ${t('dashboard.days_left')}`}
                   </Badge>
                 </div>
               );
@@ -76,8 +80,8 @@ const UpcomingExamsWidget = () => {
           </div>
         ) : (
           <div className="text-center py-5">
-            <p className="text-sm font-medium text-slate-500 dark:text-white/50">No exams scheduled</p>
-            <p className="text-xs text-slate-400 dark:text-white/30 mt-1">Plan your revisions.</p>
+            <p className="text-sm font-medium text-slate-500 dark:text-white/50">{t('dashboard.no_exams')}</p>
+            <p className="text-xs text-slate-400 dark:text-white/30 mt-1">{t('dashboard.plan_revisions')}</p>
           </div>
         )}
       </div>

@@ -10,12 +10,13 @@ import hashlib
 import json
 import time
 from typing import Dict, Any, Optional
-from datetime import datetime, timezone
+from datetime import datetime, date, timedelta, timezone
 import httpx
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.generation_log import GenerationLog
+from app.services.curriculum_topics import get_subject_prompt_context, is_note_vague, enrich_session_note
 
 
 class AIService:
@@ -43,7 +44,9 @@ class AIService:
             self.api_key = None
         
         self.model = settings.OLLAMA_MODEL  # llama3.2
-        self.temperature = settings.OLLAMA_TEMPERATURE
+        # Use at least 0.35 temperature to prevent deterministic loops and repetitive exercise copies
+        configured_temp = float(getattr(settings, 'OLLAMA_TEMPERATURE', 0.2))
+        self.temperature = max(configured_temp, 0.35)
         self.num_ctx = settings.OLLAMA_NUM_CTX
         
         # LoRA configuration
@@ -138,6 +141,10 @@ Generate a weekly study schedule in JSON format.
             
             if subj.get('weak_topics'):
                 prompt += f"  Weak topics: {', '.join(subj['weak_topics'])}\n"
+            
+            key_concepts = get_subject_prompt_context(subj['subject_name'])
+            if key_concepts:
+                prompt += f"{key_concepts}\n"
         
         prompt += f"\n**CONSTRAINTS**:\n"
         
@@ -251,11 +258,21 @@ Generate a weekly study schedule in JSON format.
 11. Try to reach the weekly study goal of {weekly_study_goal} hours
 12. Consider validation status and current progress
 
-**MANDATORY EXERCISE RULE** (CRITICAL):
-- Every subject MUST have at least ONE session with task_type "exercise_practice" per week
-- exercise_practice sessions must come AFTER lecture_review sessions for the same subject
-- In the "notes" of exercise_practice sessions, list 2-3 specific exercises (e.g. "Solve problems 5.1, 5.3; Practice integration by parts")
-- For subjects with upcoming exams, add "exam_preparation" sessions in the last days before the exam
+**PEDAGOGICAL PROGRESSION & DIVERSIFICATION RULES (CRITICAL)**:
+1. 🚨 STRICT ANTI-REPETITION: Every single session for a subject MUST have UNIQUE, DIVERSE notes. NEVER repeat the same exercises or notes twice across the week.
+2. PEDAGOGICAL PROGRESSION PER SUBJECT:
+   - Session 1 on a subject: Focus on core theory comprehension, key definitions, formulas, and basic foundation drills.
+   - Session 2 on a subject: Focus on intermediate problem-solving, TD exercises, and applied practice.
+   - Session 3+ on a subject: Focus on advanced synthesis, multi-part problems, or timed exam simulations.
+3. EXERCISE PRACTICE RULES:
+   - Every subject MUST have at least ONE session with task_type "exercise_practice" per week.
+   - exercise_practice sessions must come AFTER lecture_review sessions for the same subject.
+   - In "notes" for exercise_practice, specify concrete learning objectives tailored to the subject syllabus (e.g. mention specific theorems, formulas, or exercise themes).
+4. 🚨 STRICT FORBIDDEN PLACEHOLDERS IN "notes" FIELD:
+   - NEVER use vague templates like "Solve problems 7.3-8.16", "Review modules 2-10", "Review chapters 1-5", "Read textbook pages 50-100", or "Work on project milestone 1".
+   - You MUST write PRECISE, ACTIONABLE learning objectives describing EXACTLY what the student is studying (e.g., "Exercices d'application : calcul d'intégrales multiples et dérivées partielles", "Conteneurisation Docker de l'API FastAPI et benchmark de latence").
+5. UPCOMING EXAMS:
+   - For subjects with upcoming exams, schedule "exam_preparation" sessions with past exam problems (annales).
 
 **TASK TYPE GUIDE**:
 - lecture_review: Re-reading notes, summarizing theory (first session on a topic)
@@ -285,7 +302,7 @@ Any text outside the JSON object will cause a FATAL ERROR.
 7. Put your reasoning INSIDE the "reasoning" field
 
 **CORRECT OUTPUT** (copy this pattern):
-{{"sessions":[{{"day":"Monday","start_time":"09:00:00","end_time":"10:30:00","subject_name":"Mathematics","task_type":"lecture_review","notes":"Review integration techniques chapter 5"}}],"total_hours":25.5,"reasoning":"Brief explanation of the schedule strategy"}}
+{{"sessions":[{{"day":"Monday","start_time":"09:00:00","end_time":"10:30:00","subject_name":"Mathematics","task_type":"lecture_review","notes":"Cours Ch. 3 : Propriétés des suites et théorèmes de convergence"}},{{"day":"Wednesday","start_time":"14:00:00","end_time":"15:30:00","subject_name":"Mathematics","task_type":"exercise_practice","notes":"TD Ch. 3 : Exercices 12, 14 (convergence) et problème 18 (suites récurrentes)"}}],"total_hours":25.5,"reasoning":"Progression pédagogique structurée avec théorie suivie de TD d'application"}}
 
 **VALID TASK TYPES**: lecture_review, exercise_practice, exam_preparation, project_work, reading<|eot_id|>
 <|start_header_id|>assistant<|end_header_id|>
@@ -447,6 +464,33 @@ Any text outside the JSON object will cause a FATAL ERROR.
             if 'total_hours' not in plan_data or plan_data['total_hours'] == 0:
                 plan_data['total_hours'] = calculate_total_hours(plan_data)
             
+            # Ensure diversity of exercises and notes across sessions for the same subject
+            if 'sessions' in plan_data and isinstance(plan_data['sessions'], list):
+                subject_counts = {}
+                seen_notes = {}
+                for session in plan_data['sessions']:
+                    subj = session.get('subject_name', 'Matière')
+                    ttype = session.get('task_type', 'exercise_practice')
+                    subject_counts[subj] = subject_counts.get(subj, 0) + 1
+                    s_idx = subject_counts[subj]
+
+                    raw_note = str(session.get('notes', '')).strip()
+                    # Check if this note was already seen for this subject or is a generic default
+                    is_duplicate = (subj in seen_notes and raw_note.lower() in seen_notes[subj])
+                    if is_duplicate or is_note_vague(raw_note):
+                        session['notes'] = enrich_session_note(
+                            subj, 
+                            ttype, 
+                            raw_note if not is_duplicate else None, 
+                            session_index=s_idx - 1
+                        )
+                        print(f"[AI_SERVICE] Enriched note for {subj} (session #{s_idx}): {session['notes']}")
+
+                    if subj not in seen_notes:
+                        seen_notes[subj] = set()
+                    if session.get('notes'):
+                        seen_notes[subj].add(str(session['notes']).strip().lower())
+
             # Add reasoning if missing
             if 'reasoning' not in plan_data:
                 plan_data['reasoning'] = "Study plan generated based on available time slots and priorities"
@@ -637,7 +681,9 @@ Any text outside the JSON object will cause a FATAL ERROR.
         """
         url = f"{self.base_url}/generate"
         
-        headers = {}
+        headers = {
+            "ngrok-skip-browser-warning": "true",
+        }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         
@@ -669,12 +715,12 @@ Any text outside the JSON object will cause a FATAL ERROR.
                 response = await client.post(url, json=payload, headers=headers)
                 
                 elapsed = time.time() - start
-                print(f"[AI_SERVICE] ✅ Response received in {elapsed:.2f}s - HTTP {response.status_code}")
+                print(f"[AI_SERVICE] [OK] Response received in {elapsed:.2f}s - HTTP {response.status_code}")
                 
                 response.raise_for_status()
                 
                 result = response.json()
-                print(f"[AI_SERVICE] ✅ JSON parsed successfully")
+                print(f"[AI_SERVICE] [OK] JSON parsed successfully")
                 
                 # Log la taille de la réponse
                 generated_text = result.get("generated_text", "")
@@ -683,17 +729,17 @@ Any text outside the JSON object will cause a FATAL ERROR.
                 return result
                 
         except httpx.TimeoutException as e:
-            print(f"[AI_SERVICE] ❌ TIMEOUT: {e}")
+            print(f"[AI_SERVICE] [ERROR] TIMEOUT: {e}")
             print(f"[AI_SERVICE] Cette erreur signifie que Colab prend plus de 5 minutes à répondre.")
             print(f"[AI_SERVICE] Vérifiez que le GPU Colab est actif et le modèle est chargé.")
             raise
         except httpx.HTTPError as e:
-            print(f"[AI_SERVICE] ❌ HTTP Error: {e}")
+            print(f"[AI_SERVICE] [ERROR] HTTP Error: {e}")
             print(f"[AI_SERVICE] Response status: {e.response.status_code if hasattr(e, 'response') else 'N/A'}")
             print(f"[AI_SERVICE] Response body: {e.response.text[:500] if hasattr(e, 'response') else 'N/A'}")
             raise
         except Exception as e:
-            print(f"[AI_SERVICE] ❌ Unexpected error calling Colab: {type(e).__name__}: {e}")
+            print(f"[AI_SERVICE] [ERROR] Unexpected error calling Colab: {type(e).__name__}: {e}")
             import traceback
             traceback.print_exc()
             raise
@@ -803,7 +849,9 @@ Any text outside the JSON object will cause a FATAL ERROR.
             if self.use_colab:
                 # ── Try /generate_stream first (SSE token-by-token) ──────
                 stream_url = f"{self.base_url}/generate_stream"
-                headers = {}
+                headers = {
+                    "ngrok-skip-browser-warning": "true",
+                }
                 if self.api_key:
                     headers["Authorization"] = f"Bearer {self.api_key}"
                 payload = {
@@ -1017,21 +1065,45 @@ Any text outside the JSON object will cause a FATAL ERROR.
             except Exception as e:
                 # Calculate duration
                 duration_ms = int((time.time() - start_time) * 1000)
-                
-                # Log failed generation
+                print(f"[AI_SERVICE] Remote AI call failed ({e}). Falling back to algorithmic plan generator...")
+                try:
+                    fallback_plan = self._generate_fallback_plan(planning_data, weekly_study_goal)
+                    log = GenerationLog(
+                        user_id=user_id,
+                        request_hash=request_hash,
+                        success=True,
+                        duration_seconds=duration_ms / 1000.0,
+                        token_count=0,
+                        error_message=f"Algorithmic fallback used (AI unavailable: {str(e)[:200]})",
+                        created_at=datetime.now(timezone.utc)
+                    )
+                    self.db.add(log)
+                    self.db.flush()
+                    return {
+                        "success": True,
+                        "plan": fallback_plan,
+                        "log_id": log.id,
+                        "duration_ms": duration_ms,
+                        "generation_time": duration_ms / 1000.0,
+                        "fallback": True
+                    }
+                except Exception as fallback_err:
+                    print(f"[AI_SERVICE] Fallback generator failed: {fallback_err}")
+
+                # Log failed generation if fallback also failed
                 log = GenerationLog(
                     user_id=user_id,
                     request_hash=request_hash,
                     success=False,
-                    duration_seconds=duration_ms / 1000.0,  # Convert ms to seconds
+                    duration_seconds=duration_ms / 1000.0,
                     token_count=0,
                     error_message=str(e),
                     created_at=datetime.now(timezone.utc)
                 )
                 self.db.add(log)
-                self.db.flush()  # Use flush() instead of commit() to avoid expiring shared session objects
+                self.db.flush()
                 
-                log_id = log.id  # Capture ID before any potential expiry
+                log_id = log.id
                 
                 return {
                     "success": False,
@@ -1039,3 +1111,101 @@ Any text outside the JSON object will cause a FATAL ERROR.
                     "log_id": log_id,
                     "duration_ms": duration_ms
                 }
+
+    def _generate_fallback_plan(
+        self,
+        planning_data: Dict[str, Any],
+        weekly_study_goal: float,
+    ) -> Dict[str, Any]:
+        """
+        Deterministic, high-quality fallback generator when AI model/Colab is offline.
+        Uses valid slots from planning_data, prioritized subjects, and rich curriculum topics.
+        """
+        from app.services.curriculum_topics import enrich_session_note
+
+        valid_slots = planning_data.get("valid_slots", [])
+        priorities = planning_data.get("subject_priorities", [])
+        if not priorities or not valid_slots:
+            raise ValueError("Cannot generate plan: no priorities or valid slots available")
+
+        # Sort subjects by priority score descending
+        sorted_subjects = sorted(priorities, key=lambda p: p.get("priority_score", 0), reverse=True)
+        subject_names = [s["subject_name"] for s in sorted_subjects]
+
+        # Break long slots into chunks of max 90-120 minutes with 15-minute breaks
+        chunks = []
+        for slot in valid_slots:
+            day = slot["day"]
+            st_str = slot["start_time"]
+            et_str = slot["end_time"]
+            st = datetime.strptime(st_str, "%H:%M:%S" if len(st_str) == 8 else "%H:%M").time()
+            et = datetime.strptime(et_str, "%H:%M:%S" if len(et_str) == 8 else "%H:%M").time()
+            dur = slot.get("duration_minutes", 0)
+            if dur <= 0:
+                continue
+
+            current_start = datetime.combine(date.today(), st)
+            slot_end = datetime.combine(date.today(), et)
+
+            while current_start + timedelta(minutes=45) <= slot_end:
+                remaining = (slot_end - current_start).total_seconds() / 60
+                if remaining >= 150:
+                    chunk_dur = 90
+                elif remaining >= 90:
+                    chunk_dur = 90
+                elif remaining >= 60:
+                    chunk_dur = 60
+                else:
+                    chunk_dur = int(remaining)
+
+                chunk_end = current_start + timedelta(minutes=chunk_dur)
+                chunks.append({
+                    "day": day,
+                    "start_time": current_start.strftime("%H:%M:%S"),
+                    "end_time": chunk_end.strftime("%H:%M:%S"),
+                    "duration_minutes": chunk_dur
+                })
+                # Add 15 min break
+                current_start = chunk_end + timedelta(minutes=15)
+
+        if not chunks:
+            chunks = valid_slots
+
+        # Assign subjects round-robin weighted by priority
+        sessions = []
+        subject_session_counts = {name: 0 for name in subject_names}
+        total_minutes = 0
+        target_minutes = (weekly_study_goal or 20.0) * 60
+
+        task_cycle = ["lecture_review", "exercise_practice", "project_work", "exam_preparation"]
+
+        for chunk in chunks:
+            if total_minutes >= target_minutes and len(sessions) >= len(subject_names):
+                break
+
+            # Pick subject with lowest session count (ties broken by priority order)
+            cand = min(subject_names, key=lambda name: subject_session_counts[name])
+            subject_name = cand
+            count = subject_session_counts[subject_name]
+
+            task_type = task_cycle[count % len(task_cycle)]
+            note = enrich_session_note(subject_name, task_type, "")
+
+            sessions.append({
+                "day": chunk["day"],
+                "start_time": chunk["start_time"],
+                "end_time": chunk["end_time"],
+                "subject_name": subject_name,
+                "task_type": task_type,
+                "notes": note
+            })
+
+            subject_session_counts[subject_name] += 1
+            total_minutes += chunk.get("duration_minutes", 60)
+
+        total_hours = round(total_minutes / 60.0, 2)
+        return {
+            "sessions": sessions,
+            "total_hours": total_hours,
+            "reasoning": "Plan structure par progression pedagogique : revues de cours suivies d'exercices pratiques et projets d'application."
+        }

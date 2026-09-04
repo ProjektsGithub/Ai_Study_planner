@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useAcademicData } from '../../context/AcademicDataContext';
+import { useLanguage } from '../../context/LanguageContext';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 
 const RiskSubjectsWidget = () => {
   const navigate = useNavigate();
   const { riskScores, loading } = useAcademicData();
+  const { t } = useLanguage();
 
   if (loading && riskScores.length === 0) {
     return (
@@ -31,9 +33,9 @@ const RiskSubjectsWidget = () => {
   };
 
   const getRiskLabel = (level) => {
-    if (level === 'high') return 'High Risk';
-    if (level === 'medium') return 'Medium Risk';
-    return 'Low Risk';
+    if (level === 'high') return t('dashboard.risk_high');
+    if (level === 'medium') return t('dashboard.risk_medium');
+    return t('dashboard.risk_low');
   };
 
   return (
@@ -45,7 +47,9 @@ const RiskSubjectsWidget = () => {
 
       <div>
         <div className="flex justify-between items-center mb-4">
-          <span className="text-xs text-slate-400 dark:text-white/40 font-semibold uppercase tracking-wider">At-Risk Subjects</span>
+          <span className="text-xs text-slate-400 dark:text-white/40 font-semibold uppercase tracking-wider">
+            {t('dashboard.risk_widget_title')}
+          </span>
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -63,7 +67,7 @@ const RiskSubjectsWidget = () => {
                 <div className="flex flex-col min-w-0 pr-2">
                    <span className="text-sm font-semibold text-slate-700 dark:text-white/90 truncate">{item.course_name}</span>
                    <span className="text-[10px] text-slate-400 dark:text-white/40 truncate">
-                    {item.factors && item.factors.length > 0 ? item.factors[0] : 'Academic support needed'}
+                    {item.factors && item.factors.length > 0 ? item.factors[0] : t('dashboard.academic_support')}
                    </span>
                 </div>
                 <Badge variant={getRiskVariant(item.risk_level)}>
@@ -74,8 +78,8 @@ const RiskSubjectsWidget = () => {
           </div>
         ) : (
           <div className="text-center py-5">
-            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">All subjects are validated or stable!</p>
-            <p className="text-xs text-slate-400 dark:text-white/30 mt-1">Excellent academic performance.</p>
+            <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{t('dashboard.all_subjects_ok')}</p>
+            <p className="text-xs text-slate-400 dark:text-white/30 mt-1">{t('dashboard.excellent_perf')}</p>
           </div>
         )}
       </div>

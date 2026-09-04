@@ -221,6 +221,10 @@ class AcademicProfileService:
             filiere_id = update_dict.get("filiere_id", profile.filiere_id)
             self._validate_cursus_id(db, update_dict["cursus_id"], filiere_id)
 
+        old_cursus_id = profile.cursus_id
+        old_semester = profile.current_semester
+        old_retakes = list(profile.retake_semesters or [])
+
         # Apply updates
         for field, value in update_dict.items():
             setattr(profile, field, value)
@@ -228,12 +232,132 @@ class AcademicProfileService:
         db.commit()
         db.refresh(profile)
 
+        # If track (cursus), semester, or retake semesters changed, synchronize subjects and enrollments!
+        track_or_sem_changed = (
+            ("cursus_id" in update_dict and update_dict["cursus_id"] != old_cursus_id)
+            or ("current_semester" in update_dict and update_dict["current_semester"] != old_semester)
+            or ("retake_semesters" in update_dict and update_dict["retake_semesters"] != old_retakes)
+        )
+        if track_or_sem_changed:
+            self._sync_courses_on_track_change(db, profile)
+
         logger.info(
             "[AcademicProfileService] Updated academic profile for user_id=%d: %s",
             user_id,
             list(update_dict.keys()),
         )
         return self.get_academic_profile(db, user_id)
+
+    def _sync_courses_on_track_change(self, db: Session, profile: StudentProfile) -> None:
+        """
+        When a student switches academic track (cursus) or current semester:
+        1. Remove enrollments and subjects from old tracks that no longer match.
+        2. Auto-enroll courses from the active track's current semester (and retake semesters).
+        3. Mark old study plans as superseded so old track courses don't linger.
+        """
+        from app.models.semester import Semester
+        from app.models.course import Course
+        from app.models.student_course_enrollment import StudentCourseEnrollment
+        from app.models.subject import Subject
+        from app.models.study_plan import StudyPlan
+        from app.services.enrollment_sync_service import sync_enrollment_to_subject
+
+        if not profile.cursus_id or not profile.current_semester:
+            return
+
+        # 1. Find all valid semesters for the new track
+        sem_numbers = [profile.current_semester] + (profile.retake_semesters or [])
+        valid_semesters = (
+            db.query(Semester)
+            .filter(
+                Semester.academic_track_id == profile.cursus_id,
+                Semester.semester_number.in_(sem_numbers),
+                Semester.is_deleted == False,
+            )
+            .all()
+        )
+        valid_sem_ids = [s.id for s in valid_semesters]
+
+        # 2. Find all valid courses for these semesters
+        valid_courses = (
+            db.query(Course)
+            .filter(
+                Course.semester_id.in_(valid_sem_ids),
+                Course.is_deleted == False,
+            )
+            .all()
+        ) if valid_sem_ids else []
+        valid_course_ids = {c.id for c in valid_courses}
+
+        # 3. Delete old enrollments for courses that do NOT belong to this track/semester
+        old_enrollments = (
+            db.query(StudentCourseEnrollment)
+            .filter(
+                StudentCourseEnrollment.user_id == profile.user_id,
+                ~StudentCourseEnrollment.course_id.in_(valid_course_ids)
+            )
+            .all()
+        )
+        for oe in old_enrollments:
+            db.delete(oe)
+
+        # 4. Delete old subjects linked to catalog courses that do NOT belong to this track/semester
+        old_subjects = (
+            db.query(Subject)
+            .filter(
+                Subject.user_id == profile.user_id,
+                Subject.catalog_course_id != None,
+                ~Subject.catalog_course_id.in_(valid_course_ids)
+            )
+            .all()
+        )
+        for os in old_subjects:
+            db.delete(os)
+
+        db.commit()
+
+        # 5. Auto-enroll courses from the new track that don't have enrollments yet
+        for course in valid_courses:
+            existing_enr = (
+                db.query(StudentCourseEnrollment)
+                .filter(
+                    StudentCourseEnrollment.user_id == profile.user_id,
+                    StudentCourseEnrollment.course_id == course.id,
+                )
+                .first()
+            )
+            if not existing_enr:
+                existing_enr = StudentCourseEnrollment(
+                    user_id=profile.user_id,
+                    course_id=course.id,
+                    status="in_progress",
+                )
+                db.add(existing_enr)
+                db.commit()
+                db.refresh(existing_enr)
+            
+            # Sync to Subject table so PlanningEngine immediately has it
+            sync_enrollment_to_subject(db, existing_enr, course)
+
+        # 6. Mark any active study plan as superseded so user gets a fresh plan for the new track
+        active_plans = (
+            db.query(StudyPlan)
+            .filter(
+                StudyPlan.user_id == profile.user_id,
+                StudyPlan.status.in_(["generated", "active"])
+            )
+            .all()
+        )
+        for p in active_plans:
+            p.status = "superseded"
+        db.commit()
+
+        logger.info(
+            "[AcademicProfileService] Synced courses for user_id=%d: cursus_id=%d, enrolled %d courses",
+            profile.user_id,
+            profile.cursus_id,
+            len(valid_courses),
+        )
 
     # ------------------------------------------------------------------
     # Private validation helpers

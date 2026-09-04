@@ -3,6 +3,7 @@ import WeeklyCalendarView from '../components/WeeklyCalendarView';
 import SessionEditor from '../components/SessionEditor';
 import SessionViewModal from '../components/SessionViewModal';
 import { useStudyPlan } from '../context/StudyPlanContext';
+import { useLanguage } from '../context/LanguageContext';
 import apiClient from '../api/client';
 
 const formatError = (err) => {
@@ -28,6 +29,8 @@ const PlannerPage = () => {
     updateSession,
     deleteSession
   } = useStudyPlan();
+
+  const { lang, t, formatEuroDate } = useLanguage();
 
   const [availabilities, setAvailabilities] = useState([]);
   const [constraints, setConstraints] = useState([]);
@@ -94,9 +97,7 @@ const PlannerPage = () => {
   };
 
   const handleGeneratePlan = async () => {
-    console.log('🚀 Starting plan generation (SSE streaming)...');
     setError(null);
-
     try {
       const today = new Date();
       const dayOfWeek = today.getDay();
@@ -107,12 +108,9 @@ const PlannerPage = () => {
 
       // Use Context's generatePlan method
       await generatePlan(weekStart, true);
-      console.log('✅ Plan generated successfully');
     } catch (err) {
       console.error('❌ Error generating plan:', err);
       setError(err.message || 'Erreur lors de la génération du plan');
-    } finally {
-      console.log('🏁 Plan generation finished');
     }
   };
 
@@ -174,11 +172,11 @@ const PlannerPage = () => {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Study Planner</h1>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white">{t('ai_plan.title')}</h1>
           {studyPlan && (
             <p className="text-slate-400 dark:text-white/40 text-sm mt-1">
-              Plan created on {new Date(studyPlan.created_at).toLocaleDateString('en-US')}
-              {studyPlan.edited && <span className="ml-2 text-violet-600 dark:text-violet-400">· edited</span>}
+              {t('ai_plan.generated_on')} {new Date(studyPlan.created_at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US')}
+              {studyPlan.edited && <span className="ml-2 text-violet-600 dark:text-violet-400">· {t('ai_plan.manually_edited')}</span>}
             </p>
           )}
         </div>
@@ -191,7 +189,7 @@ const PlannerPage = () => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Add Session
+            {t('calendar.add_session')}
           </button>
           <button
             onClick={handleGeneratePlan}
@@ -204,14 +202,14 @@ const PlannerPage = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {generationProgress === 'running' ? 'AI in progress...' : 'Waiting...'}
+                {generationProgress === 'running' ? t('ai_plan.generating') : t('ai_plan.queue_status')}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
-                {studyPlan ? 'Regenerate' : 'Generate AI Plan'}
+                {studyPlan ? t('ai_plan.regenerate') : t('ai_plan.generate_btn')}
               </>
             )}
           </button>
@@ -240,17 +238,11 @@ const PlannerPage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-violet-800 dark:text-violet-300">
-                {generationProgress === 'preparing' && 'Preparing data...'}
-                {generationProgress === 'running' && "AI is writing your schedule in real-time..."}
-                {generationProgress === 'saving' && 'Saving schedule...'}
-                {generationProgress === 'done' && 'Schedule generated successfully!'}
-                {!generationProgress && 'Initializing...'}
-              </p>
-              <p className="text-xs text-violet-650 dark:text-violet-400/70 mt-0.5">
-                {generationProgress === 'preparing' && 'Loading your subjects, time slots and constraints.'}
-                {generationProgress === 'running' && 'Llama 3.1-8B generating on A100'}
-                {generationProgress === 'saving' && 'Saving to database...'}
-                {generationProgress === 'done' && 'Your schedule is now available.'}
+                {generationProgress === 'preparing' && t('ai_plan.step_prep')}
+                {generationProgress === 'running' && t('ai_plan.step_gen')}
+                {generationProgress === 'saving' && t('ai_plan.step_save')}
+                {generationProgress === 'done' && t('ai_plan.finalizing')}
+                {!generationProgress && t('ai_plan.queue_status')}
               </p>
             </div>
             <div className="flex gap-1 flex-shrink-0">
@@ -267,7 +259,7 @@ const PlannerPage = () => {
         <div className="flex items-center justify-center py-16">
           <div className="text-center">
             <div className="w-12 h-12 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin mx-auto mb-4" />
-            <p className="text-slate-400 dark:text-white/40 text-sm">Loading study plan...</p>
+            <p className="text-slate-400 dark:text-white/40 text-sm">{t('label.loading')}</p>
           </div>
         </div>
       )}
@@ -289,21 +281,21 @@ const PlannerPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
-              label: 'Total Hours',
+              label: t('dashboard.total_study_hours'),
               value: `${studyPlan.total_hours?.toFixed(1) || '0.0'}h`,
               icon: '⏱',
               gradient: 'from-violet-50 to-violet-50/30 dark:from-violet-600/25 dark:to-violet-600/5',
               topBar: 'from-violet-500 to-violet-400',
             },
             {
-              label: 'Sessions',
+              label: t('ai_plan.work_sessions'),
               value: sessions.length,
               icon: '📋',
               gradient: 'from-cyan-50 to-cyan-50/30 dark:from-cyan-600/25 dark:to-cyan-600/5',
               topBar: 'from-cyan-500 to-cyan-400',
             },
             {
-              label: 'Subjects',
+              label: t('ai_plan.affected_subjects'),
               value: new Set(sessions.map((s) => s.subject_id)).size,
               icon: '📚',
               gradient: 'from-emerald-50 to-emerald-50/30 dark:from-emerald-600/25 dark:to-emerald-600/5',

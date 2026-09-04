@@ -2,15 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import apiClient from '../api/client';
 import { useStudyPlan } from '../context/StudyPlanContext';
-
-// ── Task-type badge helper ───────────────────────────────────────────────────
-const TASK_LABELS = {
-  lecture_review:    { label: 'Cours',    color: '#818cf8' },
-  exercise_practice: { label: 'Exercice', color: '#fb923c' },
-  exam_preparation:  { label: 'Examen',   color: '#f87171' },
-  project_work:      { label: 'Projet',   color: '#34d399' },
-  reading:           { label: 'Lecture',  color: '#60a5fa' },
-};
+import { useLanguage } from '../context/LanguageContext';
+import ColabStatusBadge from './ColabStatusBadge';
 
 // ── Build context payload from current plan ─────────────────────────────────
 function buildContext(currentPlan) {
@@ -104,11 +97,12 @@ MessageBubble.propTypes = { msg: PropTypes.object.isRequired };
 
 // ── Main ChatBot component ───────────────────────────────────────────────────
 const ChatBot = () => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: '👋 Salut ! Je suis ton assistant IA de planning. Pose-moi tes questions sur tes révisions, exercices, ou ton emploi du temps !',
+      content: t('chatbot.welcome'),
     },
   ]);
   const [input, setInput] = useState('');
@@ -154,19 +148,18 @@ const ChatBot = () => {
       setMessages(prev => [...prev, assistantMsg]);
       if (!open) setHasUnread(true);
     } catch (err) {
-      // Show the real backend error (e.g. "Clé API Colab invalide", "URL ngrok expirée")
       const backendMsg = err.response?.data?.detail;
       const errMsg = {
         role: 'assistant',
         content: backendMsg
           ? `⚠️ ${backendMsg}`
-          : '⚠️ Impossible de joindre le serveur IA. Vérifie que le notebook Colab est actif et que l\'URL ngrok est à jour dans le .env.',
+          : t('chatbot.error_connect'),
       };
       setMessages(prev => [...prev, errMsg]);
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, currentPlan, open]);
+  }, [input, loading, messages, currentPlan, open, t]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -177,9 +170,9 @@ const ChatBot = () => {
 
   // Quick-action suggestions
   const suggestions = [
-    "Que dois-je réviser aujourd'hui ?",
-    "Génère 3 exercices de maths",
-    "Comment optimiser mon planning ?",
+    t('chatbot.suggest_1'),
+    t('chatbot.suggest_2'),
+    t('chatbot.suggest_3'),
   ];
 
   return (
@@ -204,7 +197,7 @@ const ChatBot = () => {
       <button
         id="chatbot-toggle-btn"
         onClick={() => setOpen(o => !o)}
-        title="Ouvrir l'assistant IA"
+        title={t('chatbot.open_tooltip')}
         style={{
           position: 'fixed', bottom: 24, right: 24,
           zIndex: 9998,
@@ -257,17 +250,13 @@ const ChatBot = () => {
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
             }}>🤖</div>
             <div>
-              <div style={{ color: '#1e1b4b', fontWeight: 700, fontSize: 14 }}>Assistant IA</div>
+              <div style={{ color: '#1e1b4b', fontWeight: 700, fontSize: 14 }}>{t('chatbot.header_title')}</div>
               <div style={{ color: '#6366f1', fontSize: 11 }}>
-                Propulsé par Llama · {currentPlan ? `Plan actif ✅` : 'Aucun plan actif'}
+                {t('chatbot.powered_by')} · {currentPlan ? t('chatbot.plan_active') : t('chatbot.no_plan_active')}
               </div>
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: '#34d399', display: 'inline-block',
-                boxShadow: '0 0 6px #34d399',
-              }} />
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ColabStatusBadge variant="dot" />
             </div>
           </div>
 
@@ -312,7 +301,7 @@ const ChatBot = () => {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Pose ta question... (Entrée pour envoyer)"
+              placeholder={t('chatbot.placeholder')}
               rows={1}
               style={{
                 flex: 1, background: '#f8fafc',

@@ -2,44 +2,37 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 
-// ─── Status config ────────────────────────────────────────────────────────────
-const STATUS_CONFIG = {
+// ─── Status style config ───────────────────────────────────────────────────────
+const STATUS_STYLES = {
   in_progress: {
-    label: 'In Progress',
     color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30',
     textColor: 'text-blue-700 dark:text-blue-300',
     dot: 'bg-blue-500 dark:bg-blue-400',
     ring: 'ring-blue-500/20 dark:ring-blue-500/40',
     icon: '🔵',
-    aiHint: 'In planning',
   },
   validated: {
-    label: 'Validated ✓',
     color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30',
     textColor: 'text-emerald-700 dark:text-emerald-300',
     dot: 'bg-emerald-500 dark:bg-emerald-400',
     ring: 'ring-emerald-500/20 dark:ring-emerald-500/40',
     icon: '✅',
-    aiHint: 'Excluded',
   },
   retake: {
-    label: 'Retake ⚠',
     color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30',
     textColor: 'text-amber-700 dark:text-amber-300',
     dot: 'bg-amber-500 dark:bg-amber-400',
     ring: 'ring-amber-500/20 dark:ring-amber-500/40',
     icon: '⚠️',
-    aiHint: 'High priority',
   },
   optional: {
-    label: 'Optional',
     color: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30',
     textColor: 'text-purple-700 dark:text-purple-300',
     dot: 'bg-purple-500 dark:bg-purple-400',
     ring: 'ring-purple-500/20 dark:ring-purple-500/40',
     icon: '⚙️',
-    aiHint: 'Optional',
   },
 };
 
@@ -59,16 +52,17 @@ const DifficultyStars = ({ level }) => (
 
 // ─── Status dropdown (Portal-based to escape overflow-hidden parents) ─────────
 const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState({});
   const btnRef = useRef(null);
-  const cfg = currentStatus ? STATUS_CONFIG[currentStatus] : null;
+  const style = currentStatus ? STATUS_STYLES[currentStatus] : null;
 
   const handleToggle = () => {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      const menuHeight = 230; // approx height of the menu
+      const menuHeight = 230;
       const spaceBelow = viewportHeight - rect.bottom;
       const showAbove = spaceBelow < menuHeight && rect.top > menuHeight;
 
@@ -100,26 +94,32 @@ const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => 
           className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
         >
           <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/20" />
-          Not selected
-          <span className="ml-auto text-slate-400 dark:text-white/20 text-[10px]">clear</span>
+          {t('subjects.status.not_selected', 'Non sélectionné')}
+          <span className="ml-auto text-slate-400 dark:text-white/20 text-[10px]">✕</span>
         </button>
         <div className="h-px bg-slate-100 dark:bg-white/5 mx-3" />
-        {Object.entries(STATUS_CONFIG).map(([key, c]) => (
-          <button
-            key={key}
-            onClick={() => { onStatusChange(courseId, key); setOpen(false); }}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-white/5 transition-colors
-              ${currentStatus === key ? 'bg-slate-50 dark:bg-white/5' : ''}
-            `}
-          >
-            <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-            <span className={c.textColor}>{c.label}</span>
-            <span className="ml-auto text-slate-400 dark:text-white/25 text-[10px]">{c.aiHint}</span>
-          </button>
-        ))}
+        {Object.entries(STATUS_STYLES).map(([key, st]) => {
+          const label = t(`subjects.status.${key}`, key);
+          const hint = t(`subjects.hint.${key}`, '');
+          return (
+            <button
+              key={key}
+              onClick={() => { onStatusChange(courseId, key); setOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-white/5 transition-colors
+                ${currentStatus === key ? 'bg-slate-50 dark:bg-white/5' : ''}
+              `}
+            >
+              <span className={`w-2 h-2 rounded-full ${st.dot}`} />
+              <span className={st.textColor}>{label}</span>
+              <span className="ml-auto text-slate-400 dark:text-white/25 text-[10px]">{hint}</span>
+            </button>
+          );
+        })}
       </div>
     </>
   ) : null;
+
+  const currentLabel = currentStatus ? t(`subjects.status.${currentStatus}`, currentStatus) : t('subjects.status.not_selected', 'Non sélectionné');
 
   return (
     <div className="relative">
@@ -131,14 +131,14 @@ const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => 
         className={`
           flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold
           transition-all duration-150 min-w-[140px] justify-between
-          ${cfg
-            ? `${cfg.color} ${cfg.ring} ring-1`
+          ${style
+            ? `${style.color} ${style.ring} ring-1`
             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 dark:bg-white/5 dark:border-white/10 dark:text-white/40 dark:hover:border-white/20'
           }
           ${saving ? 'opacity-50 cursor-wait' : 'cursor-pointer hover:opacity-90'}
         `}
       >
-        <span>{cfg ? cfg.label : 'Not selected'}</span>
+        <span>{currentLabel}</span>
         <svg
           className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
@@ -154,7 +154,8 @@ const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => 
 
 // ─── Course row ───────────────────────────────────────────────────────────────
 const CourseRow = ({ course, onStatusChange, savingId }) => {
-  const cfg = course.enrollment_status ? STATUS_CONFIG[course.enrollment_status] : null;
+  const { t } = useLanguage();
+  const style = course.enrollment_status ? STATUS_STYLES[course.enrollment_status] : null;
 
   return (
     <div
@@ -162,7 +163,7 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
       className={`
         flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200
         border group
-        ${cfg
+        ${style
           ? `bg-slate-50/50 border-slate-100 hover:bg-slate-50 dark:bg-white/[0.03] dark:border-white/8 dark:hover:bg-white/[0.05]`
           : 'bg-transparent border-transparent hover:bg-slate-50/30 hover:border-slate-100 dark:hover:bg-white/[0.02] dark:hover:border-white/5'
         }
@@ -170,7 +171,7 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
     >
       {/* Status indicator line */}
       <div className={`w-1 h-8 rounded-full flex-shrink-0 transition-colors
-        ${cfg ? cfg.dot : 'bg-slate-200 dark:bg-white/10'}`}
+        ${style ? style.dot : 'bg-slate-200 dark:bg-white/10'}`}
       />
 
       {/* Course info */}
@@ -185,14 +186,14 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
           {/* Retake badge (German Wiederholung) */}
           {course.is_retake && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <span>⚠</span> Rattrapage S{course.retake_semester_number}
+              <span>⚠</span> {t('subjects.status.retake', 'Rattrapage')} S{course.retake_semester_number}
             </span>
           )}
         </div>
         <div className="flex items-center gap-3 mt-1">
-          <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">{course.ects_credits} ECTS</span>
+          <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">{course.ects_credits} {t('label.ects', 'ECTS')}</span>
           <span className="text-slate-400 dark:text-slate-500 text-[10px]">·</span>
-          <span className="text-[11px] text-slate-600 dark:text-slate-400">coeff. {course.coefficient}</span>
+          <span className="text-[11px] text-slate-600 dark:text-slate-400">{t('label.coefficient', 'coeff.')} {course.coefficient}</span>
           <span className="text-slate-400 dark:text-slate-500 text-[10px]">·</span>
           <DifficultyStars level={course.difficulty_level} />
         </div>
@@ -211,6 +212,7 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
 
 // ─── Teaching Unit group card ─────────────────────────────────────────────────
 const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, savingId }) => {
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const enrolled = courses.filter((c) => c.enrollment_status).length;
 
@@ -237,7 +239,7 @@ const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, sa
             )}
           </div>
           {tuEcts && (
-            <span className="text-[11px] text-slate-600 dark:text-slate-400">{tuEcts} ECTS required</span>
+            <span className="text-[11px] text-slate-600 dark:text-slate-400">{tuEcts} {t('subjects.credits_required', 'ECTS requis')}</span>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -273,11 +275,12 @@ const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, sa
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const SubjectsPage = () => {
+  const { t } = useLanguage();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [savingId, setSavingId] = useState(null);
-  const [filter, setFilter] = useState('all'); // all | pending | in_progress | retake | validated
+  const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
 
   const loadCourses = useCallback(async () => {
@@ -302,23 +305,18 @@ const SubjectsPage = () => {
   const handleStatusChange = useCallback(async (courseId, newStatus) => {
     setSavingId(courseId);
     try {
-      // Find the course to get its enrollment_id if it exists
       const course = data?.courses?.find(c => c.id === courseId);
       
       if (newStatus === null) {
-        // Remove enrollment - need to find enrollment_id first
         if (course?.enrollment_id) {
           await apiClient.delete(`/api/v1/enrollments/${course.enrollment_id}`);
         }
-        // If no enrollment_id exists, nothing to delete (already not enrolled)
       } else {
-        // Upsert enrollment
         await apiClient.post('/api/v1/enrollments', {
           course_id: courseId,
           status: newStatus,
         });
       }
-      // Optimistic update
       setData((prev) => {
         if (!prev) return prev;
         return {
@@ -409,7 +407,7 @@ const SubjectsPage = () => {
           {isSetupRequired ? '📚' : '⚠️'}
         </div>
         <h2 className="text-2xl font-bold text-white mb-3">
-          {isSetupRequired ? 'Academic Profile Needed' : 'Something went wrong'}
+          {isSetupRequired ? t('subjects.setup_required', 'Profil académique requis') : t('error.404.title', 'Une erreur est survenue')}
         </h2>
         <p className="text-white/50 mb-8 leading-relaxed">{error.message}</p>
         {isSetupRequired ? (
@@ -421,14 +419,14 @@ const SubjectsPage = () => {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            Go to Preferences
+            {t('subjects.configure_profile_btn', 'Configurer mon profil')}
           </Link>
         ) : (
           <button
             onClick={loadCourses}
             className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-colors border border-white/10"
           >
-            Retry
+            {t('action.reload', 'Recharger')}
           </button>
         )}
       </div>
@@ -441,34 +439,23 @@ const SubjectsPage = () => {
 
       {/* ── Header ── */}
       <div className="mb-8">
-        {/* Onboarding step pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100 dark:bg-violet-500/10 dark:border-violet-500/20 text-xs font-semibold dark:text-violet-300 mb-4">
-          <span className="w-5 h-5 rounded-full bg-violet-200 dark:bg-violet-500/30 flex items-center justify-center text-[10px] font-bold text-violet-700 dark:text-violet-300">2</span>
-          Step 2 of 4 — Select your courses
-        </div>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-1">
-              My <span className="gradient-text">Courses</span>
+              {t('subjects.title', 'Mes Cours & Inscriptions')}
             </h1>
             <p className="text-slate-500 dark:text-white/40 text-sm">
               <span className="text-violet-600 dark:text-violet-400 font-semibold">{data?.cursus_name}</span>
-              {' · '}Semester <span className="text-slate-700 dark:text-white/60 font-semibold">{data?.semester_name}</span>
+              {' · '}{t('subjects.semester_badge', 'Semestre')} <span className="text-slate-700 dark:text-white/60 font-semibold">{data?.semester_name}</span>
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-white/40">
-              <svg className="w-4 h-4 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Auto-saved
-            </div>
             {enrolled > 0 && (
               <button
                 onClick={() => navigate('/availabilities')}
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors shadow-sm"
               >
-                Next: Set Availabilities →
+                {t('nav.availabilities', 'Disponibilités')} →
               </button>
             )}
           </div>
@@ -478,9 +465,9 @@ const SubjectsPage = () => {
         <div className="mt-5 p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              {enrolled}/{total} courses qualified
+              {enrolled}/{total} {t('subjects.total_enrolled', 'cours inscrits')}
             </span>
-            <span className="text-xs text-slate-600 dark:text-slate-400">{enrolledEcts} / {totalEcts} ECTS in planning</span>
+            <span className="text-xs text-slate-600 dark:text-slate-400">{enrolledEcts} / {totalEcts} {t('label.ects', 'ECTS')}</span>
           </div>
           <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
             <div
@@ -493,18 +480,18 @@ const SubjectsPage = () => {
             {retakeCount > 0 && (
               <span className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-amber-500 dark:bg-amber-400 rounded-full" />
-                {retakeCount} retake{retakeCount > 1 ? 's' : ''} — high priority
+                {retakeCount} {t('subjects.stat_retake', 'Rattrapages')} — {t('subjects.hint.retake', 'Priorité haute')}
               </span>
             )}
             {validatedCount > 0 && (
               <span className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 rounded-full" />
-                {validatedCount} validated — excluded from schedule
+                {validatedCount} {t('subjects.stat_validated', 'Validés')} — {t('subjects.hint.validated', 'Exclu')}
               </span>
             )}
             {enrolled === 0 && (
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Select a status for each course to help the AI build your schedule
+                {t('subjects.subtitle', 'Sélectionnez et qualifiez vos cours du semestre pour le planning IA')}
               </span>
             )}
           </div>
@@ -514,11 +501,11 @@ const SubjectsPage = () => {
       {/* ── Filter tabs ── */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {[
-          { key: 'all', label: 'All courses', count: total },
-          { key: 'pending', label: 'Not selected', count: total - enrolled },
-          { key: 'in_progress', label: 'In Progress', count: data?.courses?.filter((c) => c.enrollment_status === 'in_progress').length ?? 0 },
-          { key: 'retake', label: 'Retake', count: retakeCount },
-          { key: 'validated', label: 'Validated', count: validatedCount },
+          { key: 'all', label: t('subjects.status.all', 'Tous les cours'), count: total },
+          { key: 'pending', label: t('subjects.status.not_selected', 'Non sélectionné'), count: total - enrolled },
+          { key: 'in_progress', label: t('subjects.status.in_progress', 'En cours'), count: data?.courses?.filter((c) => c.enrollment_status === 'in_progress').length ?? 0 },
+          { key: 'retake', label: t('subjects.status.retake', 'Rattrapage'), count: retakeCount },
+          { key: 'validated', label: t('subjects.status.validated', 'Validé'), count: validatedCount },
         ].map(({ key, label, count }) => (
           <button
             key={key}
@@ -542,11 +529,11 @@ const SubjectsPage = () => {
 
       {/* ── Status legend ── */}
       <div className="flex gap-3 mb-6 flex-wrap">
-        {Object.entries(STATUS_CONFIG).map(([key, c]) => (
+        {Object.entries(STATUS_STYLES).map(([key, st]) => (
           <div key={key} className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-white/40">
-            <span className={`w-2 h-2 rounded-full ${c.dot}`} />
-            <span className="font-medium text-slate-700 dark:text-white/60">{c.label}</span>
-            <span className="text-slate-400 dark:text-white/20">→ {c.aiHint}</span>
+            <span className={`w-2 h-2 rounded-full ${st.dot}`} />
+            <span className="font-medium text-slate-700 dark:text-white/60">{t(`subjects.status.${key}`, key)}</span>
+            <span className="text-slate-400 dark:text-white/20">→ {t(`subjects.hint.${key}`, '')}</span>
           </div>
         ))}
       </div>
@@ -555,7 +542,7 @@ const SubjectsPage = () => {
       {filteredCourses.filter(c => !c.is_retake).length === 0 && !hasRetakeCourses ? (
         <div className="text-center py-16 text-slate-500 dark:text-slate-400">
           <div className="text-4xl mb-3">🎯</div>
-          <p className="font-semibold text-slate-700 dark:text-slate-300">No courses match this filter</p>
+          <p className="font-semibold text-slate-700 dark:text-slate-300">{t('subjects.no_courses', 'Aucun cours trouvé pour ce semestre.')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -563,7 +550,7 @@ const SubjectsPage = () => {
           {Object.entries(groups).map(([key, group]) => (
             <TeachingUnitGroup
               key={key}
-              tuName={group.tu?.name ?? 'Other Courses'}
+              tuName={group.tu?.name ?? t('subjects.teaching_unit', 'Unité d\'enseignement')}
               tuCode={group.tu?.code}
               tuEcts={group.tu?.ects_required}
               courses={group.courses}
@@ -579,7 +566,7 @@ const SubjectsPage = () => {
                 <div className="h-px flex-1 bg-amber-500/20" />
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
                   <span className="text-amber-400 text-xs">⚠</span>
-                  <span className="text-xs font-semibold text-amber-300">Semestres en Rattrapage (Wiederholung)</span>
+                  <span className="text-xs font-semibold text-amber-300">{t('preferences.retake_semesters', 'Semestres en Rattrapage (Wiederholung)')}</span>
                 </div>
                 <div className="h-px flex-1 bg-amber-500/20" />
               </div>
@@ -588,13 +575,13 @@ const SubjectsPage = () => {
                 .map(([semKey, { semNumber, tuGroups }]) => (
                   <div key={semKey} className="space-y-2">
                     <div className="flex items-center gap-2 px-1">
-                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">S{semNumber} — Rattrapage</span>
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">S{semNumber} — {t('subjects.status.retake', 'Rattrapage')}</span>
                       <div className="h-px flex-1 bg-amber-500/10" />
                     </div>
                     {Object.entries(tuGroups).map(([tuKey, group]) => (
                       <div key={tuKey} className="border border-amber-500/20 rounded-2xl overflow-visible bg-amber-500/[0.02]">
                         <TeachingUnitGroup
-                          tuName={group.tu?.name ?? 'Other Courses'}
+                          tuName={group.tu?.name ?? t('subjects.teaching_unit', 'Unité d\'enseignement')}
                           tuCode={group.tu?.code}
                           tuEcts={group.tu?.ects_required}
                           courses={group.courses}

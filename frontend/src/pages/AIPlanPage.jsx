@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useAcademicData } from '../context/AcademicDataContext';
+import { useLanguage } from '../context/LanguageContext';
 import WeeklyCalendarView from '../components/WeeklyCalendarView';
 import SessionEditor from '../components/SessionEditor';
 import SessionViewModal from '../components/SessionViewModal';
@@ -12,6 +13,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
+import ColabStatusBadge from '../components/ColabStatusBadge';
 
 const formatError = (err) => {
   if (!err) return null;
@@ -24,6 +26,7 @@ const formatError = (err) => {
 };
 
 const AIPlanPage = () => {
+  const { lang, t, formatEuroDate } = useLanguage();
   const {
     currentPlan,
     loading: planLoading,
@@ -234,11 +237,11 @@ const AIPlanPage = () => {
             }}>🧠</div>
 
             <h2 style={{ color: '#fff', fontWeight: 800, fontSize: 20, marginBottom: 8 }}>
-              {currentPlan ? 'Régénération en cours...' : 'Génération en cours...'}
+              {currentPlan ? t('ai_plan.overlay_title_regen', 'Régénération en cours...') : t('ai_plan.overlay_title_gen', 'Génération en cours...')}
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 28 }}>
-              L&apos;IA analyse tes matières et contraintes pour créer ton planning optimal.
-              Cela peut prendre <strong style={{ color: '#a78bfa' }}>30 à 90 secondes</strong>.
+              {t('ai_plan.overlay_desc', 'L\'IA analyse vos matières et contraintes pour créer votre planning optimal.')}{' '}
+              <strong style={{ color: '#a78bfa' }}>{t('ai_plan.overlay_time', '30 à 90 secondes')}</strong>.
             </p>
 
             {/* Steps */}
@@ -247,21 +250,21 @@ const AIPlanPage = () => {
                 {
                   key: 'preparing',
                   icon: '⚙️',
-                  label: 'Préparation des données...',
+                  label: t('ai_plan.step_prep', 'Préparation des données...'),
                   done: ['generating', 'running', 'saving', 'done'].includes(generationProgress),
                   active: generationProgress === 'preparing',
                 },
                 {
                   key: 'running',
                   icon: '✨',
-                  label: 'IA génère le planning en temps réel...',
+                  label: t('ai_plan.step_gen', 'IA génère le planning en temps réel...'),
                   done: ['saving', 'done'].includes(generationProgress),
                   active: ['generating', 'generating_batch', 'running'].includes(generationProgress),
                 },
                 {
                   key: 'saving',
                   icon: '💾',
-                  label: 'Sauvegarde du planning...',
+                  label: t('ai_plan.step_save', 'Sauvegarde du planning...'),
                   done: generationProgress === 'done',
                   active: generationProgress === 'saving',
                 },
@@ -317,18 +320,21 @@ const AIPlanPage = () => {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <span>AI Study Plan</span>
-            <Badge variant="info">Model: Llama-3-8B-Study-LoRA</Badge>
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <span>{t('ai_plan.title', 'AI Study Plan')}</span>
+            </h1>
+            <Badge variant="info">{t('ai_plan.model_badge', 'Model: Llama-3-8B-Study-LoRA')}</Badge>
+            <ColabStatusBadge variant="badge" />
+          </div>
           {currentPlan && (
             <p className="text-white/40 text-sm mt-1">
-              Generated on {new Date(currentPlan.created_at || currentPlan.generation_timestamp).toLocaleString('en-US')}
+              {t('ai_plan.generated_on', 'Generated on')} {new Date(currentPlan.created_at || currentPlan.generation_timestamp).toLocaleString(lang === 'de' ? 'de-DE' : lang === 'en' ? 'en-US' : 'fr-FR')}
               {currentPlan.edited && (
                 <span className="ml-2 px-2 py-0.5 rounded text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30">
-                  Manually Edited
+                  {t('ai_plan.manually_edited', 'Manually Edited')}
                 </span>
               )}
             </p>
@@ -344,7 +350,7 @@ const AIPlanPage = () => {
             <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Add Session
+            {t('calendar.add_session', 'Add Session')}
           </Button>
 
           {/* Bouton Export PDF */}
@@ -369,7 +375,7 @@ const AIPlanPage = () => {
                   <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  Exporter PDF
+                  {t('action.export_pdf', 'Exporter PDF')}
                 </>
               )}
             </Button>
@@ -393,21 +399,24 @@ const AIPlanPage = () => {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {generationProgress === 'pending' && 'En file d\'attente...'}
-                {generationProgress === 'running' && 'IA en cours de génération...'}
-                {(!generationProgress || generationProgress === 'done') && 'Finalisation...'}
+                {generationProgress === 'pending' && t('ai_plan.queue_status', 'En file d\'attente...')}
+                {generationProgress === 'running' && t('ai_plan.generating', 'IA en cours de génération...')}
+                {(!generationProgress || generationProgress === 'done') && t('ai_plan.finalizing', 'Finalisation...')}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4 mr-1.5 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
-                {currentPlan ? 'Regenerate with AI' : 'Generate AI Study Plan'}
+                {currentPlan ? t('ai_plan.regenerate', 'Régénérer avec l\'IA') : t('ai_plan.generate_btn', 'Générer mon plan IA')}
               </>
             )}
           </Button>
         </div>
       </div>
+
+      {/* Panneau de disponibilité Google Colab / IA */}
+      <ColabStatusBadge variant="panel" className="mb-6" />
 
       {/* Error notification */}
       {(error || planError || exportError) && (
@@ -443,16 +452,16 @@ const AIPlanPage = () => {
             <div className="w-16 h-16 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
               📅
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">No Active Study Plan</h3>
+            <h3 className="text-xl font-bold text-white mb-2">{t('ai_plan.no_plan_title', 'No Active Study Plan')}</h3>
             <p className="text-white/60 mb-6">
-              Let our AI design an optimized weekly study plan tailored for your courses and upcoming exams.
+              {t('ai_plan.no_plan_desc', 'Let our AI design an optimized weekly study plan tailored for your courses and upcoming exams.')}
             </p>
             <Button
               variant="primary"
               onClick={() => handleGeneratePlan(true)}
               disabled={generating}
             >
-              Generate My AI Plan
+              {t('ai_plan.generate_btn', 'Generate My AI Plan')}
             </Button>
           </div>
         </Card>
@@ -478,7 +487,7 @@ const AIPlanPage = () => {
               <div className="absolute top-0 left-4 right-4 h-0.5 rounded-b-full bg-gradient-to-r from-violet-500 to-violet-400 opacity-60" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-white/40 mb-1.5">Study Volume</p>
+                  <p className="text-xs text-white/40 mb-1.5">{t('ai_plan.study_volume', 'Study Volume')}</p>
                   <p className="text-3xl font-bold text-white">{totalStudyHours.toFixed(1)}h</p>
                 </div>
                 <span className="text-3xl opacity-60">⏱</span>
@@ -489,7 +498,7 @@ const AIPlanPage = () => {
               <div className="absolute top-0 left-4 right-4 h-0.5 rounded-b-full bg-gradient-to-r from-cyan-500 to-cyan-400 opacity-60" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-white/40 mb-1.5">Work Sessions</p>
+                  <p className="text-xs text-white/40 mb-1.5">{t('ai_plan.work_sessions', 'Work Sessions')}</p>
                   <p className="text-3xl font-bold text-white">{sessions.length}</p>
                 </div>
                 <span className="text-3xl opacity-60">📋</span>
@@ -500,7 +509,7 @@ const AIPlanPage = () => {
               <div className="absolute top-0 left-4 right-4 h-0.5 rounded-b-full bg-gradient-to-r from-emerald-500 to-emerald-400 opacity-60" />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-white/40 mb-1.5">Affected Subjects</p>
+                  <p className="text-xs text-white/40 mb-1.5">{t('ai_plan.affected_subjects', 'Affected Subjects')}</p>
                   <p className="text-3xl font-bold text-white">
                     {new Set(sessions.map((s) => s.subject_id)).size}
                   </p>
@@ -513,7 +522,7 @@ const AIPlanPage = () => {
           {/* Progress Dashboard */}
           <div>
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <span>📊</span> Suivi de progression
+              <span>📊</span> {t('ai_plan.progress_tracking', 'Suivi de progression')}
             </h2>
             <PlanProgressDashboard
               sessions={sessions}

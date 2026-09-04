@@ -1,19 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { useLanguage } from '../context/LanguageContext';
 
-// ── Task type config ─────────────────────────────────────────────────────────
-const TASK_CONFIG = {
-  university_class: { label: 'Cours Univ', icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' },
-  lecture_review:    { label: 'Cours',    icon: '📖', solid: '#6366f1', dark: '#4338ca' },
-  exercise_practice: { label: 'Exercice', icon: '✏️', solid: '#f97316', dark: '#c2410c' },
-  exam_preparation:  { label: 'Exam',     icon: '📝', solid: '#ef4444', dark: '#b91c1c' },
-  project_work:      { label: 'Projet',   icon: '🔧', solid: '#10b981', dark: '#047857' },
-  reading:           { label: 'Lecture',  icon: '📚', solid: '#3b82f6', dark: '#1d4ed8' },
-};
-
-const DAY_LABELS = {
-  Monday: 'Lun', Tuesday: 'Mar', Wednesday: 'Mer',
-  Thursday: 'Jeu', Friday: 'Ven', Saturday: 'Sam', Sunday: 'Dim',
+// ── Task type config (icons & colors) ────────────────────────────────────────
+const TASK_THEMES = {
+  university_class: { icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' },
+  lecture_review:    { icon: '📖', solid: '#6366f1', dark: '#4338ca' },
+  exercise_practice: { icon: '✏️', solid: '#f97316', dark: '#c2410c' },
+  exam_preparation:  { icon: '📝', solid: '#ef4444', dark: '#b91c1c' },
+  project_work:      { icon: '🔧', solid: '#10b981', dark: '#047857' },
+  reading:           { icon: '📚', solid: '#3b82f6', dark: '#1d4ed8' },
+  practice:          { icon: '🎯', solid: '#e11d48', dark: '#9f1239' },
 };
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -32,7 +29,10 @@ const WeeklyCalendarView = ({
   onSessionComplete,
   weekStartDate,
 }) => {
+  const { lang, t } = useLanguage();
   const [weekStart, setWeekStart] = useState(weekStartDate || getMonday(new Date()));
+
+  const localeCode = lang === 'fr' ? 'fr-FR' : (lang === 'de' ? 'de-DE' : 'en-US');
 
   const weekDates = useMemo(() =>
     DAYS.map((_, i) => { const d = new Date(weekStart); d.setDate(d.getDate() + i); return d; }),
@@ -67,8 +67,11 @@ const WeeklyCalendarView = ({
     return (
       <div style={{ padding: 64, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
-        <p style={{ color: '#6b7280', fontSize: 15 }}>
-          Génère un plan IA pour voir ton emploi du temps.
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+          {t('calendar.empty_title', 'No study plan for this week')}
+        </h3>
+        <p style={{ color: '#6b7280', fontSize: 14, maxWidth: 450, margin: '0 auto' }}>
+          {t('calendar.empty_desc', 'Click "Regenerate with AI" to create your optimized study plan.')}
         </p>
       </div>
     );
@@ -86,43 +89,66 @@ const WeeklyCalendarView = ({
       }}>
         {/* Title + Legend */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>
-            {weekDates[0].toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#111827', textTransform: 'capitalize' }}>
+            {weekDates[0].toLocaleDateString(localeCode, { month: 'long', year: 'numeric' })}
           </span>
           <span style={{
             fontSize: 12, color: '#6b7280',
             background: '#e5e7eb', borderRadius: 20, padding: '2px 10px',
           }}>
-            {weekDates[0].toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} –{' '}
-            {weekDates[6].toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})}
+            {weekDates[0].toLocaleDateString(localeCode, { day: '2-digit', month: '2-digit' })} –{' '}
+            {weekDates[6].toLocaleDateString(localeCode, { day: '2-digit', month: '2-digit' })}
           </span>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {Object.entries(TASK_CONFIG).map(([key, cfg]) => (
-              <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#374151', fontWeight: 500 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: cfg.solid, display: 'inline-block', flexShrink: 0 }} />
-                {cfg.label}
-              </span>
-            ))}
+            {['university_class', 'lecture_review', 'exercise_practice', 'exam_preparation', 'project_work', 'reading'].map((taskKey) => {
+              const theme = TASK_THEMES[taskKey];
+              const label = t(`task.${taskKey}`, taskKey);
+              return (
+                <span key={taskKey} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#374151', fontWeight: 500 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: theme.solid, display: 'inline-block', flexShrink: 0 }} />
+                  {label}
+                </span>
+              );
+            })}
           </div>
         </div>
 
         {/* Nav buttons */}
         <div style={{ display: 'flex', gap: 4 }}>
-          {[
-            { label: '‹', aria: 'Semaine précédente', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); } },
-            { label: "Auj.", aria: "Aujourd'hui", fn: () => setWeekStart(getMonday(new Date())) },
-            { label: '›', aria: 'Semaine suivante', fn: () => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); } },
-          ].map(({ label, aria, fn }) => (
-            <button key={label} onClick={fn} aria-label={aria} style={{
+          <button
+            onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate()-7); setWeekStart(d); }}
+            aria-label="Previous week"
+            style={{
               background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
-              padding: label === "Auj." ? '5px 10px' : '5px 10px',
-              fontSize: label === "Auj." ? 12 : 16, fontWeight: 700,
+              padding: '5px 10px', fontSize: 16, fontWeight: 700,
               color: '#374151', cursor: 'pointer', lineHeight: 1,
             }}
             onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
             onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-            >{label}</button>
-          ))}
+          >‹</button>
+
+          <button
+            onClick={() => setWeekStart(getMonday(new Date()))}
+            style={{
+              background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+              padding: '5px 10px', fontSize: 12, fontWeight: 700,
+              color: '#374151', cursor: 'pointer', lineHeight: 1,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+          >{t('calendar.today', 'Auj.')}</button>
+
+          <button
+            onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate()+7); setWeekStart(d); }}
+            aria-label="Next week"
+            style={{
+              background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+              padding: '5px 10px', fontSize: 16, fontWeight: 700,
+              color: '#374151', cursor: 'pointer', lineHeight: 1,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+          >›</button>
         </div>
       </div>
 
@@ -151,7 +177,7 @@ const WeeklyCalendarView = ({
                   color: isToday ? '#4f46e5' : '#9ca3af',
                   textTransform: 'uppercase', marginBottom: 4,
                 }}>
-                  {DAY_LABELS[day]}
+                  {t(`days.short.${day}`, day.slice(0,3))}
                 </div>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -201,9 +227,12 @@ const WeeklyCalendarView = ({
                       const heightPx = (durMin / 60) * ROW_H;
                       const topPx = (sm / 60) * ROW_H;
                       const isAcademic = session.is_academic_fixed || session.session_type === 'CM' || session.session_type === 'TD' || session.session_type === 'TP' || session.task_type === 'university_class';
-                      const cfg = isAcademic
-                        ? { label: session.session_type || 'Univ', icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' }
-                        : (TASK_CONFIG[session.task_type] || TASK_CONFIG.lecture_review);
+                      const theme = isAcademic
+                        ? { icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' }
+                        : (TASK_THEMES[session.task_type] || TASK_THEMES.lecture_review);
+                      const taskLabel = isAcademic
+                        ? (session.session_type || t('task.university_class', 'Cours Univ'))
+                        : t(`task.${session.task_type}`, 'Cours');
                       const done = session.completed;
 
                       return (
@@ -215,8 +244,8 @@ const WeeklyCalendarView = ({
                             top: topPx + 2, left: 3, right: 3,
                             height: Math.max(heightPx - 4, 22),
                             borderRadius: 7,
-                            background: done ? '#e5e7eb' : cfg.solid,
-                            borderLeft: `3px solid ${done ? '#9ca3af' : cfg.dark}`,
+                            background: done ? '#e5e7eb' : theme.solid,
+                            borderLeft: `3px solid ${done ? '#9ca3af' : theme.dark}`,
                             cursor: 'pointer',
                             zIndex: 10,
                             padding: '4px 6px',
@@ -273,31 +302,8 @@ const WeeklyCalendarView = ({
                               background: 'rgba(0,0,0,0.25)', borderRadius: 10,
                               padding: '1px 5px', fontSize: 9, color: '#fff', fontWeight: 600,
                             }}>
-                              {cfg.icon} {cfg.label}
+                              {theme.icon} {taskLabel}
                             </div>
-                          )}
-
-                          {/* ✓ Fait hover button */}
-                          {onSessionComplete && !done && (
-                            <button
-                              onClick={e => { e.stopPropagation(); onSessionComplete(session); }}
-                              style={{
-                                position: 'absolute', bottom: 3, right: 3,
-                                background: '#10b981', border: 'none', borderRadius: 5,
-                                padding: '2px 5px', fontSize: 9,
-                                color: '#fff', cursor: 'pointer', fontWeight: 700,
-                                display: 'none',
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.display = 'block'}
-                              ref={el => {
-                                if (el) {
-                                  el.closest('.cal-card')?.addEventListener('mouseenter', () => el.style.display = 'block');
-                                  el.closest('.cal-card')?.addEventListener('mouseleave', () => el.style.display = 'none');
-                                }
-                              }}
-                            >
-                              ✓ Fait
-                            </button>
                           )}
                         </div>
                       );

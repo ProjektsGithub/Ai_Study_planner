@@ -13,16 +13,16 @@ const ECTSBreakdown = ({ breakdown = [] }) => {
         const percentage = total > 0 ? Math.min(Math.round((obtained / total) * 100), 100) : 0;
 
         return (
-          <div key={sem} className="p-4 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+          <div key={sem} className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.01] hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-colors">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold text-white">{sem}</span>
-              <span className="text-xs text-white/50">
-                <span className="text-violet-400 font-bold">{obtained.toFixed(1)}</span> / {total.toFixed(1)} ECTS
+              <span className="text-sm font-semibold text-slate-800 dark:text-white">{sem}</span>
+              <span className="text-xs text-slate-500 dark:text-white/50">
+                <span className="text-violet-600 dark:text-violet-400 font-bold">{obtained.toFixed(1)}</span> / {total.toFixed(1)} ECTS
               </span>
             </div>
 
             {/* Horizontal progress bar */}
-            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <div className="w-full h-2 bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
               <div
                 className="h-full bg-gradient-to-r from-violet-600 to-indigo-500 rounded-full transition-all duration-1000 ease-out"
                 style={{ width: `${percentage}%` }}

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ExamCalendar = ({ exams = [], onExamClick }) => {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -15,8 +17,7 @@ const ExamCalendar = ({ exams = [], onExamClick }) => {
   // Total days in month
   const totalDays = new Date(year, month + 1, 0).getDate();
 
-  // Month names
-  const monthNames = [
+  const monthKeys = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
@@ -44,24 +45,26 @@ const ExamCalendar = ({ exams = [], onExamClick }) => {
     calendarDays.push(i);
   }
 
+  const monthName = t(`months.${monthKeys[month]}`) || monthKeys[month];
+
   return (
     <div className="space-y-4">
       {/* Calendar Header Controls */}
-      <div className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-4 rounded-xl">
-        <h2 className="text-base font-bold text-white">
-          {monthNames[month]} {year}
+      <div className="flex justify-between items-center bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 p-4 rounded-xl">
+        <h2 className="text-base font-bold text-slate-800 dark:text-white">
+          {monthName} {year}
         </h2>
         <div className="flex gap-2">
           <button
             onClick={handlePrevMonth}
-            className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-all border border-white/5"
+            className="p-2 rounded-lg text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all border border-slate-200 dark:border-white/5"
             aria-label="Previous month"
           >
             &lt;
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-all border border-white/5"
+            className="p-2 rounded-lg text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/5 transition-all border border-slate-200 dark:border-white/5"
             aria-label="Next month"
           >
             &gt;
@@ -70,25 +73,25 @@ const ExamCalendar = ({ exams = [], onExamClick }) => {
       </div>
 
       {/* Grid structure */}
-      <div className="border border-white/10 bg-white/[0.02] backdrop-blur-md rounded-2xl overflow-hidden shadow-card">
+      <div className="border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] backdrop-blur-md rounded-2xl overflow-hidden shadow-card">
         {/* Days of week header */}
-        <div className="grid grid-cols-7 border-b border-white/10 bg-white/[0.02] text-center text-xs font-semibold text-white/40 py-2.5">
-          <span>Mon</span>
-          <span>Tue</span>
-          <span>Wed</span>
-          <span>Thu</span>
-          <span>Fri</span>
-          <span>Sat</span>
-          <span>Sun</span>
+        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] text-center text-xs font-semibold text-slate-500 dark:text-white/40 py-2.5">
+          <span>{t('days.short.Mon')}</span>
+          <span>{t('days.short.Tue')}</span>
+          <span>{t('days.short.Wed')}</span>
+          <span>{t('days.short.Thu')}</span>
+          <span>{t('days.short.Fri')}</span>
+          <span>{t('days.short.Sat')}</span>
+          <span>{t('days.short.Sun')}</span>
         </div>
 
         {/* Calendar days grid */}
-        <div className="grid grid-cols-7 auto-rows-[100px] divide-x divide-y divide-white/5 border-l border-t border-white/5">
+        <div className="grid grid-cols-7 auto-rows-[100px] divide-x divide-y divide-slate-100 dark:divide-white/5 border-l border-t border-slate-100 dark:border-white/5">
           {calendarDays.map((day, idx) => {
             const dayExams = day ? getExamsForDay(day) : [];
             return (
-              <div key={idx} className="p-2 flex flex-col justify-between min-w-0 overflow-hidden relative group hover:bg-white/[0.01] transition-colors">
-                <span className={`text-xs font-semibold ${day ? 'text-white/60' : 'text-transparent'}`}>
+              <div key={idx} className="p-2 flex flex-col justify-between min-w-0 overflow-hidden relative group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
+                <span className={`text-xs font-semibold ${day ? 'text-slate-700 dark:text-white/60' : 'text-transparent'}`}>
                   {day}
                 </span>
 
@@ -99,7 +102,7 @@ const ExamCalendar = ({ exams = [], onExamClick }) => {
                         key={exam.id}
                         type="button"
                         onClick={() => onExamClick(exam)}
-                        className="w-full text-left truncate text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:bg-blue-500/35 transition-colors font-medium"
+                        className="w-full text-left truncate text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-blue-700 dark:text-blue-300 hover:bg-blue-500/35 transition-colors font-medium"
                         title={exam.course_name}
                       >
                         {exam.course_name}

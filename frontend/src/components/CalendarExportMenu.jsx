@@ -1,14 +1,12 @@
-/**
- * CalendarExportMenu — Menu dropdown pour exporter le planning vers un calendrier
- * Options : télécharger .ics | ouvrir dans Google Calendar
- */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * @param {{ planId: number|string, sessions: Array, disabled?: boolean }} props
  */
 const CalendarExportMenu = ({ planId, sessions = [], disabled = false }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState(null);
@@ -118,7 +116,7 @@ const CalendarExportMenu = ({ planId, sessions = [], disabled = false }) => {
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
-        Calendrier
+        {t('export_menu.title', 'Calendrier')}
         {/* Chevron */}
         <svg
           width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -187,7 +185,7 @@ const CalendarExportMenu = ({ planId, sessions = [], disabled = false }) => {
               <span style={{ fontSize: 16 }}>📥</span>
             )}
             <div>
-              <div style={{ fontWeight: 600, marginBottom: 1 }}>Télécharger .ics</div>
+              <div style={{ fontWeight: 600, marginBottom: 1 }}>{t('export_menu.ics', 'Télécharger .ics')}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
                 Apple, Outlook, Thunderbird…
               </div>
@@ -233,9 +231,9 @@ const CalendarExportMenu = ({ planId, sessions = [], disabled = false }) => {
               <text x="12" y="19" fontSize="7" fill="#34A853" fontWeight="bold" textAnchor="middle">G</text>
             </svg>
             <div>
-              <div style={{ fontWeight: 600, marginBottom: 1 }}>Ouvrir dans Google Calendar</div>
+              <div style={{ fontWeight: 600, marginBottom: 1 }}>Google Calendar</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                Ajouter la 1ère session
+                {t('export_menu.gcal_hint', 'Ajouter la 1ère session')}
               </div>
             </div>
           </button>

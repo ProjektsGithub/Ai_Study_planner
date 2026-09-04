@@ -27,6 +27,7 @@ from app.models.academic_track import AcademicTrack, TrackLevel
 from app.models.semester import Semester
 from app.models.validation_rule import ValidationRule, RuleType
 from app.services.planning_engine import TimeSlot
+from app.services.curriculum_topics import enrich_session_note, is_note_vague
 
 
 class ValidationError:
@@ -123,6 +124,21 @@ class ValidationService:
         # Step 6: Remove any remaining invalid sessions
         if auto_correct:
             plan_data = self._remove_invalid_sessions(plan_data, valid_slots, subject_map)
+        
+        # Step 7: Ensure all session notes are pedagogically enriched and concrete
+        if auto_correct and "sessions" in plan_data:
+            subject_session_counts = {}
+            for session in plan_data["sessions"]:
+                s_name = session.get("subject_name", "")
+                t_type = session.get("task_type", "exercise_practice")
+                current_n = session.get("notes", "")
+                subject_session_counts[s_name] = subject_session_counts.get(s_name, 0) + 1
+                session["notes"] = enrich_session_note(
+                    s_name, 
+                    t_type, 
+                    current_n, 
+                    session_index=subject_session_counts[s_name] - 1
+                )
         
         # Check if we still have errors after corrections
         if self.errors:
@@ -384,17 +400,30 @@ class ValidationService:
                 )
                 continue
             
-            # Check if already in valid slot
+            def overlaps_any(c_start, c_end):
+                for cs in corrected_sessions:
+                    if cs.get("day") != day:
+                        continue
+                    try:
+                        cs_start = datetime.strptime(cs["start_time"], "%H:%M:%S").time()
+                        cs_end = datetime.strptime(cs["end_time"], "%H:%M:%S").time()
+                        if max(c_start, cs_start) < min(c_end, cs_end):
+                            return True
+                    except Exception:
+                        pass
+                return False
+
+            # Check if already in valid slot without overlapping existing sessions
             in_valid_slot = False
             for slot in slots_by_day[day]:
                 if start_time >= slot.start_time and end_time <= slot.end_time:
                     in_valid_slot = True
                     break
             
-            if in_valid_slot:
+            if in_valid_slot and not overlaps_any(start_time, end_time):
                 corrected_sessions.append(session)
             else:
-                # Try to fit in first available slot
+                # Try to fit in available slot without overlapping
                 duration = (
                     datetime.combine(datetime.today(), end_time) - 
                     datetime.combine(datetime.today(), start_time)
@@ -402,23 +431,28 @@ class ValidationService:
                 
                 fitted = False
                 for slot in slots_by_day[day]:
-                    if slot.duration_minutes >= duration:
-                        session["start_time"] = slot.start_time.strftime("%H:%M:%S")
-                        new_end = (
-                            datetime.combine(datetime.today(), slot.start_time) + 
-                            timedelta(minutes=duration)
-                        ).time()
-                        session["end_time"] = new_end.strftime("%H:%M:%S")
-                        corrected_sessions.append(session)
-                        self.corrections_made.append(
-                            f"Session {i}: Adjusted time to fit in valid slot"
-                        )
-                        fitted = True
+                    curr = datetime.combine(datetime.today(), slot.start_time)
+                    slot_end_dt = datetime.combine(datetime.today(), slot.end_time)
+                    
+                    while curr + timedelta(minutes=duration) <= slot_end_dt:
+                        c_st = curr.time()
+                        c_et = (curr + timedelta(minutes=duration)).time()
+                        if not overlaps_any(c_st, c_et):
+                            session["start_time"] = c_st.strftime("%H:%M:%S")
+                            session["end_time"] = c_et.strftime("%H:%M:%S")
+                            corrected_sessions.append(session)
+                            self.corrections_made.append(
+                                f"Session {i}: Adjusted time to {session['start_time']}-{session['end_time']} to fit in valid slot without overlap"
+                            )
+                            fitted = True
+                            break
+                        curr += timedelta(minutes=15)
+                    if fitted:
                         break
                 
                 if not fitted:
                     self.corrections_made.append(
-                        f"Session {i}: Removed session (couldn't fit in valid slots)"
+                        f"Session {i}: Removed session (couldn't fit in valid slots without overlap)"
                     )
         
         plan_data["sessions"] = corrected_sessions

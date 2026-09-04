@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 const HomeIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -30,16 +31,17 @@ const SparklesIcon = () => (
   </svg>
 );
 
-const mobileNavItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: <HomeIcon /> },
-  { path: '/progression', label: 'Progression', icon: <TrendingUpIcon /> },
-  { path: '/subjects', label: 'Matières', icon: <BookOpenIcon /> },
-  { path: '/exams', label: 'Examens', icon: <CalendarIcon /> },
-  { path: '/ai-plan', label: 'Planning', icon: <SparklesIcon /> }
-];
-
 const BottomNav = () => {
   const { pathname } = useLocation();
+  const { t } = useLanguage();
+
+  const mobileNavItems = [
+    { path: '/dashboard', label: t('bottom_nav.dashboard'), icon: <HomeIcon /> },
+    { path: '/progression', label: t('bottom_nav.progression'), icon: <TrendingUpIcon /> },
+    { path: '/subjects', label: t('bottom_nav.subjects'), icon: <BookOpenIcon /> },
+    { path: '/exams', label: t('bottom_nav.exams'), icon: <CalendarIcon /> },
+    { path: '/ai-plan', label: t('bottom_nav.planning'), icon: <SparklesIcon /> }
+  ];
 
   return (
     <nav

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 
 const NotificationPanel = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { lang, t, formatEuroDate } = useLanguage();
 
   useEffect(() => {
     if (isOpen) {
@@ -55,11 +57,11 @@ const NotificationPanel = ({ isOpen, onClose }) => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'À l\'instant';
-    if (diffMins < 60) return `Il y a ${diffMins} min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
-    return date.toLocaleDateString('fr-FR');
+    if (diffMins < 1) return t('notifications.just_now');
+    if (diffMins < 60) return t('notifications.mins_ago', { n: diffMins });
+    if (diffHours < 24) return t('notifications.hours_ago', { n: diffHours });
+    if (diffDays < 7) return t('notifications.days_ago', { n: diffDays });
+    return date.toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'de' ? 'de-DE' : 'en-US');
   };
 
   const getNotificationIcon = (type) => {
@@ -79,7 +81,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
       case 'plan_expired':
         return (
           <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
         );
       default:
@@ -102,22 +104,22 @@ const NotificationPanel = ({ isOpen, onClose }) => {
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-16 w-96 h-[calc(100vh-4rem)] bg-white shadow-xl z-50 overflow-hidden flex flex-col">
+      <div className="fixed right-0 top-16 w-96 h-[calc(100vh-4rem)] bg-white dark:bg-slate-900 shadow-xl z-50 overflow-hidden flex flex-col border-l border-slate-200 dark:border-white/10">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('notifications.title')}</h2>
           <div className="flex items-center space-x-2">
             {notifications.some(n => !n.read) && (
               <button
                 onClick={markAllAsRead}
-                className="text-sm text-blue-600 hover:text-blue-700"
+                className="text-sm text-violet-600 hover:text-violet-700 dark:text-violet-400 font-medium"
               >
-                Tout marquer lu
+                {t('notifications.mark_all_read')}
               </button>
             )}
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -131,25 +133,25 @@ const NotificationPanel = ({ isOpen, onClose }) => {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-sm text-gray-600">Chargement...</p>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-white/60">{t('label.loading')}</p>
               </div>
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4">
-              <svg className="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-16 h-16 text-gray-300 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <p className="mt-4 text-sm font-medium text-gray-900">Aucune notification</p>
-              <p className="mt-1 text-sm text-gray-500">Vous êtes à jour !</p>
+              <p className="mt-4 text-sm font-medium text-gray-900 dark:text-white">{t('notifications.empty')}</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-white/40">{t('notifications.empty_sub')}</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-200 dark:divide-white/5">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.read ? 'bg-blue-50' : ''
+                  className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors ${
+                    !notification.read ? 'bg-violet-50/50 dark:bg-violet-500/10' : ''
                   }`}
                   onClick={() => !notification.read && markAsRead(notification.id)}
                 >
@@ -158,19 +160,19 @@ const NotificationPanel = ({ isOpen, onClose }) => {
                       {getNotificationIcon(notification.notification_type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                      <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-white/70'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-white/50 mt-1">
                         {notification.message}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-white/40 mt-1">
                         {formatDate(notification.created_at)}
                       </p>
                     </div>
                     {!notification.read && (
                       <div className="flex-shrink-0">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                        <div className="w-2 h-2 bg-violet-600 rounded-full"></div>
                       </div>
                     )}
                   </div>

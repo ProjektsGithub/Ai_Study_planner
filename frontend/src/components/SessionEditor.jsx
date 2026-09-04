@@ -1,24 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
+import { useLanguage } from "../context/LanguageContext";
 
-const TASK_TYPES = [
-  { value: "lecture_review",    icon: "📖", label: "Cours",     description: "Revoir le cours",  activeCls: "bg-indigo-600 border-indigo-400 text-white shadow-lg",   inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
-  { value: "exercise_practice", icon: "✏️",  label: "Exercices", description: "Pratiquer",        activeCls: "bg-blue-600 border-blue-400 text-white shadow-lg",     inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
-  { value: "exam_preparation",  icon: "🔄", label: "Révision",  description: "Préparer l'exam",  activeCls: "bg-emerald-600 border-emerald-400 text-white shadow-lg", inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
-  { value: "project_work",      icon: "🚀", label: "Projet",    description: "Avancer",          activeCls: "bg-amber-600 border-amber-400 text-white shadow-lg",   inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
-  { value: "reading",           icon: "📰", label: "Lecture",   description: "Lire les docs",    activeCls: "bg-cyan-600 border-cyan-400 text-white shadow-lg",      inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
-  { value: "practice",          icon: "🎯", label: "Pratique",  description: "Application",      activeCls: "bg-rose-600 border-rose-400 text-white shadow-lg",      inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
+const TASK_TYPE_VALUES = [
+  { value: "lecture_review",    icon: "📖", activeCls: "bg-indigo-600 border-indigo-400 text-white shadow-lg",   inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
+  { value: "exercise_practice", icon: "✏️",  activeCls: "bg-blue-600 border-blue-400 text-white shadow-lg",     inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
+  { value: "exam_preparation",  icon: "🔄", activeCls: "bg-emerald-600 border-emerald-400 text-white shadow-lg", inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
+  { value: "project_work",      icon: "🚀", activeCls: "bg-amber-600 border-amber-400 text-white shadow-lg",   inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
+  { value: "reading",           icon: "📰", activeCls: "bg-cyan-600 border-cyan-400 text-white shadow-lg",      inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
+  { value: "practice",          icon: "🎯", activeCls: "bg-rose-600 border-rose-400 text-white shadow-lg",      inactiveCls: "bg-slate-800/80 border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white" },
 ];
 
-const DAYS = [
-  { value: "Monday",    short: "Lun" },
-  { value: "Tuesday",   short: "Mar" },
-  { value: "Wednesday", short: "Mer" },
-  { value: "Thursday",  short: "Jeu" },
-  { value: "Friday",    short: "Ven" },
-  { value: "Saturday",  short: "Sam" },
-  { value: "Sunday",    short: "Dim" },
-];
+const DAYS_LIST = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const parseDuration = (start, end) => {
   if (!start || !end) return null;
@@ -32,6 +25,7 @@ const parseDuration = (start, end) => {
 };
 
 const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOpen }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({ subject_id: "", day: "Monday", start_time: "09:00", end_time: "10:00", task_type: "lecture_review", notes: "" });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,15 +34,15 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
 
   useEffect(() => {
     if (isOpen) {
-      const t = setTimeout(() => setVisible(true), 10);
-      return () => clearTimeout(t);
+      const tId = setTimeout(() => setVisible(true), 10);
+      return () => clearTimeout(tId);
     } else {
       setVisible(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
-    const norm = (t) => (t ? t.slice(0, 5) : "09:00");
+    const norm = (tm) => (tm ? tm.slice(0, 5) : "09:00");
     if (session) {
       setFormData({
         subject_id: session.subject_id || (subjects[0]?.id || ""),
@@ -79,21 +73,21 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
 
   const duration = parseDuration(formData.start_time, formData.end_time);
   const durationBadge = !duration
-    ? { text: "Horaire invalide", cls: "text-red-400 bg-red-500/10 border-red-500/30" }
+    ? { text: t('session_editor.invalid_time', "Horaire invalide"), cls: "text-red-400 bg-red-500/10 border-red-500/30" }
     : duration.minutes > 240
       ? { text: duration.label + " · Long", cls: "text-amber-300 bg-amber-500/20 border-amber-500/30" }
       : { text: duration.label, cls: "text-emerald-300 bg-emerald-500/20 border-emerald-500/30" };
 
   const currentSubject = subjects.find((s) => String(s.id) === String(formData.subject_id));
-  const selectedTask = TASK_TYPES.find((t) => t.value === formData.task_type) || TASK_TYPES[0];
+  const selectedTaskTheme = TASK_TYPE_VALUES.find((item) => item.value === formData.task_type) || TASK_TYPE_VALUES[0];
 
   const setField = (field) => (eOrVal) =>
     setFormData((p) => ({ ...p, [field]: eOrVal && eOrVal.target ? eOrVal.target.value : eOrVal }));
 
   const validate = () => {
     const errs = {};
-    if (!formData.subject_id) errs.subject_id = "Sélectionne une matière";
-    if (!duration) errs.time = "L'heure de fin doit être après l'heure de début";
+    if (!formData.subject_id) errs.subject_id = t('session_editor.err_subject', "Sélectionnez une matière");
+    if (!duration) errs.time = t('session_editor.err_time', "L'heure de fin doit être après l'heure de début");
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -152,11 +146,11 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
         <div className="px-6 pt-5 pb-4 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 bg-indigo-500/20 border border-indigo-500/30">
-              {selectedTask.icon}
+              {selectedTaskTheme.icon}
             </div>
             <div className="min-w-0">
               <h3 className="text-lg font-black text-white leading-tight">
-                {session ? "Modifier la session" : "Nouvelle session"}
+                {session ? t('session_editor.edit_title', "Modifier la session") : t('session_editor.create_title', "Nouvelle session")}
               </h3>
               {currentSubject && <p className="text-xs text-indigo-300 truncate mt-0.5">{currentSubject.name}</p>}
             </div>
@@ -174,13 +168,15 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
           <div className="px-6 py-5 space-y-5">
             {/* Matière */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Matière</label>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                {t('session_editor.subject', 'Matière')}
+              </label>
               <select
                 value={formData.subject_id}
                 onChange={setField("subject_id")}
                 className={"w-full px-3.5 py-2.5 bg-slate-800 border rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all " + (errors.subject_id ? "border-red-500" : "border-slate-700")}
               >
-                <option value="" className="bg-slate-800 text-white">— Sélectionner une matière —</option>
+                <option value="" className="bg-slate-800 text-white">— {t('label.search', 'Sélectionner une matière')} —</option>
                 {Array.isArray(subjects) && subjects.map((s) => (
                   <option key={s.id} value={s.id} className="bg-slate-800 text-white">{s.name}</option>
                 ))}
@@ -188,20 +184,22 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
               {errors.subject_id && <p className="mt-1.5 text-xs text-red-400 font-semibold">{errors.subject_id}</p>}
             </div>
 
-            {/* Type de travail */}
+            {/* Type d'activité */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Type de travail</label>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                {t('session_editor.task_type', "Type d'activité")}
+              </label>
               <div className="grid grid-cols-3 gap-2">
-                {TASK_TYPES.map((t) => (
+                {TASK_TYPE_VALUES.map((tObj) => (
                   <button
-                    key={t.value}
+                    key={tObj.value}
                     type="button"
-                    onClick={() => setFormData((p) => ({ ...p, task_type: t.value }))}
-                    className={"flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all duration-150 text-center select-none " + (formData.task_type === t.value ? t.activeCls : t.inactiveCls)}
+                    onClick={() => setFormData((p) => ({ ...p, task_type: tObj.value }))}
+                    className={"flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all duration-150 text-center select-none " + (formData.task_type === tObj.value ? tObj.activeCls : tObj.inactiveCls)}
                   >
-                    <span className="text-xl leading-none">{t.icon}</span>
-                    <span className="text-xs font-bold leading-tight">{t.label}</span>
-                    <span className="text-[10px] leading-tight opacity-75 hidden sm:block">{t.description}</span>
+                    <span className="text-xl leading-none">{tObj.icon}</span>
+                    <span className="text-xs font-bold leading-tight">{t(`task.${tObj.value}`, tObj.value)}</span>
+                    <span className="text-[10px] leading-tight opacity-75 hidden sm:block">{t(`task.desc.${tObj.value}`, '')}</span>
                   </button>
                 ))}
               </div>
@@ -209,16 +207,18 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
 
             {/* Jour */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Jour de la semaine</label>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                {t('label.day', 'Jour de la semaine')}
+              </label>
               <div className="flex gap-1.5">
-                {DAYS.map((d) => (
+                {DAYS_LIST.map((dayName) => (
                   <button
-                    key={d.value}
+                    key={dayName}
                     type="button"
-                    onClick={() => setFormData((p) => ({ ...p, day: d.value }))}
-                    className={"flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-150 select-none " + (formData.day === d.value ? "bg-indigo-600 text-white shadow-lg" : "bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white")}
+                    onClick={() => setFormData((p) => ({ ...p, day: dayName }))}
+                    className={"flex-1 py-2 rounded-xl text-xs font-bold transition-all duration-150 select-none " + (formData.day === dayName ? "bg-indigo-600 text-white shadow-lg" : "bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white")}
                   >
-                    {d.short}
+                    {t(`days.short.${dayName}`, dayName.slice(0, 3))}
                   </button>
                 ))}
               </div>
@@ -226,10 +226,12 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
 
             {/* Horaires */}
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Horaires</label>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                {t('label.time', 'Horaires')}
+              </label>
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <p className="text-xs text-slate-400 mb-1 font-semibold">Début</p>
+                  <p className="text-xs text-slate-400 mb-1 font-semibold">{t('label.start_time', 'Début')}</p>
                   <input
                     type="time"
                     value={formData.start_time}
@@ -239,7 +241,7 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
                 </div>
                 <div className="pb-2.5 text-slate-400 text-lg select-none">→</div>
                 <div className="flex-1">
-                  <p className="text-xs text-slate-400 mb-1 font-semibold">Fin</p>
+                  <p className="text-xs text-slate-400 mb-1 font-semibold">{t('label.end_time', 'Fin')}</p>
                   <input
                     type="time"
                     value={formData.end_time}
@@ -257,13 +259,13 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
             {/* Notes */}
             <div>
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
-                Notes <span className="normal-case font-normal text-slate-400">(optionnel)</span>
+                {t('label.notes', 'Notes')} <span className="normal-case font-normal text-slate-400">({t('label.optional', 'optionnel')})</span>
               </label>
               <textarea
                 value={formData.notes}
                 onChange={setField("notes")}
                 rows={2}
-                placeholder="Objectif de la séance..."
+                placeholder={t('session_editor.notes_placeholder', "Objectifs de la séance...")}
                 className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               />
             </div>
@@ -282,7 +284,7 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-amber-300 min-w-0">
                   <span className="text-sm">⚠️</span>
-                  <span className="text-xs font-bold truncate">Supprimer cette session ?</span>
+                  <span className="text-xs font-bold truncate">{t('session_editor.delete_confirm', 'Supprimer cette session ?')}</span>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
@@ -290,7 +292,7 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
                     onClick={() => setDeleteConfirm(false)}
                     className="px-3 py-2 text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700"
                   >
-                    Annuler
+                    {t('action.cancel', 'Annuler')}
                   </button>
                   <button
                     type="button"
@@ -298,7 +300,7 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
                     disabled={isSubmitting}
                     className="px-3 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-500 rounded-xl disabled:opacity-50"
                   >
-                    {isSubmitting ? "..." : "Supprimer"}
+                    {isSubmitting ? "..." : t('action.delete', 'Supprimer')}
                   </button>
                 </div>
               </div>
@@ -311,7 +313,7 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
                       onClick={() => setDeleteConfirm(true)}
                       className="px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                     >
-                      🗑 Supprimer
+                      🗑 {t('action.delete', 'Supprimer')}
                     </button>
                   )}
                 </div>
@@ -322,14 +324,14 @@ const SessionEditor = ({ session, subjects = [], onSave, onDelete, onClose, isOp
                     disabled={isSubmitting}
                     className="px-4 py-2.5 text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700"
                   >
-                    Annuler
+                    {t('action.cancel', 'Annuler')}
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
                     className="px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl disabled:opacity-50 shadow-lg shadow-indigo-600/30 transition-all"
                   >
-                    {isSubmitting ? "Sauvegarde..." : (session ? "Enregistrer" : "Créer")}
+                    {isSubmitting ? t('action.saving', 'Sauvegarde...') : (session ? t('action.save', 'Enregistrer') : t('action.add', 'Créer'))}
                   </button>
                 </div>
               </div>

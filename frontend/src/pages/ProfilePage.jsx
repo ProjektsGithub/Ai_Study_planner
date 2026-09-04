@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import apiClient from '../api/client';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -8,7 +9,7 @@ import Badge from '../components/ui/Badge';
 
 const ProfilePage = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const { t } = useLanguage();
   const [updatingAccount, setUpdatingAccount] = useState(false);
   const [accountMessage, setAccountMessage] = useState(null);
 
@@ -53,7 +54,7 @@ const ProfilePage = () => {
         name: accountData.name,
         email: accountData.email,
       });
-      setAccountMessage({ type: 'success', text: 'Account details updated successfully!' });
+      setAccountMessage({ type: 'success', text: t('profile.title', 'Profil') + ' mis à jour !' });
       
       // Update local storage avatar choice
       localStorage.setItem('user_avatar_idx', avatarIndex.toString());
@@ -63,7 +64,7 @@ const ProfilePage = () => {
       }, 1200);
     } catch (err) {
       console.error('Account update error:', err);
-      setAccountMessage({ type: 'error', text: err.response?.data?.detail || 'Error updating account details.' });
+      setAccountMessage({ type: 'error', text: err.response?.data?.detail || 'Erreur lors de la mise à jour.' });
     } finally {
       setUpdatingAccount(false);
     }
@@ -75,12 +76,12 @@ const ProfilePage = () => {
     setPasswordMessage(null);
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordErrors({ confirmPassword: 'Passwords do not match' });
+      setPasswordErrors({ confirmPassword: 'Les mots de passe ne correspondent pas' });
       return;
     }
     
     if (passwordData.newPassword.length < 8) {
-      setPasswordErrors({ newPassword: 'Password must be at least 8 characters long' });
+      setPasswordErrors({ newPassword: 'Au moins 8 caractères requis' });
       return;
     }
     
@@ -90,11 +91,11 @@ const ProfilePage = () => {
         current_password: passwordData.currentPassword,
         new_password: passwordData.newPassword,
       });
-      setPasswordMessage({ type: 'success', text: 'Password updated successfully!' });
+      setPasswordMessage({ type: 'success', text: 'Mot de passe modifié avec succès !' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       console.error('Password change error:', err);
-      setPasswordMessage({ type: 'error', text: err.response?.data?.detail || 'Error changing password.' });
+      setPasswordMessage({ type: 'error', text: err.response?.data?.detail || 'Erreur lors du changement de mot de passe.' });
     } finally {
       setUpdatingPassword(false);
     }
@@ -110,14 +111,14 @@ const ProfilePage = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <span>Student Profile</span>
-              <Badge variant="violet">Account</Badge>
+              <span>{t('profile.title', 'Mon Profil')}</span>
+              <Badge variant="violet">{t('nav.student_portal', 'Étudiant')}</Badge>
             </h1>
             <p className="text-white/40 text-sm">{user?.email}</p>
           </div>
         </div>
         <p className="text-white/40 text-sm">
-          Manage your personal details, profile picture representation, and security credentials.
+          {t('profile.subtitle', 'Gérez vos informations personnelles et identifiants de compte')}
         </p>
       </div>
 
@@ -125,12 +126,12 @@ const ProfilePage = () => {
         {/* Account Details & Profile Icon */}
         <form onSubmit={handleAccountSubmit}>
           <Card className="p-6 border border-white/10 bg-white/[0.03] backdrop-blur-md">
-            <h3 className="form-section-title text-violet-400">Account Settings</h3>
+            <h3 className="form-section-title text-violet-400">{t('profile.title', 'Mon Profil')}</h3>
             
             {/* Profile Avatar Selector */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-white/70 mb-2">
-                Choose Profile Avatar
+                {t('profile.avatar', 'Avatar')}
               </label>
               <div className="flex flex-wrap gap-2.5">
                 {avatars.map((av, idx) => (
@@ -152,7 +153,7 @@ const ProfilePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Input
-                label="Full Name"
+                label={t('profile.full_name', 'Nom complet')}
                 type="text"
                 name="name"
                 value={accountData.name}
@@ -160,7 +161,7 @@ const ProfilePage = () => {
                 required
               />
               <Input
-                label="Email Address"
+                label={t('profile.email', 'Adresse email')}
                 type="email"
                 name="email"
                 value={accountData.email}
@@ -181,7 +182,7 @@ const ProfilePage = () => {
 
             <div className="flex justify-end mt-6">
               <Button type="submit" variant="primary" loading={updatingAccount} disabled={updatingAccount}>
-                Save Account Details
+                {t('action.save', 'Enregistrer')}
               </Button>
             </div>
           </Card>
@@ -190,10 +191,10 @@ const ProfilePage = () => {
         {/* Change Password */}
         <form onSubmit={handlePasswordSubmit}>
           <Card className="p-6 border border-white/10 bg-white/[0.03] backdrop-blur-md">
-            <h3 className="form-section-title text-violet-400">Change Password</h3>
+            <h3 className="form-section-title text-violet-400">{t('profile.change_password', 'Changer de mot de passe')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
               <Input
-                label="Current Password"
+                label={t('profile.current_password', 'Mot de passe actuel')}
                 type="password"
                 name="currentPassword"
                 value={passwordData.currentPassword}
@@ -201,7 +202,7 @@ const ProfilePage = () => {
                 required
               />
               <Input
-                label="New Password"
+                label={t('profile.new_password', 'Nouveau mot de passe')}
                 type="password"
                 name="newPassword"
                 value={passwordData.newPassword}
@@ -210,7 +211,7 @@ const ProfilePage = () => {
                 required
               />
               <Input
-                label="Confirm New Password"
+                label={t('profile.confirm_password', 'Confirmer le mot de passe')}
                 type="password"
                 name="confirmPassword"
                 value={passwordData.confirmPassword}
@@ -232,7 +233,7 @@ const ProfilePage = () => {
 
             <div className="flex justify-end mt-6">
               <Button type="submit" variant="primary" loading={updatingPassword} disabled={updatingPassword}>
-                Update Password
+                {t('profile.update_password_btn', 'Mettre à jour le mot de passe')}
               </Button>
             </div>
           </Card>

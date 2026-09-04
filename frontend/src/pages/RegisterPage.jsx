@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { t } = useLanguage();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -71,10 +73,10 @@ const RegisterPage = () => {
     if (/[^a-zA-Z0-9]/.test(p)) score++;
     const levels = [
       { level: 0, label: '', color: '' },
-      { level: 1, label: 'Faible', color: 'bg-red-500' },
-      { level: 2, label: 'Moyen', color: 'bg-yellow-500' },
-      { level: 3, label: 'Bien', color: 'bg-blue-500' },
-      { level: 4, label: 'Fort', color: 'bg-emerald-500' },
+      { level: 1, label: t('auth.strength_weak'), color: 'bg-red-500' },
+      { level: 2, label: t('auth.strength_medium'), color: 'bg-yellow-500' },
+      { level: 3, label: t('auth.strength_strong'), color: 'bg-blue-500' },
+      { level: 4, label: t('auth.strength_very_strong'), color: 'bg-emerald-500' },
     ];
     return levels[score];
   };
@@ -96,11 +98,11 @@ const RegisterPage = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 shadow-glow-violet mb-5 animate-float">
               <span className="text-3xl">⚡</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Créer un compte</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">{t('auth.register_title')}</h1>
             <p className="text-sm text-white/50">
-              Déjà inscrit ?{' '}
+              {t('auth.have_account')}{' '}
               <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                Se connecter
+                {t('auth.sign_in')}
               </Link>
             </p>
           </div>
@@ -108,12 +110,12 @@ const RegisterPage = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nom complet"
+              label={t('auth.full_name')}
               type="text"
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="Jean Dupont"
+              placeholder={t('auth.full_name_placeholder')}
               error={errors.fullName}
               required
               autoComplete="name"
@@ -125,12 +127,12 @@ const RegisterPage = () => {
             />
 
             <Input
-              label="Adresse email"
+              label={t('auth.email')}
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.email_placeholder')}
               error={errors.email}
               required
               autoComplete="email"
@@ -141,51 +143,52 @@ const RegisterPage = () => {
               }
             />
 
-            <Input
-              label="Mot de passe"
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              error={errors.password}
-              required
-              autoComplete="new-password"
-              icon={
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              }
-            />
-
-            {/* Password strength meter */}
-            {formData.password && (
-              <div className="px-0.5">
-                <div className="flex gap-1 mb-1">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                        i <= strength.level ? strength.color : 'bg-white/10'
-                      }`}
-                    />
-                  ))}
+            <div>
+              <Input
+                label={t('auth.password')}
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder={t('auth.password_placeholder')}
+                error={errors.password}
+                required
+                autoComplete="new-password"
+                icon={
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                }
+              />
+              {/* Strength bar */}
+              {formData.password && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex gap-1 h-1">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 rounded-full transition-all duration-300 ${
+                          i <= strength.level ? strength.color : 'bg-white/10'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {strength.label && (
+                    <p className="text-[11px] text-white/40 text-right">
+                      Force : <span className="text-white/70 font-medium">{strength.label}</span>
+                    </p>
+                  )}
                 </div>
-                {strength.label && (
-                  <p className="text-xs text-white/40">
-                    Force : <span className="text-white/70 font-medium">{strength.label}</span>
-                  </p>
-                )}
-              </div>
-            )}
+              )}
+            </div>
 
             <Input
-              label="Confirmer le mot de passe"
+              label={t('auth.confirm_password')}
               type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder={t('auth.password_placeholder')}
               error={errors.confirmPassword}
               required
               autoComplete="new-password"
@@ -196,7 +199,6 @@ const RegisterPage = () => {
               }
             />
 
-            {/* Error */}
             {errors.submit && (
               <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3.5 flex items-start gap-3">
                 <svg className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -215,17 +217,9 @@ const RegisterPage = () => {
                 loading={loading}
                 disabled={loading}
               >
-                Créer mon compte
+                {t('auth.register_btn')}
               </Button>
             </div>
-
-            {/* Terms */}
-            <p className="text-xs text-center text-white/30 leading-relaxed">
-              En vous inscrivant, vous acceptez nos{' '}
-              <a href="#" className="text-violet-400/70 hover:text-violet-400 transition-colors">Conditions d'utilisation</a>{' '}
-              et notre{' '}
-              <a href="#" className="text-violet-400/70 hover:text-violet-400 transition-colors">Politique de confidentialité</a>
-            </p>
           </form>
         </div>
       </div>

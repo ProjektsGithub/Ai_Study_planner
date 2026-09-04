@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 
 const ForgotPasswordPage = () => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -46,9 +48,9 @@ const ForgotPasswordPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Mot de passe oublié ?</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">{t('auth.forgot_pwd_title')}</h1>
             <p className="text-sm text-white/50">
-              Entrez votre email pour recevoir un lien de réinitialisation.
+              {t('auth.forgot_pwd_desc')}
             </p>
           </div>
 
@@ -61,36 +63,33 @@ const ForgotPasswordPage = () => {
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white mb-2">Vérifiez votre boîte mail</h2>
+                <h2 className="text-lg font-bold text-white mb-2">{t('auth.forgot_pwd_check_mail_title')}</h2>
                 <p className="text-sm text-white/55 leading-relaxed">
-                  Si l'adresse <span className="text-violet-300 font-medium">{email}</span> est
-                  associée à un compte, vous recevrez un lien de réinitialisation dans quelques
-                  minutes. Vérifiez également vos spams.
+                  {t('auth.forgot_pwd_check_mail_desc', { email })}
                 </p>
               </div>
               <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-left">
                 <p className="text-xs text-amber-300/80 leading-relaxed">
-                  ⏱ Le lien expire après <strong>1 heure</strong>. Si vous ne le recevez pas,
-                  vous pouvez refaire une demande.
+                  {t('auth.forgot_pwd_expire_note')}
                 </p>
               </div>
               <Link
                 to="/login"
                 className="block text-center text-sm text-violet-400 hover:text-violet-300 transition-colors font-medium"
               >
-                ← Retour à la connexion
+                ← {t('auth.back_to_login')}
               </Link>
             </div>
           ) : (
             /* ── Formulaire ── */
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Adresse email"
+                label={t('auth.email')}
                 type="email"
                 name="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                placeholder="vous@exemple.com"
+                placeholder={t('auth.email_placeholder')}
                 error={error}
                 required
                 autoComplete="email"
@@ -101,6 +100,15 @@ const ForgotPasswordPage = () => {
                 }
               />
 
+              {error && (
+                <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-3 flex items-center gap-2.5">
+                  <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-xs text-red-300">{error}</p>
+                </div>
+              )}
+
               <div className="pt-2">
                 <Button
                   type="submit"
@@ -110,16 +118,18 @@ const ForgotPasswordPage = () => {
                   loading={loading}
                   disabled={loading}
                 >
-                  Envoyer le lien de réinitialisation
+                  {t('auth.send_reset_link')}
                 </Button>
               </div>
 
-              <p className="text-center text-sm text-white/50 pt-1">
-                Vous vous souvenez ?{' '}
-                <Link to="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                  Se connecter
+              <div className="text-center pt-2">
+                <Link
+                  to="/login"
+                  className="text-xs text-white/50 hover:text-white/80 transition-colors inline-flex items-center gap-1"
+                >
+                  ← {t('auth.back_to_login')}
                 </Link>
-              </p>
+              </div>
             </form>
           )}
         </div>

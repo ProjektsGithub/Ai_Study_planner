@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 
@@ -20,6 +21,7 @@ const decodeJwtRoles = (token) => {
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useLanguage();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
@@ -81,11 +83,11 @@ const LoginPage = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-500 shadow-glow-violet mb-5 animate-float">
               <span className="text-3xl">✦</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Bon retour !</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">{t('auth.login_title')}</h1>
             <p className="text-sm text-white/50">
-              Pas encore de compte ?{' '}
+              {t('auth.no_account')}{' '}
               <Link to="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                Créer un compte
+                {t('auth.create_account')}
               </Link>
             </p>
           </div>
@@ -93,12 +95,12 @@ const LoginPage = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Adresse email"
+              label={t('auth.email')}
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.email_placeholder')}
               error={errors.email}
               required
               autoComplete="email"
@@ -110,12 +112,12 @@ const LoginPage = () => {
             />
 
             <Input
-              label="Mot de passe"
+              label={t('auth.password')}
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="••••••••"
+              placeholder={t('auth.password_placeholder')}
               error={errors.password}
               required
               autoComplete="current-password"
@@ -140,14 +142,14 @@ const LoginPage = () => {
                   <div className="w-4 h-4 rounded border border-white/20 bg-white/5 peer-checked:bg-violet-600 peer-checked:border-violet-600 transition-all" />
                   {rememberMe && (
                     <svg className="absolute inset-0 w-4 h-4 text-white" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </div>
-                <span className="text-xs text-white/50 group-hover:text-white/70 transition-colors">Se souvenir de moi</span>
+                <span className="text-xs text-white/50 group-hover:text-white/70 transition-colors">{t('auth.remember_me')}</span>
               </label>
               <Link to="/forgot-password" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                Mot de passe oublié ?
+                {t('auth.forgot_password')}
               </Link>
             </div>
 
@@ -170,12 +172,10 @@ const LoginPage = () => {
                 loading={loading}
                 disabled={loading}
               >
-                Se connecter
+                {t('auth.login_btn')}
               </Button>
             </div>
           </form>
-
-
         </div>
       </div>
     </div>

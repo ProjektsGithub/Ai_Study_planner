@@ -23,30 +23,46 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 CHAT_MAX_TOKENS = 350
 
-# Patterns that mean the model started hallucinating a new turn, meta-labels, or dataset template
-_STOP_RE = re.compile(
-    r"\n---|\n###\s+(QUESTION|HISTORIQUE|FIN|NOTE|MESSAGE|CONTEXTE|PROGRESSION|EMPLOI)|"
-    r"\n(Étudiant|Étudent|Student|User)\s*:|"
-    r"\n(Assistant|Toi|Chatbot|Bot|AI)\s*:|"
-    r"(?:\n|\s+)(Réponse\s+MUST|Réponse\s+générée|Réponse\s+JUSTIFIÉE|Réponse\s+finale|Réponse\s+définitive|Réponse\s+justifiée|Réponse|JUSTIFIÉE|Justification|Explication|Synthèse|Conclusion|Résultat)\s*:?|"
-    r"### FIN|\[FIN\]|fin de (la|le) session|note de l.assistant|"
-    r"Veux-tu ajouter|Pour .+ tu devrais peut-être|il faudrait peut-être|tu peux peut-être",
-    re.IGNORECASE,
-)
+# Patterns indicating the model generated end-of-turn or hallucinated self-dialogue
+_STOP_PATTERNS = [
+    # Special tokens (Llama, HuggingFace)
+    r"<\|(?:eot_id|start_header_id|end_header_id|reserved_special_token)[^>]*>",
+    r"\[\/?(?:INST|SYS)\]",
+    r"<\/s>|<s>",
+    # Delimiters
+    r"\n---|\n===",
+    r"\n###\s+(?:QUESTION|HISTORIQUE|FIN|NOTE|MESSAGE|CONTEXTE|PROGRESSION|EMPLOI|INSTRUCTION|REPONSE)",
+    # Simulated student or user turns (must be preceded by a newline to avoid false positives at start)
+    r"\n\s*[-*•]?\s*(?:\d+[\.\)])?\s*(?:\*\*)?(?:Étudiant|Étudent|Student|User|Utilisateur|Élève|Client)\s*(?:\*\*)?\s*:",
+    r"\n\s*\[(?:Étudiant|Étudent|Student|User|Utilisateur|Élève)\]\s*:?",
+    # Simulated assistant turns (when model generates another self-turn)
+    r"\n\s*[-*•]?\s*(?:\d+[\.\)])?\s*(?:\*\*)?(?:Assistant|Toi|Chatbot|Bot|AI|Conseiller)\s*(?:\*\*)?\s*:",
+    r"\n\s*\[(?:Assistant|Chatbot|Bot|AI)\]\s*:?",
+    # Section meta-labels
+    r"\n\s*[-*•]?\s*(?:\*\*)?(?:Question(?:\s+suivante|\s+de\s+l'étudiant)?|Prochaine\s+question|Nouvelle\s+question|Dialogue\s+suivant)\s*(?:\*\*)?\s*:",
+    r"(?:\n|\s+)(?:Réponse\s+MUST|Réponse\s+générée|Réponse\s+JUSTIFIÉE|Réponse\s+finale|Réponse\s+définitive|Réponse\s+justifiée|JUSTIFIÉE|Justification\s*:|Synthèse\s*:|Conclusion\s*:|Résultat\s*:)",
+    # End markers
+    r"###\s*FIN|\[FIN\]|fin\s+de\s+(?:la|le)\s+session|note\s+de\s+l['\’]assistant",
+    r"(?:Veux-tu\s+ajouter|Pour\s+.+\s+tu\s+devrais\s+peut-être|il\s+faudrait\s+peut-être|tu\s+peux\s+peut-être\s+me\s+demander)",
+]
+_STOP_RE = re.compile("|".join(_STOP_PATTERNS), re.IGNORECASE)
 
 
 def _truncate_hallucination(text: str) -> str:
+    # First truncate at the earliest detected turn / hallucination sequence
     m = _STOP_RE.search(text)
     if m:
         text = text[: m.start()].rstrip()
     
-    # Strip residual header prefixes if generated at the very beginning of the response
+    # Strip residual header / role prefixes if generated at the very beginning of the response
     text = re.sub(
-        r"^(?:Réponse\s+MUST\s+être[^\n:]*:?|Réponse\s+générée|Réponse\s+JUSTIFIÉE|Réponse\s+finale|Réponse\s+définitive|Réponse|Justification|Explication|Synthèse|Conclusion|Résultat)\s*:\s*",
+        r"^\s*[-*•]?\s*(?:\*\*)?(?:Assistant|Chatbot|Bot|AI|Réponse(?:\s+finale|\s+générée|\s+définitive|\s+justifiée)?)\s*(?:\*\*)?\s*:\s*",
         "",
         text,
         flags=re.IGNORECASE,
     )
+    # Strip residual special tokens
+    text = re.sub(r"<\|[^>]+>", "", text)
     return text.strip()
 
 
@@ -137,15 +153,14 @@ async def _call_ollama(prompt: str) -> str:
 
 def _build_prompt(message: str, context: Optional[dict], history: list) -> str:
     lines = [
-        "Tu es un assistant pédagogique bienveillant et concis pour les étudiants.",
+        "Tu es un assistant pédagogique bienveillant, précis et concis pour les étudiants.",
         "",
-        "🚨 RÈGLES CRITIQUES :",
-        "- Réponds DIRECTEMENT et naturellement à la question (2 à 4 phrases max).",
-        "- N'AJOUTE AUCUN préfixe ou label (interdiction d'écrire 'Réponse finale :', 'Réponse :', 'Réponse JUSTIFIÉE :', 'Justification :', 'Note :', etc.).",
-        "- NE génère PAS de dialogue fictif (pas de 'Étudiant:', 'Toi:', etc.).",
-        "- NE répète PAS ta propre réponse ni la question de l'étudiant.",
-        "- N'AJOUTE PAS de seconde version ou de section 'Réponse finale :'.",
-        "- Réponds de manière chaleureuse, précise et directe.",
+        "🚨 RÈGLES STRICTES :",
+        "- Réponds DIRECTEMENT et naturellement à la question posée (3 à 5 phrases max).",
+        "- N'AJOUTE AUCUN préfixe ou label (interdiction d'écrire 'Réponse :', 'Note :', 'Assistant :', etc.).",
+        "- INTERDICTION ABSOLUE de simuler la suite du dialogue ou d'écrire une réplique d'étudiant.",
+        "- ARRÊTE-TOI IMMÉDIATEMENT dès que ta réponse à la question est fournie.",
+        "- Pas de bavardage superflu, sois encourageant et axé sur la réussite académique.",
     ]
 
     if context:
@@ -168,12 +183,13 @@ def _build_prompt(message: str, context: Optional[dict], history: list) -> str:
     if history:
         lines.append("\nHistorique récent :")
         for msg in history[-4:]:
-            role_prefix = "Étudiant" if msg.role == "user" else "Assistant"
-            content = msg.content[:300] + "..." if len(msg.content) > 300 else msg.content
-            lines.append(f"- {role_prefix} : {content}")
+            role_label = "Étudiant" if msg.role == "user" else "Assistant"
+            content = msg.content[:250] + "..." if len(msg.content) > 250 else msg.content
+            clean_content = content.replace("\n", " ").strip()
+            lines.append(f"[{role_label}] : {clean_content}")
 
-    lines.append(f"\nQuestion de l'étudiant : {message}")
-    lines.append("\nRéponds maintenant (directement, sans répéter la question) :")
+    lines.append(f"\nQuestion actuelle de l'étudiant : {message.strip()}")
+    lines.append("\nRéponse de l'assistant :")
     return "\n".join(lines)
 
 
@@ -200,37 +216,126 @@ class ChatResponse(BaseModel):
 @router.get("/health")
 async def chat_health(current_user: User = Depends(get_current_user)):
     """
-    Quick connectivity check for the AI backend.
-    Returns { ok: true, backend: "colab"|"ollama", url: "..." }
-    or raises 503 with a descriptive error.
+    Diagnostic connectivity check for the AI backend (Colab or Ollama).
+    Returns a 200 JSON object with status details so frontend badges and
+    indicators can display real-time status, latency, model, and GPU info.
     """
     use_colab = getattr(settings, "AI_SERVICE_TYPE", "ollama") == "colab"
 
     if use_colab:
-        base_url, api_key = _get_colab_config()
+        url = getattr(settings, "COLAB_API_URL", None)
+        api_key = getattr(settings, "COLAB_API_KEY", None)
+
+        if not url:
+            return {
+                "ok": False,
+                "backend": "colab",
+                "configured": False,
+                "url": None,
+                "latency_ms": None,
+                "error": "COLAB_API_URL n'est pas configuré dans le fichier .env.",
+            }
+
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+        t0 = time.time()
         try:
             async with httpx.AsyncClient(timeout=8.0) as client:
-                resp = await client.get(f"{base_url}/health", headers=headers)
+                resp = await client.get(f"{url}/health", headers=headers)
+            latency_ms = round((time.time() - t0) * 1000)
+
             if resp.status_code == 401:
-                raise HTTPException(status_code=503,
-                    detail="Clé API Colab invalide (401). Mets à jour COLAB_API_KEY dans .env.")
-            return {"ok": True, "backend": "colab", "url": base_url, "status": resp.status_code}
+                return {
+                    "ok": False,
+                    "backend": "colab",
+                    "configured": True,
+                    "url": url,
+                    "latency_ms": latency_ms,
+                    "status_code": 401,
+                    "error": "Clé API Colab invalide (401). Vérifiez COLAB_API_KEY dans le .env.",
+                }
+
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                except Exception:
+                    data = {}
+                return {
+                    "ok": True,
+                    "backend": "colab",
+                    "configured": True,
+                    "url": url,
+                    "latency_ms": latency_ms,
+                    "status_code": 200,
+                    "model": data.get("model", "Llama-3.1-8B-Instruct"),
+                    "device": data.get("device"),
+                    "gpu": data.get("gpu"),
+                    "stats": data.get("stats"),
+                }
+
+            return {
+                "ok": False,
+                "backend": "colab",
+                "configured": True,
+                "url": url,
+                "latency_ms": latency_ms,
+                "status_code": resp.status_code,
+                "error": f"Colab a retourné le code HTTP {resp.status_code}",
+            }
         except httpx.ConnectError:
-            raise HTTPException(status_code=503,
-                detail=f"Serveur Colab inaccessible ({base_url}). Vérifie le notebook et l'URL ngrok.")
+            return {
+                "ok": False,
+                "backend": "colab",
+                "configured": True,
+                "url": url,
+                "latency_ms": None,
+                "error": f"Serveur Colab inaccessible ({url}). Vérifiez que le notebook tourne et que ngrok est actif.",
+            }
         except httpx.TimeoutException:
-            raise HTTPException(status_code=503,
-                detail="Serveur Colab trop lent à répondre (>8s). Il est peut-être en train de démarrer.")
+            return {
+                "ok": False,
+                "backend": "colab",
+                "configured": True,
+                "url": url,
+                "latency_ms": None,
+                "error": "Le serveur Colab ne répond pas (>8s). Il est peut-être en train de démarrer ou occupé.",
+            }
+        except Exception as e:
+            return {
+                "ok": False,
+                "backend": "colab",
+                "configured": True,
+                "url": url,
+                "latency_ms": None,
+                "error": f"Erreur de connexion Colab : {str(e)}",
+            }
     else:
         base_url = getattr(settings, "OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+        t0 = time.time()
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(f"{base_url}/api/tags")
-            return {"ok": True, "backend": "ollama", "url": base_url}
-        except Exception:
-            raise HTTPException(status_code=503,
-                detail=f"Ollama inaccessible sur {base_url}. Lance `ollama serve`.")
+            latency_ms = round((time.time() - t0) * 1000)
+            models = resp.json().get("models", []) if resp.status_code == 200 else []
+            model_names = [m.get("name") for m in models]
+            return {
+                "ok": True,
+                "backend": "ollama",
+                "configured": True,
+                "url": base_url,
+                "latency_ms": latency_ms,
+                "status_code": resp.status_code,
+                "model": getattr(settings, "OLLAMA_MODEL", "llama3.2"),
+                "available_models": model_names,
+            }
+        except Exception as e:
+            return {
+                "ok": False,
+                "backend": "ollama",
+                "configured": True,
+                "url": base_url,
+                "latency_ms": None,
+                "error": f"Ollama local inaccessible sur {base_url}. Lancez `ollama serve`.",
+            }
 
 
 # ── Main chat endpoint ────────────────────────────────────────────────────────
