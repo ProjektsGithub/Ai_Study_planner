@@ -844,6 +844,128 @@ html:not(.dark) .text-white\/5 {
   color: #f4f4f5 !important;
 }
 
+/* ====================================================
+   ANT DESIGN BUTTON & COMPONENT OVERRIDES
+   Ensures all admin buttons (Add, Edit, Save, etc.) are always vibrant and clearly visible
+   ==================================================== */
 
+/* Primary buttons (e.g. + Add University, + Add Course, Submit, OK) */
+.ant-btn-primary,
+button.ant-btn-primary,
+.ant-btn.ant-btn-primary,
+.ant-btn-variant-solid {
+  background-color: #1890ff !important;
+  background-image: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+  border: 1px solid #1890ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.25) !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
 
+.ant-btn-primary:hover,
+button.ant-btn-primary:hover,
+.ant-btn.ant-btn-primary:hover,
+.ant-btn-primary:focus,
+button.ant-btn-primary:focus {
+  background-color: #40a9ff !important;
+  background-image: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%) !important;
+  border-color: #40a9ff !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4) !important;
+}
 
+.ant-btn-primary:active,
+button.ant-btn-primary:active {
+  background-color: #096dd9 !important;
+  background-image: linear-gradient(135deg, #096dd9 0%, #0050b3 100%) !important;
+  border-color: #096dd9 !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary *,
+button.ant-btn-primary *,
+.ant-btn-primary span,
+button.ant-btn-primary span {
+  color: #ffffff !important;
+}
+
+/* Danger primary buttons (e.g. Delete, Confirm Delete) */
+.ant-btn-primary.ant-btn-dangerous,
+button.ant-btn-primary.ant-btn-dangerous,
+.ant-btn-dangerous.ant-btn-primary,
+.ant-btn-color-dangerous.ant-btn-variant-solid {
+  background-color: #ff4d4f !important;
+  background-image: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%) !important;
+  border-color: #ff4d4f !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(255, 77, 79, 0.25) !important;
+}
+
+.ant-btn-primary.ant-btn-dangerous:hover,
+button.ant-btn-primary.ant-btn-dangerous:hover,
+.ant-btn-color-dangerous.ant-btn-variant-solid:hover {
+  background-color: #ff7875 !important;
+  background-image: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%) !important;
+  border-color: #ff7875 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.4) !important;
+}
+
+/* Default / Secondary buttons (e.g. Cancel, Export Excel, Reload) */
+.ant-btn-default,
+button.ant-btn-default,
+.ant-btn-variant-outlined {
+  background-color: #ffffff !important;
+  border: 1px solid #d9d9d9 !important;
+  color: #262626 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.ant-btn-default:hover,
+button.ant-btn-default:hover,
+.ant-btn-variant-outlined:hover {
+  background-color: #fafafa !important;
+  border-color: #1890ff !important;
+  color: #1890ff !important;
+}
+
+.ant-btn-default *,
+button.ant-btn-default * {
+  color: inherit !important;
+}
+
+/* Text and Link buttons */
+.ant-btn-link,
+button.ant-btn-link,
+.ant-btn-variant-link {
+  background: transparent !important;
+  color: #1890ff !important;
+  font-weight: 500 !important;
+}
+
+.ant-btn-link:hover,
+button.ant-btn-link:hover,
+.ant-btn-variant-link:hover {
+  color: #40a9ff !important;
+}
+
+.ant-btn-text,
+button.ant-btn-text,
+.ant-btn-variant-text {
+  background: transparent !important;
+  color: #595959 !important;
+}
+
+.ant-btn-text:hover,
+button.ant-btn-text:hover,
+.ant-btn-variant-text:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  color: #262626 !important;
+}

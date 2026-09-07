@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown, Space, Typography, Modal, Tooltip } from 'antd';
+import { ConfigProvider, Layout, Menu, Button, Avatar, Dropdown, Space, Typography, Modal, Tooltip } from 'antd';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -289,193 +289,213 @@ const AdminLayout = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        breakpoint="lg"
-        collapsedWidth={0}
-        onCollapse={(value) => setCollapsed(value)}
-        theme="dark"
-        width={250}
-        style={{
-          boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          zIndex: 10,
-        }}
-      >
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            padding: '0 24px',
-            background: '#002140',
-            transition: 'all 0.2s',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 'bold',
-                fontSize: 16,
-              }}
-            >
-              A
-            </div>
-            {!collapsed && (
-              <span
-                style={{
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  letterSpacing: '0.5px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Study Planner Admin
-              </span>
-            )}
-          </div>
-        </div>
-
-        <Menu
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#1890ff',
+          colorPrimaryHover: '#40a9ff',
+          colorPrimaryActive: '#096dd9',
+          borderRadius: 6,
+          fontFamily: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        },
+        components: {
+          Button: {
+            colorPrimary: '#1890ff',
+            colorPrimaryHover: '#40a9ff',
+            colorPrimaryActive: '#096dd9',
+            primaryColor: '#ffffff',
+          },
+        },
+      }}
+    >
+      <Layout style={{ minHeight: '100vh' }}>
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          breakpoint="lg"
+          collapsedWidth={0}
+          onCollapse={(value) => setCollapsed(value)}
           theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          style={{ borderRight: 0, marginTop: 16 }}
-        />
-      </Sider>
-
-      <Layout style={{ background: '#f5f7fa' }}>
-        <Header
+          width={250}
           style={{
-            padding: '0 24px',
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 1px 4px rgba(0,21,41,.08)',
+            boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)',
             position: 'sticky',
             top: 0,
-            zIndex: 9,
-            height: 64,
+            height: '100vh',
+            zIndex: 10,
           }}
         >
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: '16px', width: 64, height: 64 }}
-          />
-
-          <div style={{ flex: 1, margin: '0 24px', maxWidth: 450 }}>
-            <GlobalSearch />
-          </div>
-
-          <Space size={24}>
-            <Dropdown menu={languageMenu} placement="bottomRight" trigger={['click']}>
-              <Button
-                type="text"
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, textTransform: 'uppercase', fontSize: '12px', color: '#8c8c8c', height: 32 }}
+          <div
+            style={{
+              height: 64,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              padding: '0 24px',
+              background: '#002140',
+              transition: 'all 0.2s',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: 16,
+                }}
               >
-                <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9" />
-                </svg>
-                <span>{lang}</span>
-              </Button>
-            </Dropdown>
+                A
+              </div>
+              {!collapsed && (
+                <span
+                  style={{
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Study Planner Admin
+                </span>
+              )}
+            </div>
+          </div>
 
-            <Tooltip title={t('shortcut.legend') + ' (Alt + H)'}>
-              <Button
-                type="text"
-                icon={<QuestionCircleOutlined />}
-                onClick={() => setHelpOpen(true)}
-                style={{ fontSize: '18px', color: '#8c8c8c', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
-              />
-            </Tooltip>
-            {user && (
-              <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
-                <Space style={{ cursor: 'pointer' }}>
-                  <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
-                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }} className="hidden sm:flex">
-                    <Text strong style={{ fontSize: 13 }}>{user.name}</Text>
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                      {isSuperAdmin ? 'Super Admin' : 'Admin'}
-                    </Text>
-                  </div>
-                </Space>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            style={{ borderRight: 0, marginTop: 16 }}
+          />
+        </Sider>
+
+        <Layout style={{ background: '#f5f7fa' }}>
+          <Header
+            style={{
+              padding: '0 24px',
+              background: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 1px 4px rgba(0,21,41,.08)',
+              position: 'sticky',
+              top: 0,
+              zIndex: 9,
+              height: 64,
+            }}
+          >
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: '16px', width: 64, height: 64 }}
+            />
+
+            <div style={{ flex: 1, margin: '0 24px', maxWidth: 450 }}>
+              <GlobalSearch />
+            </div>
+
+            <Space size={24}>
+              <Dropdown menu={languageMenu} placement="bottomRight" trigger={['click']}>
+                <Button
+                  type="text"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, textTransform: 'uppercase', fontSize: '12px', color: '#8c8c8c', height: 32 }}
+                >
+                  <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9" />
+                  </svg>
+                  <span>{lang}</span>
+                </Button>
               </Dropdown>
-            )}
-          </Space>
-        </Header>
 
-        <Content
-          style={{
-            margin: '24px 24px 0',
-            minHeight: 280,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
+              <Tooltip title={t('shortcut.legend') + ' (Alt + H)'}>
+                <Button
+                  type="text"
+                  icon={<QuestionCircleOutlined />}
+                  onClick={() => setHelpOpen(true)}
+                  style={{ fontSize: '18px', color: '#8c8c8c', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
+                />
+              </Tooltip>
+              {user && (
+                <Dropdown menu={userMenu} placement="bottomRight" trigger={['click']}>
+                  <Space style={{ cursor: 'pointer' }}>
+                    <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
+                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }} className="hidden sm:flex">
+                      <Text strong style={{ fontSize: 13 }}>{user.name}</Text>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {isSuperAdmin ? 'Super Admin' : 'Admin'}
+                      </Text>
+                    </div>
+                  </Space>
+                </Dropdown>
+              )}
+            </Space>
+          </Header>
+
+          <Content
+            style={{
+              margin: '24px 24px 0',
+              minHeight: 280,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <Outlet />
+            </div>
+          </Content>
+        </Layout>
+
+        {/* Keyboard Shortcuts Help Modal */}
+        <Modal
+          title={
+            <Space>
+              <QuestionCircleOutlined style={{ color: '#1890ff' }} />
+              <span>{t('shortcut.legend')}</span>
+            </Space>
+          }
+          open={helpOpen}
+          onCancel={() => setHelpOpen(false)}
+          footer={[
+            <Button key="close" type="primary" onClick={() => setHelpOpen(false)}>
+              {lang === 'fr' ? 'Compris' : lang === 'de' ? 'Verstanden' : 'Got it'}
+            </Button>
+          ]}
+          width={450}
+          destroyOnClose
         >
-          <div style={{ flex: 1 }}>
-            <Outlet />
+          <div style={{ padding: '8px 0' }}>
+            <Paragraph>
+              Use the following global administrative keyboard shortcuts for quick keyboard-driven navigation:
+            </Paragraph>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px 24px', alignItems: 'center' }}>
+              <Text code>Alt + D</Text> <Text>Navigate to Dashboard</Text>
+              <Text code>Alt + U</Text> <Text>Navigate to Universities</Text>
+              <Text code>Alt + P</Text> <Text>Navigate to Study Programs</Text>
+              <Text code>Alt + T</Text> <Text>Navigate to Academic Tracks</Text>
+              <Text code>Alt + K</Text> <Text>Navigate to Semesters</Text>
+              <Text code>Alt + E</Text> <Text>Navigate to Teaching Units</Text>
+              <Text code>Alt + O</Text> <Text>Navigate to Courses</Text>
+              <Text code>Alt + S</Text> <Text>Focus search input</Text>
+              <Text code>Alt + N</Text> <Text>Add new entity (clicks Primary button)</Text>
+              <Text code>Alt + R</Text> <Text>Refresh/Reload current data list</Text>
+              <Text code>Alt + C</Text> <Text>Cancel or close current active modal</Text>
+              <Text code>Alt + H</Text> <Text>Toggle this shortcuts legend dialog</Text>
+            </div>
           </div>
-        </Content>
+        </Modal>
       </Layout>
-
-      {/* Keyboard Shortcuts Help Modal */}
-      <Modal
-        title={
-          <Space>
-            <QuestionCircleOutlined style={{ color: '#1890ff' }} />
-            <span>{t('shortcut.legend')}</span>
-          </Space>
-        }
-        open={helpOpen}
-        onCancel={() => setHelpOpen(false)}
-        footer={[
-          <Button key="close" type="primary" onClick={() => setHelpOpen(false)}>
-            {lang === 'fr' ? 'Compris' : lang === 'de' ? 'Verstanden' : 'Got it'}
-          </Button>
-        ]}
-        width={450}
-        destroyOnClose
-      >
-        <div style={{ padding: '8px 0' }}>
-          <Paragraph>
-            Use the following global administrative keyboard shortcuts for quick keyboard-driven navigation:
-          </Paragraph>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '12px 24px', alignItems: 'center' }}>
-            <Text code>Alt + D</Text> <Text>Navigate to Dashboard</Text>
-            <Text code>Alt + U</Text> <Text>Navigate to Universities</Text>
-            <Text code>Alt + P</Text> <Text>Navigate to Study Programs</Text>
-            <Text code>Alt + T</Text> <Text>Navigate to Academic Tracks</Text>
-            <Text code>Alt + K</Text> <Text>Navigate to Semesters</Text>
-            <Text code>Alt + E</Text> <Text>Navigate to Teaching Units</Text>
-            <Text code>Alt + O</Text> <Text>Navigate to Courses</Text>
-            <Text code>Alt + S</Text> <Text>Focus search input</Text>
-            <Text code>Alt + N</Text> <Text>Add new entity (clicks Primary button)</Text>
-            <Text code>Alt + R</Text> <Text>Refresh/Reload current data list</Text>
-            <Text code>Alt + C</Text> <Text>Cancel or close current active modal</Text>
-            <Text code>Alt + H</Text> <Text>Toggle this shortcuts legend dialog</Text>
-          </div>
-        </div>
-      </Modal>
-    </Layout>
+    </ConfigProvider>
   );
 };
 
