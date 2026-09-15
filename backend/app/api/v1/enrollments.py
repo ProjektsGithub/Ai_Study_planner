@@ -19,12 +19,14 @@ from app.models.course import Course
 from app.models.teaching_unit import TeachingUnit
 from app.models.semester import Semester
 from app.models.academic_track import AcademicTrack
+from app.models.class_schedule import ClassSchedule
 from app.schemas.enrollment import (
     EnrollmentUpsert,
     EnrollmentResponse,
     CatalogCourseResponse,
     SemesterCoursesResponse,
     TeachingUnitBrief,
+    ClassScheduleSlotBrief,
 )
 from datetime import datetime, timezone
 from app.services.enrollment_sync_service import sync_enrollment_to_subject, remove_subject_for_enrollment
@@ -145,7 +147,38 @@ async def get_my_semester_courses(
         )
         enrollments = {e.course_id: e for e in rows}
 
-    # 6. Build response
+    # 6. Load class schedule slots (CM, TD, TP) for all these courses
+    schedules_by_course = {}
+    if course_ids:
+        sched_rows = (
+            db.query(ClassSchedule)
+            .filter(
+                ClassSchedule.course_id.in_(course_ids),
+                ClassSchedule.is_deleted == False
+            )
+            .order_by(ClassSchedule.day_of_week, ClassSchedule.start_time)
+            .all()
+        )
+        for s in sched_rows:
+            if s.course_id not in schedules_by_course:
+                schedules_by_course[s.course_id] = []
+            schedules_by_course[s.course_id].append(
+                ClassScheduleSlotBrief(
+                    id=s.id,
+                    course_id=s.course_id,
+                    course_name=s.course_name,
+                    session_type=s.session_type,
+                    group_name=s.group_name,
+                    day_of_week=s.day_of_week,
+                    start_time=s.start_time.strftime("%H:%M"),
+                    end_time=s.end_time.strftime("%H:%M"),
+                    room_location=s.room_location,
+                    is_fixed=s.is_fixed,
+                    is_mandatory=s.is_mandatory,
+                )
+            )
+
+    # 7. Build response
     course_responses = []
     for c in courses:
         enrollment = enrollments.get(c.id)
@@ -173,6 +206,9 @@ async def get_my_semester_courses(
                 enrollment_status=enrollment.status if enrollment else None,
                 priority_override=enrollment.priority_override if enrollment else None,
                 personal_notes=enrollment.personal_notes if enrollment else None,
+                selected_td_slot_id=enrollment.selected_td_slot_id if enrollment else None,
+                selected_tp_slot_id=enrollment.selected_tp_slot_id if enrollment else None,
+                schedule_slots=schedules_by_course.get(c.id, []),
                 is_retake=is_retake,
                 retake_semester_number=retake_sem_num,
             )
@@ -249,6 +285,10 @@ async def upsert_enrollment(
         enrollment.status = data.status
         enrollment.priority_override = data.priority_override
         enrollment.personal_notes = data.personal_notes
+        if data.selected_td_slot_id is not None:
+            enrollment.selected_td_slot_id = data.selected_td_slot_id
+        if data.selected_tp_slot_id is not None:
+            enrollment.selected_tp_slot_id = data.selected_tp_slot_id
         enrollment.updated_at = datetime.now(timezone.utc)
     else:
         # Create new
@@ -258,6 +298,8 @@ async def upsert_enrollment(
             status=data.status,
             priority_override=data.priority_override,
             personal_notes=data.personal_notes,
+            selected_td_slot_id=data.selected_td_slot_id,
+            selected_tp_slot_id=data.selected_tp_slot_id,
         )
         db.add(enrollment)
 

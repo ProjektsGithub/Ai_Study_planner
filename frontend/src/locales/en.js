@@ -128,7 +128,7 @@ export default {
 
   // Tasks
   'task.university_class': 'Univ Class',
-  'task.lecture_review': 'Lecture',
+  'task.lecture_review': 'Lecture Review',
   'task.exercise_practice': 'Exercise',
   'task.exam_preparation': 'Exam Prep',
   'task.project_work': 'Project',
@@ -141,6 +141,20 @@ export default {
   'task.desc.project_work': 'Work on assignments and team projects',
   'task.desc.reading': 'Read reference books and course materials',
   'task.desc.practice': 'Hands-on practical application',
+
+  // Academic types
+  'academic.cm': 'Lecture (CM)',
+  'academic.cm_short': 'Lecture (CM)',
+  'academic.td': 'Tutorial (TD)',
+  'academic.td_short': 'TD',
+  'academic.tp': 'Practical Work (TP)',
+  'academic.tp_short': 'Lab (TP)',
+  'academic.exam': 'Exam / Assessment',
+  'academic.exam_short': 'Exam',
+  'academic.badge_course': 'CLASS',
+  'academic.badge_study': 'STUDY',
+  'academic.legend_academic': 'University Classes',
+  'academic.legend_personal': 'Self-Study & Revision',
 
   // Calendar view
   'calendar.empty_title': 'No study plan for this week',
@@ -278,6 +292,12 @@ export default {
   'subjects.stat_retake': 'Retakes',
   'subjects.setup_required': 'Academic profile required to display your curriculum.',
   'subjects.configure_profile_btn': 'Configure my profile',
+  'subjects.timetable': 'University Timetable',
+  'subjects.cm_lecture': 'Lecture (Fixed)',
+  'subjects.td_tutorial': 'Tutorial (Group)',
+  'subjects.tp_lab': 'Lab (Practical)',
+  'subjects.select_group': 'Select group',
+  'subjects.fixed_slot': 'Fixed',
 
   // Availabilities
   'availabilities.title': 'My Availabilities',

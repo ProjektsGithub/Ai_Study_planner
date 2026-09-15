@@ -412,7 +412,8 @@ def enrich_session_note(
     subject_name: str,
     task_type: str,
     current_note: Optional[str] = None,
-    session_index: int = 0
+    session_index: int = 0,
+    language: str = "fr"
 ) -> str:
     """
     Enrich or replace a vague session note with a concrete, educational learning objective.
@@ -423,28 +424,57 @@ def enrich_session_note(
     if current_note and not is_note_vague(current_note):
         return current_note
     
+    lang = (language or "fr").lower()[:2]
     curriculum = find_matching_curriculum(subject_name)
     
-    if curriculum:
+    if curriculum and lang == "fr":
         topics_list = curriculum.get(task_type) or curriculum.get("lecture_review") or []
         if topics_list:
             selected_topic = topics_list[session_index % len(topics_list)]
             return f"{subject_name} : {selected_topic}"
     
-    # Generic domain fallback if subject is not explicitly in the curriculum DB
+    # Generic domain fallback (or localized template for non-FR languages)
     clean_subj = subject_name.strip()
-    if task_type == "exercise_practice":
-        return f"{clean_subj} : Exercices d'application pratique et résolution de problèmes méthodologiques"
-    elif task_type == "lecture_review":
-        return f"{clean_subj} : Révision approfondie des concepts clés du cours et synthèse théorique"
-    elif task_type == "exam_preparation":
-        return f"{clean_subj} : Entraînement sur annales d'examen et révision ciblée des points complexes"
-    elif task_type == "project_work":
-        return f"{clean_subj} : Travaux pratiques, implémentation et avancement des livrables du projet"
-    elif task_type == "reading":
-        return f"{clean_subj} : Lecture critique et documentation sur les thématiques du programme"
+
+    if lang == "en":
+        if task_type == "exercise_practice":
+            return f"{clean_subj}: Practical exercises and methodological problem-solving"
+        elif task_type == "lecture_review":
+            return f"{clean_subj}: In-depth review of key lecture concepts and theoretical summary"
+        elif task_type == "exam_preparation":
+            return f"{clean_subj}: Practice on past exam papers and targeted review of complex topics"
+        elif task_type == "project_work":
+            return f"{clean_subj}: Practical lab work, implementation, and project milestones"
+        elif task_type == "reading":
+            return f"{clean_subj}: Critical reading and documentation on syllabus topics"
+        else:
+            return f"{clean_subj}: Study session on core concepts"
+    elif lang == "de":
+        if task_type == "exercise_practice":
+            return f"{clean_subj}: Praktische Anwendungsübungen und methodische Problemlösung"
+        elif task_type == "lecture_review":
+            return f"{clean_subj}: Vertiefte Wiederholung der Kernkonzepte der Vorlesung und Theoriezusammenfassung"
+        elif task_type == "exam_preparation":
+            return f"{clean_subj}: Prüfungsvorbereitung anhand von Altklausuren und gezielte Wiederholung"
+        elif task_type == "project_work":
+            return f"{clean_subj}: Praktische Laborarbeiten, Implementierung und Projektfortschritt"
+        elif task_type == "reading":
+            return f"{clean_subj}: Fachliteraturstudium und Dokumentation zu den Schwerpunktthemen"
+        else:
+            return f"{clean_subj}: Lerneinheit zu den Schlüsselkonzepten"
     else:
-        return f"{clean_subj} : Session d'approfondissement des notions clés"
+        if task_type == "exercise_practice":
+            return f"{clean_subj} : Exercices d'application pratique et résolution de problèmes méthodologiques"
+        elif task_type == "lecture_review":
+            return f"{clean_subj} : Révision approfondie des concepts clés du cours et synthèse théorique"
+        elif task_type == "exam_preparation":
+            return f"{clean_subj} : Entraînement sur annales d'examen et révision ciblée des points complexes"
+        elif task_type == "project_work":
+            return f"{clean_subj} : Travaux pratiques, implémentation et avancement des livrables du projet"
+        elif task_type == "reading":
+            return f"{clean_subj} : Lecture critique et documentation sur les thématiques du programme"
+        else:
+            return f"{clean_subj} : Session d'approfondissement des notions clés"
 
 
 def get_subject_prompt_context(subject_name: str) -> str:

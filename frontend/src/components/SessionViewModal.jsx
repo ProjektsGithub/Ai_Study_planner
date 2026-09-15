@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { useLanguage } from '../context/LanguageContext';
+import { getSessionCategoryInfo } from '../utils/formatCourseName';
 
 const TASK_ICONS = {
   university_class: '🏛️',
@@ -42,12 +43,11 @@ const SessionViewModal = ({
 
   if (!isOpen || !session) return null;
 
-  const isAcademic = session.is_academic_fixed || session.task_type === 'university_class';
-  const icon = TASK_ICONS[session.task_type] || '📖';
+  const categoryInfo = getSessionCategoryInfo(session);
+  const isAcademic = categoryInfo.isCourse;
+  const icon = categoryInfo.icon || TASK_ICONS[session.task_type] || '📖';
   const badgeStyle = TASK_BG[session.task_type] || 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
-  const taskLabel = isAcademic
-    ? `${t('task.university_class', 'Cours Univ')} (${session.session_type || 'CM/TD'})`
-    : t(`task.${session.task_type}`, session.task_type);
+  const rawTitle = session.course_name || session.subject_name || t('session_view.title', 'Détails de la séance');
 
   const durationMinutes = parseDurationMin(session.start_time, session.end_time);
   const dayKey = session.day || session.day_of_week;
@@ -81,14 +81,19 @@ const SessionViewModal = ({
         <div className="p-6 border-b border-slate-800 bg-slate-900/60 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-2xl shadow-inner">
-              {isAcademic ? '🏛️' : icon}
+              {icon}
             </div>
             <div>
-              <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold border mb-1 ${isAcademic ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : badgeStyle}`}>
-                {taskLabel}
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border mb-1 ${isAcademic ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : badgeStyle}`}>
+                <span>{categoryInfo.isCourse ? `${categoryInfo.categoryBadge} • ${categoryInfo.fullLabel}` : categoryInfo.fullLabel}</span>
               </span>
               <h2 className="text-xl font-black text-white leading-tight">
-                {session.course_name || session.subject_name || t('session_view.title', 'Détails de la session d\'étude')}
+                {rawTitle}
+                {session.course_code && (
+                  <span className="ml-2 text-xs font-mono font-bold text-indigo-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700 inline-block align-middle">
+                    {session.course_code}
+                  </span>
+                )}
               </h2>
             </div>
           </div>
@@ -118,10 +123,10 @@ const SessionViewModal = ({
             <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">📍 {t('session_view.activity_type', 'Type & Emplacement')}</p>
               <p className="text-sm font-bold text-white mt-1">
-                {isAcademic ? (session.session_type || t('task.university_class', 'Cours Univ')) : taskLabel}
+                {categoryInfo.fullLabel}
               </p>
               <p className="text-xs font-semibold text-slate-300 mt-0.5 truncate">
-                {session.room_location ? `${t('label.room', 'Salle')}: ${session.room_location}` : (isAcademic ? t('task.desc.university_class', 'Cours universitaire') : t('task.practice', 'Séance d\'étude'))}
+                {session.room_location ? `${t('label.room', 'Salle')}: ${session.room_location}` : (isAcademic ? t('task.desc.university_class', 'Cours universitaire en présentiel') : t('task.practice', 'Séance d\'étude autonome'))}
               </p>
             </div>
           </div>
@@ -136,9 +141,12 @@ const SessionViewModal = ({
 
           {/* Academic Notice */}
           {isAcademic && (
-            <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2.5">
-              <span>🏛️</span>
-              <span>{t('session_view.academic_notice', 'Ce créneau correspond à un cours universitaire fixe de votre emploi du temps.')}</span>
+            <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-xs text-blue-200 flex items-start gap-2.5">
+              <span className="text-base">🎓</span>
+              <div>
+                <p className="font-bold text-blue-300 mb-0.5">Cours officiel obligatoire ({categoryInfo.fullLabel})</p>
+                <p className="opacity-90 leading-relaxed">{t('session_view.academic_notice', 'Ce créneau correspond à un cours officiel (CM, TD ou TP) fixe de votre emploi du temps universitaire.')}</p>
+              </div>
             </div>
           )}
         </div>

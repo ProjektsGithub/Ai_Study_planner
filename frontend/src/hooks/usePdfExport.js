@@ -4,6 +4,7 @@
  */
 import { useState, useCallback } from 'react';
 import apiClient from '../api/client';
+import { useLanguage } from '../context/LanguageContext';
 
 /**
  * @returns {{ exportPdf: Function, exporting: boolean, exportError: string|null }}
@@ -11,6 +12,7 @@ import apiClient from '../api/client';
 const usePdfExport = () => {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
+  const { lang, t } = useLanguage();
 
   const exportPdf = useCallback(async (planId, filename) => {
     if (!planId) return;
@@ -18,17 +20,22 @@ const usePdfExport = () => {
     setExportError(null);
 
     try {
+      const activeLang = lang || 'fr';
       const response = await apiClient.post(
         `/api/v1/exports/plans/${planId}/pdf`,
         {},
-        { responseType: 'blob' }
+        {
+          params: { lang: activeLang },
+          headers: { 'Accept-Language': activeLang },
+          responseType: 'blob',
+        }
       );
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = filename || `plan_etude_${planId}.pdf`;
+      link.download = filename || `plan_etude_${planId}_${activeLang}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -36,12 +43,12 @@ const usePdfExport = () => {
     } catch (err) {
       const detail = err.response?.data?.detail;
       setExportError(
-        typeof detail === 'string' ? detail : 'Erreur lors de la génération du PDF.'
+        typeof detail === 'string' ? detail : (t?.('common.error') || 'Erreur lors de la génération du PDF.')
       );
     } finally {
       setExporting(false);
     }
-  }, []);
+  }, [lang, t]);
 
   return { exportPdf, exporting, exportError };
 };

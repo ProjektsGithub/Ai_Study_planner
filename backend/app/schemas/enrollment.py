@@ -23,6 +23,8 @@ class EnrollmentUpsert(BaseModel):
     )
     priority_override: Optional[int] = Field(None, ge=1, le=5, description="Override AI priority (1=low, 5=critical)")
     personal_notes: Optional[str] = Field(None, max_length=1000, description="Student personal notes")
+    selected_td_slot_id: Optional[int] = Field(None, description="Selected TD (Übung) group slot ID")
+    selected_tp_slot_id: Optional[int] = Field(None, description="Selected TP (Praktikum) group slot ID")
 
 
 class EnrollmentResponse(BaseModel):
@@ -35,6 +37,8 @@ class EnrollmentResponse(BaseModel):
     status: str
     priority_override: Optional[int]
     personal_notes: Optional[str]
+    selected_td_slot_id: Optional[int] = None
+    selected_tp_slot_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -51,6 +55,23 @@ class TeachingUnitBrief(BaseModel):
     name: str
     code: Optional[str]
     ects_required: Optional[int]
+
+
+class ClassScheduleSlotBrief(BaseModel):
+    """Class schedule slot attached to a course (Vorlesung/CM, Übung/TD, Praktikum/TP)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    course_id: Optional[int] = None
+    course_name: str
+    session_type: str  # CM, TD, TP, EXAM
+    group_name: Optional[str] = None
+    day_of_week: str
+    start_time: str
+    end_time: str
+    room_location: Optional[str] = None
+    is_fixed: bool = True
+    is_mandatory: bool = True
 
 
 class CatalogCourseResponse(BaseModel):
@@ -72,6 +93,11 @@ class CatalogCourseResponse(BaseModel):
     enrollment_status: Optional[str] = None
     priority_override: Optional[int] = None
     personal_notes: Optional[str] = None
+    selected_td_slot_id: Optional[int] = None
+    selected_tp_slot_id: Optional[int] = None
+
+    # Available university schedule slots for this course (CM, TD groups, TP groups)
+    schedule_slots: List[ClassScheduleSlotBrief] = []
 
     # Retake info (German Wiederholung system)
     is_retake: bool = False  # True if this course belongs to a retake semester

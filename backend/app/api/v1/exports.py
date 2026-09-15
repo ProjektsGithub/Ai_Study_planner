@@ -1,7 +1,8 @@
 """
 Export API endpoints
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,8 @@ router = APIRouter(prefix="/exports", tags=["exports"])
 @router.post("/plans/{plan_id}/pdf")
 async def export_plan_to_pdf(
     plan_id: str,
+    lang: Optional[str] = Query(None, description="Language code: fr, en, de"),
+    accept_language: Optional[str] = Header(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -23,6 +26,8 @@ async def export_plan_to_pdf(
     
     Args:
         plan_id: Study plan ID
+        lang: Target language code ('fr', 'en', 'de')
+        accept_language: Optional header fallback
         db: Database session
         current_user: Authenticated user
         
@@ -34,11 +39,17 @@ async def export_plan_to_pdf(
         500: PDF generation failed
     """
     try:
+        # Determine language (Query param takes precedence, then header, default 'fr')
+        target_lang = lang or (accept_language.split(',')[0].strip() if accept_language else 'fr')
+        target_lang = target_lang.lower()[:2]
+        if target_lang not in ['fr', 'en', 'de']:
+            target_lang = 'fr'
+
         # Create export service
         export_service = ExportService(db)
         
         # Generate PDF
-        pdf_buffer = await export_service.generate_pdf(plan_id, current_user)
+        pdf_buffer = await export_service.generate_pdf(plan_id, current_user, lang=target_lang)
         
         # Return as streaming response
         return StreamingResponse(

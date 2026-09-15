@@ -153,16 +153,21 @@ const StatusDropdown = ({ courseId, currentStatus, onStatusChange, saving }) => 
 };
 
 // ─── Course row ───────────────────────────────────────────────────────────────
-const CourseRow = ({ course, onStatusChange, savingId }) => {
+const CourseRow = ({ course, onStatusChange, onGroupChange, savingId }) => {
   const { t } = useLanguage();
   const style = course.enrollment_status ? STATUS_STYLES[course.enrollment_status] : null;
+
+  const slots = course.schedule_slots || [];
+  const cmSlots = slots.filter((s) => s.session_type === 'CM');
+  const tdSlots = slots.filter((s) => s.session_type === 'TD');
+  const tpSlots = slots.filter((s) => s.session_type === 'TP');
 
   return (
     <div
       id={`course-row-${course.id}`}
       className={`
-        flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200
-        border group
+        flex items-start sm:items-center gap-4 px-5 py-3.5 rounded-xl transition-all duration-200
+        border group flex-col sm:flex-row
         ${style
           ? `bg-slate-50/50 border-slate-100 hover:bg-slate-50 dark:bg-white/[0.03] dark:border-white/8 dark:hover:bg-white/[0.05]`
           : 'bg-transparent border-transparent hover:bg-slate-50/30 hover:border-slate-100 dark:hover:bg-white/[0.02] dark:hover:border-white/5'
@@ -170,12 +175,12 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
       `}
     >
       {/* Status indicator line */}
-      <div className={`w-1 h-8 rounded-full flex-shrink-0 transition-colors
+      <div className={`hidden sm:block w-1 h-10 rounded-full flex-shrink-0 transition-colors
         ${style ? style.dot : 'bg-slate-200 dark:bg-white/10'}`}
       />
 
       {/* Course info */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 w-full">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold text-slate-900 dark:text-white truncate">{course.name}</span>
           {course.code && (
@@ -190,28 +195,110 @@ const CourseRow = ({ course, onStatusChange, savingId }) => {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-1">
+        <div className="flex items-center gap-3 mt-1 flex-wrap">
           <span className="text-[11px] text-violet-600 dark:text-violet-400 font-semibold">{course.ects_credits} {t('label.ects', 'ECTS')}</span>
           <span className="text-slate-400 dark:text-slate-500 text-[10px]">·</span>
           <span className="text-[11px] text-slate-600 dark:text-slate-400">{t('label.coefficient', 'coeff.')} {course.coefficient}</span>
           <span className="text-slate-400 dark:text-slate-500 text-[10px]">·</span>
           <DifficultyStars level={course.difficulty_level} />
         </div>
+
+        {/* Schedule Slots (German Model: CM fixed Vorlesung, TD Übung, TP Praktikum) */}
+        {slots.length > 0 && (
+          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+            {/* CM Slot (Vorlesung / Lecture) */}
+            {cmSlots.map((s) => (
+              <span
+                key={s.id}
+                title={`${s.day_of_week} ${s.start_time}-${s.end_time} ${s.room_location || ''}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30"
+              >
+                <span>🏛️</span>
+                <span>{t('subjects.cm_lecture', 'CM')}:</span>
+                <span className="font-mono">{t(`days.${s.day_of_week}`, s.day_of_week.slice(0, 3))} {s.start_time}–{s.end_time}</span>
+              </span>
+            ))}
+
+            {/* TD Slot (Übung / Tutorial - 2h) */}
+            {tdSlots.length === 1 && (
+              <span
+                title={`${tdSlots[0].day_of_week} ${tdSlots[0].start_time}-${tdSlots[0].end_time} [${tdSlots[0].group_name || 'Groupe 1'}]`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30"
+              >
+                <span>📝</span>
+                <span>{t('subjects.td_tutorial', 'TD')}:</span>
+                <span className="font-mono">{t(`days.${tdSlots[0].day_of_week}`, tdSlots[0].day_of_week.slice(0, 3))} {tdSlots[0].start_time}–{tdSlots[0].end_time}</span>
+                <span className="opacity-75 font-normal">({tdSlots[0].group_name || 'Groupe 1'})</span>
+              </span>
+            )}
+
+            {tdSlots.length > 1 && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30">
+                <span>📝</span>
+                <span>{t('subjects.td_tutorial', 'TD')}:</span>
+                <select
+                  value={course.selected_td_slot_id || tdSlots[0].id}
+                  onChange={(e) => onGroupChange?.(course.id, 'TD', Number(e.target.value))}
+                  className="bg-transparent border-none text-[10px] font-semibold text-purple-900 dark:text-purple-200 focus:ring-0 cursor-pointer p-0 underline"
+                >
+                  {tdSlots.map((s) => (
+                    <option key={s.id} value={s.id} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800">
+                      {s.group_name || `Groupe ${s.id}`} ({t(`days.${s.day_of_week}`, s.day_of_week.slice(0, 3))} {s.start_time}–{s.end_time})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* TP Slot (Praktikum / Lab - 2h) */}
+            {tpSlots.length === 1 && (
+              <span
+                title={`${tpSlots[0].day_of_week} ${tpSlots[0].start_time}-${tpSlots[0].end_time} [${tpSlots[0].group_name || 'Lab 1'}]`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30"
+              >
+                <span>🧪</span>
+                <span>{t('subjects.tp_lab', 'TP')}:</span>
+                <span className="font-mono">{t(`days.${tpSlots[0].day_of_week}`, tpSlots[0].day_of_week.slice(0, 3))} {tpSlots[0].start_time}–{tpSlots[0].end_time}</span>
+                <span className="opacity-75 font-normal">({tpSlots[0].group_name || 'Lab 1'})</span>
+              </span>
+            )}
+
+            {tpSlots.length > 1 && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30">
+                <span>🧪</span>
+                <span>{t('subjects.tp_lab', 'TP')}:</span>
+                <select
+                  value={course.selected_tp_slot_id || tpSlots[0].id}
+                  onChange={(e) => onGroupChange?.(course.id, 'TP', Number(e.target.value))}
+                  className="bg-transparent border-none text-[10px] font-semibold text-emerald-900 dark:text-emerald-200 focus:ring-0 cursor-pointer p-0 underline"
+                >
+                  {tpSlots.map((s) => (
+                    <option key={s.id} value={s.id} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800">
+                      {s.group_name || `Lab ${s.id}`} ({t(`days.${s.day_of_week}`, s.day_of_week.slice(0, 3))} {s.start_time}–{s.end_time})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Status dropdown */}
-      <StatusDropdown
-        courseId={course.id}
-        currentStatus={course.enrollment_status}
-        onStatusChange={onStatusChange}
-        saving={savingId === course.id}
-      />
+      <div className="self-end sm:self-center">
+        <StatusDropdown
+          courseId={course.id}
+          currentStatus={course.enrollment_status}
+          onStatusChange={onStatusChange}
+          saving={savingId === course.id}
+        />
+      </div>
     </div>
   );
 };
 
 // ─── Teaching Unit group card ─────────────────────────────────────────────────
-const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, savingId }) => {
+const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, onGroupChange, savingId }) => {
   const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const enrolled = courses.filter((c) => c.enrollment_status).length;
@@ -264,6 +351,7 @@ const TeachingUnitGroup = ({ tuName, tuCode, tuEcts, courses, onStatusChange, sa
               key={c.id}
               course={c}
               onStatusChange={onStatusChange}
+              onGroupChange={onGroupChange}
               savingId={savingId}
             />
           ))}
@@ -336,6 +424,41 @@ const SubjectsPage = () => {
       alert(`Failed to update course status: ${err.response?.data?.detail || err.message}`);
     } finally {
       setSavingId(null);
+    }
+  }, [data]);
+
+  // Save selected TD or TP group slot
+  const handleGroupChange = useCallback(async (courseId, type, slotId) => {
+    try {
+      const course = data?.courses?.find(c => c.id === courseId);
+      const payload = {
+        course_id: courseId,
+        status: course?.enrollment_status || 'in_progress',
+        selected_td_slot_id: type === 'TD' ? slotId : course?.selected_td_slot_id,
+        selected_tp_slot_id: type === 'TP' ? slotId : course?.selected_tp_slot_id,
+      };
+      await apiClient.post('/api/v1/enrollments', payload);
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          courses: prev.courses.map((c) =>
+            c.id === courseId
+              ? {
+                  ...c,
+                  enrollment_status: c.enrollment_status || 'in_progress',
+                  selected_td_slot_id: type === 'TD' ? slotId : c.selected_td_slot_id,
+                  selected_tp_slot_id: type === 'TP' ? slotId : c.selected_tp_slot_id,
+                }
+              : c
+          ),
+          enrolled_courses: prev.courses.filter(
+            (c) => (c.id === courseId ? true : c.enrollment_status !== null)
+          ).length,
+        };
+      });
+    } catch (err) {
+      console.error('Failed to save group slot:', err);
     }
   }, [data]);
 
@@ -555,6 +678,7 @@ const SubjectsPage = () => {
               tuEcts={group.tu?.ects_required}
               courses={group.courses}
               onStatusChange={handleStatusChange}
+              onGroupChange={handleGroupChange}
               savingId={savingId}
             />
           ))}
@@ -586,6 +710,7 @@ const SubjectsPage = () => {
                           tuEcts={group.tu?.ects_required}
                           courses={group.courses}
                           onStatusChange={handleStatusChange}
+                          onGroupChange={handleGroupChange}
                           savingId={savingId}
                         />
                       </div>

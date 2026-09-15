@@ -53,6 +53,7 @@ async def _run_generation(
     week_start,
     force_regenerate: bool,
     db: Session,
+    language: str = "fr",
 ):
     """Background coroutine: AI plan generation (30-120s). Never blocks HTTP."""
     _tasks[task_id]["status"] = "running"
@@ -62,6 +63,7 @@ async def _run_generation(
             user_id=user_id,
             week_start=week_start,
             force_regenerate=force_regenerate,
+            language=language,
         )
         if success:
             _tasks[task_id]["status"] = "done"
@@ -99,14 +101,16 @@ async def generate_study_plan(
         "created_at": datetime.utcnow(),
         "user_id": current_user.id,
     }
+    target_lang = request.language or "fr"
     # asyncio.create_task() schedules the coroutine on the RUNNING event loop.
     # This is the correct way to run async background work in FastAPI.
-    asyncio.create_task(_run_generation(task_id, current_user.id, request.week_start, request.force_regenerate, db))
+    asyncio.create_task(_run_generation(task_id, current_user.id, request.week_start, request.force_regenerate, db, language=target_lang))
     return {"task_id": task_id, "status": "pending"}
 
 
 @router.post("/regenerate", status_code=202)
 async def regenerate_study_plan(
+    lang: Optional[str] = Query("fr", description="Target language: fr, en, de"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -136,7 +140,7 @@ async def regenerate_study_plan(
         "created_at": datetime.utcnow(),
         "user_id": current_user.id,
     }
-    asyncio.create_task(_run_generation(task_id, current_user.id, week_start, True, db))
+    asyncio.create_task(_run_generation(task_id, current_user.id, week_start, True, db, language=lang or "fr"))
     return {"task_id": task_id, "status": "pending"}
 
 
@@ -206,6 +210,7 @@ async def stream_study_plan(
             # ── 2. Stream AI generation ───────────────────────────────
             ai_service = AIService(db)
             plan_data = None
+            target_lang = request.language or "fr"
 
             async for chunk in ai_service.generate_study_plan_stream(
                 planning_data=planning_data,
@@ -213,6 +218,7 @@ async def stream_study_plan(
                 user_preferences=preferences,
                 user_id=current_user.id,
                 profile_context=profile_context,
+                language=target_lang,
             ):
                 # Parse the SSE chunk to intercept the final 'done' event
                 if chunk.startswith("data:"):

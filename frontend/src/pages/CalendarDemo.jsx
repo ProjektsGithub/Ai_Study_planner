@@ -81,6 +81,30 @@ const CalendarDemo = () => {
       end_time: '17:00',
       task_type: 'practice',
       notes: 'Pratique algorithmes'
+    },
+    {
+      id: 8,
+      course_name: 'Introduction aux bases de données relationnelles',
+      subject_name: 'Introduction aux bases de données relationnelles',
+      session_type: 'CM',
+      task_type: 'university_class',
+      is_academic_fixed: true,
+      day_of_week: 'Monday',
+      start_time: '11:00',
+      end_time: '13:00',
+      room_location: 'Amphi A'
+    },
+    {
+      id: 9,
+      course_name: 'Algorithmique et programmation orientée objet avancée',
+      subject_name: 'Algorithmique et programmation orientée objet avancée',
+      session_type: 'TP',
+      task_type: 'university_class',
+      is_academic_fixed: true,
+      day_of_week: 'Thursday',
+      start_time: '10:00',
+      end_time: '12:00',
+      room_location: 'Lab 204'
     }
   ];
 

@@ -1,16 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useLanguage } from '../context/LanguageContext';
+import { simplifyCourseName, getSessionCategoryInfo } from '../utils/formatCourseName';
 
 // ── Task type config (icons & colors) ────────────────────────────────────────
 const TASK_THEMES = {
-  university_class: { icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' },
-  lecture_review:    { icon: '📖', solid: '#6366f1', dark: '#4338ca' },
-  exercise_practice: { icon: '✏️', solid: '#f97316', dark: '#c2410c' },
-  exam_preparation:  { icon: '📝', solid: '#ef4444', dark: '#b91c1c' },
-  project_work:      { icon: '🔧', solid: '#10b981', dark: '#047857' },
-  reading:           { icon: '📚', solid: '#3b82f6', dark: '#1d4ed8' },
-  practice:          { icon: '🎯', solid: '#e11d48', dark: '#9f1239' },
+  university_class: { icon: '🏛️', solid: '#2563eb', dark: '#1d4ed8' },
+  lecture_review:    { icon: '📖', solid: '#4f46e5', dark: '#3730a3' },
+  exercise_practice: { icon: '✏️', solid: '#ea580c', dark: '#c2410c' },
+  exam_preparation:  { icon: '📝', solid: '#e11d48', dark: '#be123c' },
+  project_work:      { icon: '🔧', solid: '#0d9488', dark: '#0f766e' },
+  reading:           { icon: '📚', solid: '#0284c7', dark: '#0369a1' },
+  practice:          { icon: '🎯', solid: '#db2777', dark: '#be185d' },
 };
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -99,17 +100,44 @@ const WeeklyCalendarView = ({
             {weekDates[0].toLocaleDateString(localeCode, { day: '2-digit', month: '2-digit' })} –{' '}
             {weekDates[6].toLocaleDateString(localeCode, { day: '2-digit', month: '2-digit' })}
           </span>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {['university_class', 'lecture_review', 'exercise_practice', 'exam_preparation', 'project_work', 'reading'].map((taskKey) => {
-              const theme = TASK_THEMES[taskKey];
-              const label = t(`task.${taskKey}`, taskKey);
-              return (
-                <span key={taskKey} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#374151', fontWeight: 500 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 3, background: theme.solid, display: 'inline-block', flexShrink: 0 }} />
-                  {label}
+          {/* Academic & Study Legend */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {/* Cours Scolaires Group */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe' }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>
+                🎓 {t('academic.legend_academic', 'Cours Scolaires')}:
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: '#1e3a8a', fontWeight: 600 }} title="Cours Magistral">
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: '#2563eb', display: 'inline-block' }} />
+                CM
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: '#6d28d9', fontWeight: 600 }} title="Travaux Dirigés">
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: '#7c3aed', display: 'inline-block' }} />
+                TD
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: '#047857', fontWeight: 600 }} title="Travaux Pratiques">
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: '#059669', display: 'inline-block' }} />
+                TP
+              </span>
+            </div>
+
+            {/* Study Sessions Group */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>
+                📚 {t('academic.legend_personal', 'Travail Personnel')}:
+              </span>
+              {[
+                { key: 'lecture_review', label: t('task.lecture_review', 'Révision'), color: '#4f46e5' },
+                { key: 'exercise_practice', label: t('task.exercise_practice', 'Exercices'), color: '#ea580c' },
+                { key: 'exam_preparation', label: t('task.exam_preparation', 'Prépa Exam'), color: '#e11d48' },
+                { key: 'project_work', label: t('task.project_work', 'Projet'), color: '#0d9488' },
+              ].map(item => (
+                <span key={item.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: '#334155', fontWeight: 600 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: item.color, display: 'inline-block' }} />
+                  {item.label}
                 </span>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -226,33 +254,34 @@ const WeeklyCalendarView = ({
                       const durMin = (eh * 60 + em) - (sh * 60 + sm);
                       const heightPx = (durMin / 60) * ROW_H;
                       const topPx = (sm / 60) * ROW_H;
-                      const isAcademic = session.is_academic_fixed || session.session_type === 'CM' || session.session_type === 'TD' || session.session_type === 'TP' || session.task_type === 'university_class';
-                      const theme = isAcademic
-                        ? { icon: '🏛️', solid: '#3b82f6', dark: '#1e3a8a' }
-                        : (TASK_THEMES[session.task_type] || TASK_THEMES.lecture_review);
-                      const taskLabel = isAcademic
-                        ? (session.session_type || t('task.university_class', 'Cours Univ'))
-                        : t(`task.${session.task_type}`, 'Cours');
+                      const info = getSessionCategoryInfo(session);
+                      const rawTitle = session.course_name || session.subject_name || session.title || t('task.university_class', 'Cours');
+                      const simplifiedTitle = simplifyCourseName(rawTitle, 24);
                       const done = session.completed;
+                      const tooltipText = `${rawTitle}${session.course_code ? ` [${session.course_code}]` : ''} • ${info.fullLabel}${session.room_location ? ` • Salle: ${session.room_location}` : ''} (${session.start_time.slice(0,5)}–${session.end_time.slice(0,5)})`;
 
                       return (
                         <div
                           key={session.id}
                           onClick={() => onSessionClick?.(session)}
+                          title={tooltipText}
                           style={{
                             position: 'absolute',
                             top: topPx + 2, left: 3, right: 3,
-                            height: Math.max(heightPx - 4, 22),
-                            borderRadius: 7,
-                            background: done ? '#e5e7eb' : theme.solid,
-                            borderLeft: `3px solid ${done ? '#9ca3af' : theme.dark}`,
+                            height: Math.max(heightPx - 4, 24),
+                            borderRadius: 8,
+                            background: done ? '#e5e7eb' : info.solid,
+                            borderLeft: `3.5px solid ${done ? '#9ca3af' : info.dark}`,
                             cursor: 'pointer',
                             zIndex: 10,
                             padding: '4px 6px',
                             overflow: 'hidden',
-                            boxShadow: done ? 'none' : '0 1px 6px rgba(0,0,0,0.18)',
+                            boxShadow: done ? 'none' : '0 2px 7px rgba(0,0,0,0.16)',
                             opacity: done ? 0.75 : 1,
                             transition: 'transform 0.12s, box-shadow 0.12s',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
                           }}
                           onMouseEnter={e => {
                             e.currentTarget.style.transform = 'scale(1.025)';
@@ -261,48 +290,68 @@ const WeeklyCalendarView = ({
                           }}
                           onMouseLeave={e => {
                             e.currentTarget.style.transform = 'scale(1)';
-                            e.currentTarget.style.boxShadow = done ? 'none' : '0 1px 6px rgba(0,0,0,0.18)';
+                            e.currentTarget.style.boxShadow = done ? 'none' : '0 2px 7px rgba(0,0,0,0.16)';
                             e.currentTarget.style.zIndex = 10;
                           }}
                         >
-                          {/* ✓ badge */}
-                          {done && (
-                            <span style={{
-                              position: 'absolute', top: 3, right: 4,
-                              background: '#10b981', color: '#fff',
-                              borderRadius: '50%', width: 13, height: 13,
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 8, fontWeight: 900,
-                            }}>✓</span>
-                          )}
+                          {/* Top part: Type badge + checkmark + Title */}
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBottom: 2 }}>
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 3,
+                                background: info.isCourse ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.22)',
+                                backdropFilter: 'blur(4px)',
+                                borderRadius: 4,
+                                padding: '1px 5px',
+                                fontSize: 8.5,
+                                fontWeight: 800,
+                                letterSpacing: 0.3,
+                                color: '#ffffff',
+                                textTransform: 'uppercase',
+                                lineHeight: 1.2,
+                              }}>
+                                <span>{info.icon}</span>
+                                <span>{info.badgeText}</span>
+                              </span>
 
-                          {/* Subject */}
-                          <div style={{
-                            fontSize: 11, fontWeight: 700, color: '#fff',
-                            textDecoration: done ? 'line-through' : 'none',
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            lineHeight: 1.2,
-                            textShadow: '0 1px 3px rgba(0,0,0,0.35)',
-                            paddingRight: done ? 14 : 0,
-                          }}>
-                            {session.subject_name}
+                              {done && (
+                                <span style={{
+                                  background: '#10b981', color: '#fff',
+                                  borderRadius: '50%', width: 13, height: 13,
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 8, fontWeight: 900, flexShrink: 0,
+                                }}>✓</span>
+                              )}
+                            </div>
+
+                            {/* Simplified Course / Subject Name */}
+                            <div style={{
+                              fontSize: 11, fontWeight: 800, color: '#fff',
+                              textDecoration: done ? 'line-through' : 'none',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                              lineHeight: 1.2,
+                              textShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                            }}>
+                              {simplifiedTitle}
+                            </div>
                           </div>
 
-                          {/* Times */}
-                          {heightPx >= 36 && (
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.9)', marginTop: 1, fontWeight: 500 }}>
-                              {session.start_time.slice(0,5)}–{session.end_time.slice(0,5)}
-                            </div>
-                          )}
-
-                          {/* Type badge */}
-                          {heightPx >= 52 && (
+                          {/* Bottom part: Time + Room if height permits */}
+                          {heightPx >= 46 && (
                             <div style={{
-                              marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 3,
-                              background: 'rgba(0,0,0,0.25)', borderRadius: 10,
-                              padding: '1px 5px', fontSize: 9, color: '#fff', fontWeight: 600,
+                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                              fontSize: 9.5, color: 'rgba(255,255,255,0.92)',
+                              marginTop: 2, fontWeight: 600,
                             }}>
-                              {theme.icon} {taskLabel}
+                              <span>{session.start_time.slice(0,5)}–{session.end_time.slice(0,5)}</span>
+                              {session.room_location && (
+                                <span style={{
+                                  maxWidth: '48%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                  opacity: 0.95,
+                                }}>
+                                  📍 {session.room_location}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>

@@ -63,16 +63,200 @@ SUBJECT_PALETTE = [
     ('#4F46E5', '#EEF2FF'),  # Indigo
 ]
 
-JOURS_FR = {
-    'Monday': 'Lundi',
-    'Tuesday': 'Mardi',
-    'Wednesday': 'Mercredi',
-    'Thursday': 'Jeudi',
-    'Friday': 'Vendredi',
-    'Saturday': 'Samedi',
-    'Sunday': 'Dimanche',
+PDF_TRANSLATIONS = {
+    'fr': {
+        'days': {
+            'Monday': 'Lundi',
+            'Tuesday': 'Mardi',
+            'Wednesday': 'Mercredi',
+            'Thursday': 'Jeudi',
+            'Friday': 'Vendredi',
+            'Saturday': 'Samedi',
+            'Sunday': 'Dimanche',
+        },
+        'title': "Plan d'Étude",
+        'header_title': "Plan d'Étude",
+        'week_subtitle': "Semaine du {start} au {end}",
+        'program': "Filière",
+        'program_label': "Filière",
+        'generated_on': "Généré le",
+        'page': "Page {page}",
+        'page_prefix': "Page",
+        'stats': {
+            'ai_sessions': "Sessions IA",
+            'academic_hours': "Cours Univ",
+            'ai_hours': "Heures IA",
+            'subjects': "Matières",
+            'status': "Statut",
+            'status_edited': "Modifié",
+            'status_generated': "Généré",
+        },
+        'schedule_title': "Planning de la Semaine (Cours & Révisions IA)",
+        'calendar_title': "Planning de la Semaine (Cours & Révisions IA)",
+        'time_slot': "Créneau",
+        'slot_label': "Créneau",
+        'empty_schedule': "Aucune session ou cours planifié pour cette semaine.",
+        'no_sessions': "Aucune session ou cours planifié pour cette semaine.",
+        'academic_types': {
+            'CM': 'Cours (CM)',
+            'TD': 'TD (Travaux Dirigés)',
+            'TP': 'TP (Travaux Pratiques)',
+            'EXAM': 'Examen',
+        },
+        'study_tasks': {
+            'lecture_review': 'Révision Cours',
+            'exercise_practice': 'Exercices',
+            'exam_preparation': 'Prépa Examen',
+            'project_work': 'Projet',
+            'reading': 'Lecture',
+            'practice': 'Pratique',
+            'university_class': 'Cours Univ',
+        },
+        'task_types': {
+            'lecture_review': 'Révision Cours',
+            'exercise_practice': 'Exercices',
+            'exam_preparation': 'Prépa Examen',
+            'project_work': 'Projet',
+            'reading': 'Lecture',
+            'practice': 'Pratique',
+            'university_class': 'Cours Univ',
+        },
+        'legend': "Légende des Matières et Cours",
+        'academic_class_legend': "Cours Universitaires Fixes (CM, TD, TP)",
+        'fallback_study': "Étude IA",
+        'fallback_subject': "Révision",
+        'fallback_user': "Étudiant",
+    },
+    'en': {
+        'days': {
+            'Monday': 'Monday',
+            'Tuesday': 'Tuesday',
+            'Wednesday': 'Wednesday',
+            'Thursday': 'Thursday',
+            'Friday': 'Friday',
+            'Saturday': 'Saturday',
+            'Sunday': 'Sunday',
+        },
+        'title': "Study Plan",
+        'header_title': "Study Plan",
+        'week_subtitle': "Week from {start} to {end}",
+        'program': "Program",
+        'program_label': "Program",
+        'generated_on': "Generated on",
+        'page': "Page {page}",
+        'page_prefix': "Page",
+        'stats': {
+            'ai_sessions': "AI Sessions",
+            'academic_hours': "Univ Classes",
+            'ai_hours': "AI Hours",
+            'subjects': "Subjects",
+            'status': "Status",
+            'status_edited': "Edited",
+            'status_generated': "Generated",
+        },
+        'schedule_title': "Weekly Schedule (Classes & AI Study)",
+        'calendar_title': "Weekly Schedule (Classes & AI Study)",
+        'time_slot': "Time Slot",
+        'slot_label': "Time Slot",
+        'empty_schedule': "No study sessions or classes scheduled for this week.",
+        'no_sessions': "No study sessions or classes scheduled for this week.",
+        'academic_types': {
+            'CM': 'Lecture (CM)',
+            'TD': 'Tutorial (TD)',
+            'TP': 'Practical Work (TP)',
+            'EXAM': 'Exam',
+        },
+        'study_tasks': {
+            'lecture_review': 'Lecture Review',
+            'exercise_practice': 'Exercises',
+            'exam_preparation': 'Exam Prep',
+            'project_work': 'Project',
+            'reading': 'Reading',
+            'practice': 'Practice',
+            'university_class': 'Univ Class',
+        },
+        'task_types': {
+            'lecture_review': 'Lecture Review',
+            'exercise_practice': 'Exercises',
+            'exam_preparation': 'Exam Prep',
+            'project_work': 'Project',
+            'reading': 'Reading',
+            'practice': 'Practice',
+            'university_class': 'Univ Class',
+        },
+        'legend': "Subjects & Courses Legend",
+        'academic_class_legend': "Fixed University Classes (CM, TD, TP)",
+        'fallback_study': "AI Study",
+        'fallback_subject': "Study",
+        'fallback_user': "Student",
+    },
+    'de': {
+        'days': {
+            'Monday': 'Montag',
+            'Tuesday': 'Dienstag',
+            'Wednesday': 'Mittwoch',
+            'Thursday': 'Donnerstag',
+            'Friday': 'Freitag',
+            'Saturday': 'Samstag',
+            'Sunday': 'Sonntag',
+        },
+        'title': "Studienplan",
+        'header_title': "Studienplan",
+        'week_subtitle': "Woche vom {start} bis {end}",
+        'program': "Studiengang",
+        'program_label': "Studiengang",
+        'generated_on': "Erstellt am",
+        'page': "Seite {page}",
+        'page_prefix': "Seite",
+        'stats': {
+            'ai_sessions': "KI-Sitzungen",
+            'academic_hours': "Vorlesungen",
+            'ai_hours': "KI-Stunden",
+            'subjects': "Fächer",
+            'status': "Status",
+            'status_edited': "Bearbeitet",
+            'status_generated': "Generiert",
+        },
+        'schedule_title': "Wochenplan (Kurse & KI-Lernen)",
+        'calendar_title': "Wochenplan (Kurse & KI-Lernen)",
+        'time_slot': "Zeitfenster",
+        'slot_label': "Zeitfenster",
+        'empty_schedule': "Keine Lernsitzungen oder Vorlesungen für diese Woche geplant.",
+        'no_sessions': "Keine Lernsitzungen oder Vorlesungen für diese Woche geplant.",
+        'academic_types': {
+            'CM': 'Vorlesung (CM)',
+            'TD': 'Übung (TD)',
+            'TP': 'Praktikum (TP)',
+            'EXAM': 'Prüfung',
+        },
+        'study_tasks': {
+            'lecture_review': 'Vorlesungswiederholung',
+            'exercise_practice': 'Übungsaufgaben',
+            'exam_preparation': 'Prüfungsvorbereitung',
+            'project_work': 'Projektarbeit',
+            'reading': 'Lektüre',
+            'practice': 'Praxis',
+            'university_class': 'Vorlesung',
+        },
+        'task_types': {
+            'lecture_review': 'Vorlesungswiederholung',
+            'exercise_practice': 'Übungsaufgaben',
+            'exam_preparation': 'Prüfungsvorbereitung',
+            'project_work': 'Projektarbeit',
+            'reading': 'Lektüre',
+            'practice': 'Praxis',
+            'university_class': 'Vorlesung',
+        },
+        'legend': "Legende der Fächer und Vorlesungen",
+        'academic_class_legend': "Feste Vorlesungen (CM, TD, TP)",
+        'fallback_study': "KI-Lernen",
+        'fallback_subject': "Lernen",
+        'fallback_user': "Student",
+    },
 }
-DAYS_OF_WEEK = list(JOURS_FR.keys())
+
+JOURS_FR = PDF_TRANSLATIONS['fr']['days']
+DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 
 # ─── Flowables ─────────────────────────────────────────────────────────────
@@ -159,16 +343,21 @@ class ExportService:
             textColor=TEXT_DARK,
         ))
 
-    async def generate_pdf(self, plan_id: str, user: User) -> BytesIO:
+    async def generate_pdf(self, plan_id: str, user: User, lang: str = "fr") -> BytesIO:
         try:
             return await asyncio.wait_for(
-                self._generate_pdf_internal(plan_id, user),
+                self._generate_pdf_internal(plan_id, user, lang=lang),
                 timeout=self.TIMEOUT_SECONDS,
             )
         except asyncio.TimeoutError:
             raise TimeoutError(f"PDF generation exceeded {self.TIMEOUT_SECONDS}s")
 
-    async def _generate_pdf_internal(self, plan_id: str, user: User) -> BytesIO:
+    async def _generate_pdf_internal(self, plan_id: str, user: User, lang: str = "fr") -> BytesIO:
+        self.lang = (lang or 'fr').strip().lower()[:2]
+        if self.lang not in PDF_TRANSLATIONS:
+            self.lang = 'fr'
+        self.t = PDF_TRANSLATIONS[self.lang]
+
         plan = self.db.query(StudyPlan).filter(
             StudyPlan.plan_id == plan_id,
             StudyPlan.user_id == user.id,
@@ -240,16 +429,19 @@ class ExportService:
             rightMargin=margin,
             topMargin=3.4 * cm,   # Clear of the 3.0cm top canvas banner
             bottomMargin=1.4 * cm,
-            title=f"Plan d'Etude - {user.name}",
+            title=f"{self.t['header_title']} - {user.name}",
             author="AI Study Planner",
         )
 
         # Store metadata for canvas header drawing
-        self._user_name = user.name or "Étudiant"
+        self._user_name = user.name or self.t['fallback_user']
         week_start = plan.week_start
         week_end = week_start + timedelta(days=6)
-        prog_info = f"  |  Filiere: {program_name}" if program_name else ""
-        self._subtitle = f"Semaine du {week_start.strftime('%d/%m/%Y')} au {week_end.strftime('%d/%m/%Y')}{prog_info}"
+        prog_info = f"  |  {self.t['program_label']}: {program_name}" if program_name else ""
+        self._subtitle = self.t['week_subtitle'].format(
+            start=week_start.strftime('%d/%m/%Y'),
+            end=week_end.strftime('%d/%m/%Y')
+        ) + prog_info
 
         story = []
         story.extend(self._build_stats(sessions, academic_slots, plan))
@@ -297,7 +489,7 @@ class ExportService:
         # ── Title & Subtitle drawn cleanly on canvas (No overflow/overlap) ──
         canv.setFillColor(TEXT_WHITE)
         canv.setFont('Helvetica-Bold', 17)
-        canv.drawString(1.4 * cm, h - 1.3 * cm, f"Plan d'Étude  |  {self._user_name}")
+        canv.drawString(1.4 * cm, h - 1.3 * cm, f"{self.t['header_title']}  |  {self._user_name}")
 
         canv.setFillColor(TEXT_LIGHT)
         canv.setFont('Helvetica', 9.5)
@@ -313,8 +505,8 @@ class ExportService:
         canv.setFillColor(TEXT_LIGHT)
         canv.setFont('Helvetica', 7)
         now = datetime.now().strftime('%d/%m/%Y %H:%M')
-        canv.drawString(1.4 * cm, 0.35 * cm, f"AI Study Planner  |  Généré le {now}")
-        canv.drawRightString(w - 1.4 * cm, 0.35 * cm, f"Page {canv.getPageNumber()}")
+        canv.drawString(1.4 * cm, 0.35 * cm, f"AI Study Planner  |  {self.t['generated_on']} {now}")
+        canv.drawRightString(w - 1.4 * cm, 0.35 * cm, f"{self.t['page_prefix']} {canv.getPageNumber()}")
 
         canv.restoreState()
 
@@ -326,12 +518,13 @@ class ExportService:
         subjects = list(dict.fromkeys(s.subject.name for s in sessions if s.subject))
         completed = sum(1 for s in sessions if getattr(s, 'completed', False))
 
+        status_text = self.t['stats']['status_edited'] if plan.edited else self.t['stats']['status_generated']
         boxes = [
-            StatBox('Sessions IA', len(sessions), PRIMARY, 4.8 * cm),
-            StatBox('Cours Univ', f'{total_academic_hours:.1f}h', colors.HexColor('#2563EB'), 4.8 * cm),
-            StatBox('Heures IA', f'{total_ai_hours:.1f}h', ACCENT, 4.8 * cm),
-            StatBox('Matières', len(subjects), SUCCESS, 4.8 * cm),
-            StatBox('Statut', 'Modifié' if plan.edited else 'Généré', GOLD, 4.8 * cm),
+            StatBox(self.t['stats']['ai_sessions'], len(sessions), PRIMARY, 4.8 * cm),
+            StatBox(self.t['stats']['academic_hours'], f'{total_academic_hours:.1f}h', colors.HexColor('#2563EB'), 4.8 * cm),
+            StatBox(self.t['stats']['ai_hours'], f'{total_ai_hours:.1f}h', ACCENT, 4.8 * cm),
+            StatBox(self.t['stats']['subjects'], len(subjects), SUCCESS, 4.8 * cm),
+            StatBox(self.t['stats']['status'], status_text, GOLD, 4.8 * cm),
         ]
 
         data = [boxes]
@@ -359,7 +552,7 @@ class ExportService:
     ) -> list:
         elements = []
 
-        elements.append(Paragraph('Planning de la Semaine (Cours & Révisions IA)', self.styles['SectionTitle']))
+        elements.append(Paragraph(self.t['calendar_title'], self.styles['SectionTitle']))
         elements.append(ColoredRule(page_size[0] - 2 * margin, 2, PRIMARY))
         elements.append(Spacer(1, 4))
 
@@ -375,14 +568,15 @@ class ExportService:
                 except Exception:
                     st_str, et_str = '00:00', '00:00'
                 
-                subj_name = s.subject.name if s.subject else 'Révision'
+                subj_name = s.subject.name if s.subject else self.t['fallback_subject']
                 fg_hex, bg_hex = subject_colors.get(subj_name, ('#4F46E5', '#EEF2FF'))
+                task_label = self.t['task_types'].get(s.task_type, s.task_type or self.t['fallback_study'])
                 
                 by_day[s.day].append({
                     'is_academic': False,
                     'title': subj_name,
                     'time_str': f"{st_str} - {et_str}",
-                    'sub_info': s.task_type or 'Étude IA',
+                    'sub_info': task_label,
                     'fg_hex': fg_hex,
                     'bg_hex': bg_hex,
                     'sort_key': st_str,
@@ -397,12 +591,14 @@ class ExportService:
                 except Exception:
                     st_str, et_str = '00:00', '00:00'
                 
+                type_labels = self.t['academic_types']
+                type_label = type_labels.get(cs.session_type, cs.session_type or type_labels.get('CM', 'Cours'))
                 room_str = f" ({cs.room_location})" if cs.room_location else ""
                 by_day[cs.day_of_week].append({
                     'is_academic': True,
                     'title': cs.course_name,
                     'time_str': f"{st_str} - {et_str}",
-                    'sub_info': f"🏛️ {cs.session_type or 'CM'}{room_str}",
+                    'sub_info': f"🏛️ {type_label}{room_str}",
                     'fg_hex': '#1E3A8A', # Academic Dark Navy
                     'bg_hex': '#DBEAFE', # Academic Soft Blue
                     'sort_key': st_str,
@@ -415,7 +611,7 @@ class ExportService:
         max_slots = max((len(v) for v in by_day.values()), default=0)
         if max_slots == 0:
             elements.append(Paragraph(
-                '<para align="center">Aucune session ou cours planifié pour cette semaine.</para>',
+                f'<para align="center">{self.t["no_sessions"]}</para>',
                 self.styles['Normal'],
             ))
             return elements
@@ -425,13 +621,13 @@ class ExportService:
         day_w    = (usable_w - label_w) / 7
 
         # Table Header Row
-        header_row = [Paragraph('<b>Créneau</b>', ParagraphStyle(
+        header_row = [Paragraph(f'<b>{self.t["slot_label"]}</b>', ParagraphStyle(
             'DH', parent=self.styles['Normal'], fontSize=7.5,
             fontName='Helvetica-Bold', textColor=TEXT_WHITE, alignment=TA_CENTER,
         ))]
         for day in DAYS_OF_WEEK:
             header_row.append(Paragraph(
-                f'<b>{JOURS_FR[day]}</b>',
+                f'<b>{self.t["days"][day]}</b>',
                 ParagraphStyle('DH2', parent=self.styles['Normal'],
                                fontSize=7.5, fontName='Helvetica-Bold',
                                textColor=TEXT_WHITE, alignment=TA_CENTER),
@@ -504,7 +700,7 @@ class ExportService:
 
     def _build_legend(self, subject_colors: dict, has_academic: bool = False) -> list:
         elements = [
-            Paragraph('Légende des Matières et Cours', self.styles['SectionTitle']),
+            Paragraph(self.t['legend'], self.styles['SectionTitle']),
             ColoredRule(10 * cm, 2, PRIMARY_LIGHT),
             Spacer(1, 4),
         ]
@@ -514,7 +710,7 @@ class ExportService:
         # Include Academic Course Legend Swatch if academic slots exist
         if has_academic:
             legend_items.append(Paragraph(
-                '<font color="#1E3A8A">&#9632;</font>  <b>🏛️ Cours Universitaires Fixes (CM, TD, TP)</b>',
+                f'<font color="#1E3A8A">&#9632;</font>  <b>🏛️ {self.t["academic_class_legend"]}</b>',
                 ParagraphStyle('LegAcad', parent=self.styles['Normal'],
                                fontSize=8, fontName='Helvetica-Bold', textColor=colors.HexColor('#1E3A8A')),
             ))

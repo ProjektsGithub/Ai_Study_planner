@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import apiClient from '../api/client';
+import { formatApiError } from '../utils/errorUtils';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -64,7 +65,7 @@ const ProfilePage = () => {
       }, 1200);
     } catch (err) {
       console.error('Account update error:', err);
-      setAccountMessage({ type: 'error', text: err.response?.data?.detail || 'Erreur lors de la mise à jour.' });
+      setAccountMessage({ type: 'error', text: formatApiError(err, 'Erreur lors de la mise à jour.') });
     } finally {
       setUpdatingAccount(false);
     }
@@ -95,7 +96,7 @@ const ProfilePage = () => {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       console.error('Password change error:', err);
-      setPasswordMessage({ type: 'error', text: err.response?.data?.detail || 'Erreur lors du changement de mot de passe.' });
+      setPasswordMessage({ type: 'error', text: formatApiError(err, 'Erreur lors du changement de mot de passe.') });
     } finally {
       setUpdatingPassword(false);
     }

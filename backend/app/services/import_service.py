@@ -360,6 +360,8 @@ class ImportService:
                 "end_time": self._get_cell_value(row, 7),
                 "session_type": self._get_cell_value(row, 8) or "CM",
                 "room_location": self._get_cell_value(row, 9),
+                "group_name": self._get_cell_value(row, 10),
+                "is_fixed": self._get_cell_value(row, 11),
                 "_row": i
             })
         
@@ -1315,16 +1317,43 @@ class ImportService:
                             return time(int(parts[0]), int(parts[1]))
                         return time(8, 30)
 
+                    stype = (cs_data.get("session_type") or "CM").upper().strip()
+                    raw_grp = cs_data.get("group_name")
+                    if not raw_grp:
+                        raw_grp = "Promotion (Fixe)" if stype == "CM" else "Groupe 1"
+
+                    raw_fixed = cs_data.get("is_fixed")
+                    if raw_fixed is not None:
+                        is_fixed_val = str(raw_fixed).strip().lower() in ["true", "1", "yes", "vrai"]
+                    else:
+                        is_fixed_val = True if stype == "CM" else False
+
+                    # Link course_id if course exists
+                    clean_cname = cs_data.get("course_name", "").split('(')[0].strip()
+                    matched_course = None
+                    if semester:
+                        matched_course = self.db.query(Course).filter(
+                            Course.semester_id == semester.id,
+                            (Course.name == clean_cname) | (Course.code == cs_data.get("course_code"))
+                        ).first()
+                    elif track:
+                        matched_course = self.db.query(Course).filter(
+                            Course.name == clean_cname
+                        ).first()
+
                     cs = ClassSchedule(
                         study_program_id=program.id,
                         academic_track_id=track.id if track else None,
                         semester_id=semester.id if semester else None,
+                        course_id=matched_course.id if matched_course else None,
                         course_name=cs_data.get("course_name", "Cours"),
                         course_code=cs_data.get("course_code"),
                         day_of_week=cs_data.get("day_of_week", "Monday"),
                         start_time=parse_time_val(cs_data.get("start_time")),
                         end_time=parse_time_val(cs_data.get("end_time")),
-                        session_type=cs_data.get("session_type", "CM"),
+                        session_type=stype,
+                        group_name=raw_grp,
+                        is_fixed=is_fixed_val,
                         room_location=cs_data.get("room_location"),
                         is_mandatory=True
                     )

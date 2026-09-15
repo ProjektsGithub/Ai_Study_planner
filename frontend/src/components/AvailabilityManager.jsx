@@ -5,6 +5,7 @@ import Button from './ui/Button';
 import Modal from './ui/Modal';
 import Input from './ui/Input';
 import { useLanguage } from '../context/LanguageContext';
+import { simplifyCourseName } from '../utils/formatCourseName';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -237,7 +238,7 @@ const AvailabilityManager = () => {
                               color: '#ffffff'
                             }}
                           >
-                            {item.session_type === 'CM' ? '🏛️ CM' : item.session_type === 'TD' ? '📝 TD' : item.session_type === 'TP' ? '🧪 TP' : '🎯 EXAM'}
+                            {item.session_type === 'CM' ? '🏛️ Cours (CM)' : item.session_type === 'TD' ? '📝 TD (Travaux Dirigés)' : item.session_type === 'TP' ? '🧪 TP (Travaux Pratiques)' : '🎯 Examen'}
                           </span>
 
                           <span
@@ -251,8 +252,9 @@ const AvailabilityManager = () => {
                         <h4
                           className="font-black text-xs leading-snug pt-1"
                           style={{ color: '#0f172a' }}
+                          title={item.course_name}
                         >
-                          {item.course_name}
+                          {simplifyCourseName(item.course_name, 32)}
                         </h4>
 
                         {item.room_location && (

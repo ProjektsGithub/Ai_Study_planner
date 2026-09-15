@@ -128,7 +128,7 @@ export default {
 
   // Tasks
   'task.university_class': 'Vorlesung',
-  'task.lecture_review': 'Theorie',
+  'task.lecture_review': 'Vorlesungswiederholung',
   'task.exercise_practice': 'Übung',
   'task.exam_preparation': 'Prüfungsvorbereitung',
   'task.project_work': 'Projektarbeit',
@@ -141,6 +141,20 @@ export default {
   'task.desc.project_work': 'An Aufgaben und Gruppenprojekten arbeiten',
   'task.desc.reading': 'Fachliteratur und Dokumentationen lesen',
   'task.desc.practice': 'Praktische Anwendung',
+
+  // Academic types
+  'academic.cm': 'Vorlesung (CM)',
+  'academic.cm_short': 'Vorlesung (CM)',
+  'academic.td': 'Übung (TD)',
+  'academic.td_short': 'TD',
+  'academic.tp': 'Praktikum (TP)',
+  'academic.tp_short': 'Praktikum (TP)',
+  'academic.exam': 'Prüfung / Klausur',
+  'academic.exam_short': 'Prüfung',
+  'academic.badge_course': 'KURS',
+  'academic.badge_study': 'LERNEN',
+  'academic.legend_academic': 'Vorlesungen & Kurse',
+  'academic.legend_personal': 'Selbststudium & Wiederholung',
 
   // Calendar view
   'calendar.empty_title': 'Kein Studienplan für diese Woche',
@@ -278,6 +292,12 @@ export default {
   'subjects.stat_retake': 'Wiederholungen',
   'subjects.setup_required': 'Akademisches Profil erforderlich, um Kurse anzuzeigen.',
   'subjects.configure_profile_btn': 'Profil konfigurieren',
+  'subjects.timetable': 'Vorlesungsplan',
+  'subjects.cm_lecture': 'Vorlesung (Fest)',
+  'subjects.td_tutorial': 'Übung (Gruppe)',
+  'subjects.tp_lab': 'Praktikum (Labor)',
+  'subjects.select_group': 'Gruppe wählen',
+  'subjects.fixed_slot': 'Fest',
 
   // Availabilities
   'availabilities.title': 'Meine Verfügbarkeiten',

@@ -154,10 +154,12 @@ async def get_academic_schedule(
     query = base_query
     if profile.cursus_id:
         query = query.filter((ClassSchedule.academic_track_id == profile.cursus_id) | (ClassSchedule.academic_track_id == None))
-    if profile.current_semester:
+    sem_numbers = [profile.current_semester] + (profile.retake_semesters or []) if profile.current_semester else []
+    if sem_numbers:
         sem_ids = [
             s.id for s in db.query(Semester.id).filter(
-                Semester.semester_number == profile.current_semester,
+                Semester.academic_track_id == profile.cursus_id if profile.cursus_id else True,
+                Semester.semester_number.in_(sem_numbers),
                 Semester.is_deleted == False
             ).all()
         ]
@@ -167,7 +169,69 @@ async def get_academic_schedule(
     schedules = query.all()
     if not schedules and not profile.cursus_id:
         schedules = base_query.all()
-    
+
+    # Exclude classes belonging to courses the student has already validated
+    from app.models.student_course_enrollment import StudentCourseEnrollment
+    from app.models.course import Course
+
+    validated_enrollments = (
+        db.query(StudentCourseEnrollment)
+        .filter(
+            StudentCourseEnrollment.user_id == current_user.id,
+            StudentCourseEnrollment.status == "validated",
+        )
+        .all()
+    )
+    if validated_enrollments:
+        validated_course_names = set()
+        for ve in validated_enrollments:
+            vc = db.query(Course).filter(Course.id == ve.course_id).first()
+            if vc:
+                validated_course_names.add(vc.name)
+        if validated_course_names:
+            schedules = [
+                item for item in schedules
+                if not any(item.course_name.startswith(vname) or vname in item.course_name for vname in validated_course_names)
+            ]
+
+    # Resolve dynamic TD and TP slots according to student's selection or defaults
+    all_enrollments = (
+        db.query(StudentCourseEnrollment)
+        .filter(StudentCourseEnrollment.user_id == current_user.id)
+        .all()
+    )
+    enrollment_by_course = {e.course_id: e for e in all_enrollments}
+
+    resolved_schedules = []
+    seen_course_session = {}
+
+    for item in schedules:
+        cid = item.course_id
+        stype = item.session_type
+
+        if stype in ["TD", "TP"] and cid:
+            enrollment = enrollment_by_course.get(cid)
+            selected_slot_id = (
+                enrollment.selected_td_slot_id if stype == "TD"
+                else enrollment.selected_tp_slot_id
+            ) if enrollment else None
+
+            if selected_slot_id:
+                # Student explicitly selected a group slot: keep ONLY this slot
+                if item.id == selected_slot_id:
+                    resolved_schedules.append(item)
+            else:
+                # No specific group selected: keep the first group slot for this course & session_type
+                key = (cid, stype)
+                if key not in seen_course_session:
+                    seen_course_session[key] = True
+                    resolved_schedules.append(item)
+        else:
+            # CM (Vorlesung) or unlinked: always keep
+            resolved_schedules.append(item)
+
+    schedules = resolved_schedules
+
     # Calculate total class hours per week
     total_minutes = 0
     formatted_schedules = []
@@ -178,12 +242,15 @@ async def get_academic_schedule(
         total_minutes += max(dur, 0)
         formatted_schedules.append({
             "id": item.id,
+            "course_id": item.course_id,
             "course_name": item.course_name,
             "course_code": item.course_code,
             "day_of_week": item.day_of_week,
             "start_time": item.start_time.strftime("%H:%M"),
             "end_time": item.end_time.strftime("%H:%M"),
             "session_type": item.session_type,
+            "group_name": item.group_name,
+            "is_fixed": item.is_fixed,
             "room_location": item.room_location,
             "is_mandatory": item.is_mandatory
         })

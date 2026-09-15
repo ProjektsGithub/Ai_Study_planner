@@ -128,9 +128,9 @@ export default {
 
   // Tasks
   'task.university_class': 'Cours Univ',
-  'task.lecture_review': 'Cours',
-  'task.exercise_practice': 'Exercice',
-  'task.exam_preparation': 'Exam',
+  'task.lecture_review': 'Révision Cours',
+  'task.exercise_practice': 'Exercices',
+  'task.exam_preparation': 'Prépa Exam',
   'task.project_work': 'Projet',
   'task.reading': 'Lecture',
   'task.practice': 'Pratique',
@@ -141,6 +141,20 @@ export default {
   'task.desc.project_work': 'Avancer sur les projets et devoirs',
   'task.desc.reading': 'Lire les documents et références',
   'task.desc.practice': 'Application pratique',
+
+  // Academic types
+  'academic.cm': 'Cours Magistral (CM)',
+  'academic.cm_short': 'Cours (CM)',
+  'academic.td': 'Travaux Dirigés (TD)',
+  'academic.td_short': 'TD',
+  'academic.tp': 'Travaux Pratiques (TP)',
+  'academic.tp_short': 'TP (Pratique)',
+  'academic.exam': 'Examen / Évaluation',
+  'academic.exam_short': 'Examen',
+  'academic.badge_course': 'COURS',
+  'academic.badge_study': 'RÉVISION',
+  'academic.legend_academic': 'Cours Scolaires',
+  'academic.legend_personal': 'Travail Personnel & Révisions',
 
   // Calendar view
   'calendar.empty_title': 'Aucun plan d\'étude pour cette semaine',
@@ -278,6 +292,12 @@ export default {
   'subjects.stat_retake': 'Rattrapages',
   'subjects.setup_required': 'Profil académique requis pour afficher vos cours.',
   'subjects.configure_profile_btn': 'Configurer mon profil',
+  'subjects.timetable': 'Horaires universitaires',
+  'subjects.cm_lecture': 'Cours Magistral (Fixe)',
+  'subjects.td_tutorial': 'TD (Groupe)',
+  'subjects.tp_lab': 'TP (Laboratoire)',
+  'subjects.select_group': 'Sélectionner le groupe',
+  'subjects.fixed_slot': 'Fixe',
 
   // Availabilities
   'availabilities.title': 'Mes Disponibilités',

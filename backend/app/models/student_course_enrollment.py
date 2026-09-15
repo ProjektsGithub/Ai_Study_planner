@@ -39,6 +39,18 @@ class StudentCourseEnrollment(Base):
     # Free-text notes visible only to the student
     personal_notes = Column(Text, nullable=True)
 
+    # Dynamic TD / TP slot selection (German academic model: Vorlesung fixed, Übung/Praktikum selectable)
+    selected_td_slot_id = Column(
+        Integer,
+        ForeignKey("class_schedules.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    selected_tp_slot_id = Column(
+        Integer,
+        ForeignKey("class_schedules.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(
         DateTime,
@@ -55,6 +67,8 @@ class StudentCourseEnrollment(Base):
     # Relationships
     user = relationship("User", back_populates="course_enrollments")
     course = relationship("Course")
+    selected_td_slot = relationship("ClassSchedule", foreign_keys=[selected_td_slot_id])
+    selected_tp_slot = relationship("ClassSchedule", foreign_keys=[selected_tp_slot_id])
 
     def __repr__(self):
         return (

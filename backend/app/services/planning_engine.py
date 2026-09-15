@@ -20,6 +20,7 @@ from app.models.class_schedule import ClassSchedule
 from app.models.study_program import StudyProgram
 from app.models.semester import Semester
 from app.models.course import Course
+from app.models.student_course_enrollment import StudentCourseEnrollment
 
 logger = logging.getLogger(__name__)
 
@@ -179,18 +180,80 @@ class PlanningEngine:
             query = base_query
             if profile.cursus_id:
                 query = query.filter((ClassSchedule.academic_track_id == profile.cursus_id) | (ClassSchedule.academic_track_id == None))
-            if profile.current_semester:
+            sem_numbers = [profile.current_semester] + (profile.retake_semesters or []) if profile.current_semester else []
+            if sem_numbers:
                 sem_ids = [
                     s.id for s in self.db.query(Semester.id).filter(
-                        Semester.semester_number == profile.current_semester,
+                        Semester.academic_track_id == profile.cursus_id if profile.cursus_id else True,
+                        Semester.semester_number.in_(sem_numbers),
                         Semester.is_deleted == False
                     ).all()
                 ]
                 if sem_ids:
                     query = query.filter((ClassSchedule.semester_id.in_(sem_ids)) | (ClassSchedule.semester_id == None))
-            self.academic_schedules = query.all()
-            if not self.academic_schedules and not profile.cursus_id:
-                self.academic_schedules = base_query.all()
+            
+            schedules_list = query.all()
+            if not schedules_list and not profile.cursus_id:
+                schedules_list = base_query.all()
+
+            # Exclude classes belonging to courses the student has already validated
+            validated_enrollments = (
+                self.db.query(StudentCourseEnrollment)
+                .filter(
+                    StudentCourseEnrollment.user_id == self.user_id,
+                    StudentCourseEnrollment.status == "validated",
+                )
+                .all()
+            )
+            if validated_enrollments:
+                validated_course_names = set()
+                for ve in validated_enrollments:
+                    vc = self.db.query(Course).filter(Course.id == ve.course_id).first()
+                    if vc:
+                        validated_course_names.add(vc.name)
+                if validated_course_names:
+                    schedules_list = [
+                        cs for cs in schedules_list
+                        if not any(cs.course_name.startswith(vname) or vname in cs.course_name for vname in validated_course_names)
+                    ]
+
+            # Resolve dynamic TD and TP slots according to student's selection or defaults
+            all_enrollments = (
+                self.db.query(StudentCourseEnrollment)
+                .filter(StudentCourseEnrollment.user_id == self.user_id)
+                .all()
+            )
+            enrollment_by_course = {e.course_id: e for e in all_enrollments}
+
+            resolved_schedules = []
+            seen_course_session = {}
+
+            for item in schedules_list:
+                cid = item.course_id
+                stype = item.session_type
+
+                if stype in ["TD", "TP"] and cid:
+                    enrollment = enrollment_by_course.get(cid)
+                    selected_slot_id = (
+                        enrollment.selected_td_slot_id if stype == "TD"
+                        else enrollment.selected_tp_slot_id
+                    ) if enrollment else None
+
+                    if selected_slot_id:
+                        # Student explicitly selected a group slot: keep ONLY this slot
+                        if item.id == selected_slot_id:
+                            resolved_schedules.append(item)
+                    else:
+                        # No specific group selected: keep the first group slot for this course & session_type
+                        key = (cid, stype)
+                        if key not in seen_course_session:
+                            seen_course_session[key] = True
+                            resolved_schedules.append(item)
+                else:
+                    # CM (Vorlesung) or unlinked: always keep
+                    resolved_schedules.append(item)
+
+            self.academic_schedules = resolved_schedules
     
     def construct_valid_slots(self) -> List[TimeSlot]:
         """

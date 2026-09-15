@@ -58,10 +58,11 @@ class AIService:
         planning_data: Dict[str, Any],
         weekly_study_goal: float,
         user_preferences: Dict[str, Any],
-        profile_context: Optional[Dict[str, Any]] = None
+        profile_context: Optional[Dict[str, Any]] = None,
+        language: str = "fr"
     ) -> str:
         """
-        Construct structured prompt for AI generation with enhanced context.
+        Construct structured prompt for AI generation with enhanced context and language targeting.
         
         Args:
             planning_data: Output from PlanningEngine (may include academic_context
@@ -69,6 +70,7 @@ class AIService:
             weekly_study_goal: Target weekly study hours
             user_preferences: User preferences (break duration, session length, etc.)
             profile_context: Additional profile context (semester dates, commitments, etc.)
+            language: Target output language ('fr', 'en', 'de')
         
         Returns:
             Formatted prompt string
@@ -77,6 +79,35 @@ class AIService:
         subject_priorities = planning_data['subject_priorities']
         constraints = planning_data['constraints']
         
+        lang_code = (language or "fr").lower()[:2]
+        if lang_code == "en":
+            lang_instruction = (
+                "🌐 **MANDATORY OUTPUT LANGUAGE: ENGLISH**\n"
+                "- Every session 'notes' field, learning objective, and the 'reasoning' field MUST be written in natural ENGLISH.\n"
+                "- Keep course names recognizable, but write all explanatory, pedagogic and actionable instructions in English."
+            )
+            example_notes_1 = "Lecture Ch. 3: Sequence properties, limits and convergence theorems"
+            example_notes_2 = "Practice Ch. 3: Problem sets on sequence limits and recurrence"
+            example_reasoning = "Structured pedagogical progression starting with foundational theory followed by practical TD problem-solving"
+        elif lang_code == "de":
+            lang_instruction = (
+                "🌐 **PFLICHT-AUSGABESPRACHE: DEUTSCH (German)**\n"
+                "- Alle 'notes' (Notizen), Lernziele, Aufgabenbeschreibungen und das 'reasoning'-Feld MÜSSEN in natürlichem DEUTSCH verfasst sein.\n"
+                "- Fachbegriffe beibehalten, aber alle Anweisungen, Zusammenfassungen und Lernziele auf Deutsch formulieren."
+            )
+            example_notes_1 = "Vorlesung Kap. 3: Folgen, Reihen und Konvergenzkriterien"
+            example_notes_2 = "Übung Kap. 3: Aufgaben zu Grenzwerten und rekursiven Folgen"
+            example_reasoning = "Didaktisch strukturierte Progression: Vertiefung der mathematischen Grundlagen gefolgt von gezielten Übungsaufgaben"
+        else:
+            lang_instruction = (
+                "🌐 **LANGUE DE SORTIE OBLIGATOIRE : FRANÇAIS (French)**\n"
+                "- Toutes les 'notes', les objectifs d'apprentissage et le champ 'reasoning' DOIVENT être rédigés en FRANÇAIS naturel.\n"
+                "- Conservez les intitulés exacts mais formulez les explications et consignes en français."
+            )
+            example_notes_1 = "Cours Ch. 3 : Propriétés des suites et théorèmes de convergence"
+            example_notes_2 = "TD Ch. 3 : Exercices 12, 14 (convergence) et problème 18 (suites récurrentes)"
+            example_reasoning = "Progression pédagogique structurée avec théorie suivie de TD d'application"
+
         # System instruction forcing JSON-only output
         system_instruction = """<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 You are a JSON API that generates study schedules. You MUST respond with ONLY valid JSON.
@@ -93,6 +124,8 @@ Rules:
 Generate a weekly study schedule in JSON format.
 
 **WEEKLY STUDY GOAL**: {weekly_study_goal} hours
+
+{lang_instruction}
 """
         
         if profile_context:
@@ -171,15 +204,17 @@ Generate a weekly study schedule in JSON format.
         
         academic_schedule = planning_data.get("academic_schedule") or []
         if academic_schedule:
-            prompt += f"\n🎓 **FIXED UNIVERSITY TIMETABLE (Emploi du temps académique)**:\n"
-            prompt += "The student attends the following fixed mandatory university classes. DO NOT schedule personal study sessions during these times:\n"
+            prompt += f"\n🎓 **UNIVERSITY TIMETABLE (German Bologna Model: Vorlesung/CM, Übung/TD, Praktikum/TP)**:\n"
+            prompt += "The student attends the following university sessions. DO NOT schedule personal study sessions during these times:\n"
             for cs in academic_schedule:
                 room_str = f" in {cs['room_location']}" if cs.get('room_location') else ""
                 code_str = f" ({cs['course_code']})" if cs.get('course_code') else ""
-                prompt += f"  - {cs['day_of_week']} {cs['start_time'][:5]}-{cs['end_time'][:5]}: {cs['course_name']}{code_str} [{cs['session_type']}]{room_str}\n"
-            prompt += "  👉 ALIGNMENT RULES FOR AI:\n"
-            prompt += "  - Place preparatory study sessions shortly before important TD/TP sessions.\n"
-            prompt += "  - Place review/consolidation study sessions on the same day or day after heavy Lectures (CM).\n"
+                group_str = f" [{cs.get('group_name')}]" if cs.get('group_name') else ""
+                prompt += f"  - {cs['day_of_week']} {cs['start_time'][:5]}-{cs['end_time'][:5]}: {cs['course_name']}{code_str} [{cs['session_type']}]{group_str}{room_str}\n"
+            prompt += "  👉 GERMAN PEDAGOGICAL ALIGNMENT RULES FOR AI:\n"
+            prompt += "  - **CM (Vorlesung)**: Schedule synthesis & lecture review (Nachbereitung) within 24-48h after the lecture.\n"
+            prompt += "  - **TD (Übung - 2h/week)**: Dynamic tutorial group. Schedule preparatory exercise problem-solving (Übungszettel Vorbereitung) BEFORE the TD slot so the student arrives prepared.\n"
+            prompt += "  - **TP (Praktikum - 2h/week)**: Hands-on lab. Schedule pre-lab protocol reading before and lab report analysis after.\n"
 
         prompt += f"\n**USER PREFERENCES**:\n"
         if user_preferences:
@@ -257,6 +292,7 @@ Generate a weekly study schedule in JSON format.
 10. Respect all constraints (max daily hours, breaks, fixed slots)
 11. Try to reach the weekly study goal of {weekly_study_goal} hours
 12. Consider validation status and current progress
+13. 🎯 COMPREHENSIVE SUBJECT COVERAGE: Every subject in the SUBJECTS list represents an active course the student MUST study. Make sure to schedule at least one study session for EVERY subject in the list during the week. Do NOT omit any subject. Distribute sessions so that higher-priority subjects (such as retake/failed subjects) receive more sessions, but all subjects have at least one session scheduled.
 
 **PEDAGOGICAL PROGRESSION & DIVERSIFICATION RULES (CRITICAL)**:
 1. 🚨 STRICT ANTI-REPETITION: Every single session for a subject MUST have UNIQUE, DIVERSE notes. NEVER repeat the same exercises or notes twice across the week.
@@ -265,8 +301,8 @@ Generate a weekly study schedule in JSON format.
    - Session 2 on a subject: Focus on intermediate problem-solving, TD exercises, and applied practice.
    - Session 3+ on a subject: Focus on advanced synthesis, multi-part problems, or timed exam simulations.
 3. EXERCISE PRACTICE RULES:
-   - Every subject MUST have at least ONE session with task_type "exercise_practice" per week.
-   - exercise_practice sessions must come AFTER lecture_review sessions for the same subject.
+   - When a subject has 2 or more sessions scheduled in the week, include both lecture_review and exercise_practice (with exercise_practice after lecture_review).
+   - When a subject has 1 session due to total weekly hours constraints, assign the most appropriate task type (e.g. exercise_practice or lecture_review) with concrete actionable learning notes.
    - In "notes" for exercise_practice, specify concrete learning objectives tailored to the subject syllabus (e.g. mention specific theorems, formulas, or exercise themes).
 4. 🚨 STRICT FORBIDDEN PLACEHOLDERS IN "notes" FIELD:
    - NEVER use vague templates like "Solve problems 7.3-8.16", "Review modules 2-10", "Review chapters 1-5", "Read textbook pages 50-100", or "Work on project milestone 1".
@@ -302,7 +338,7 @@ Any text outside the JSON object will cause a FATAL ERROR.
 7. Put your reasoning INSIDE the "reasoning" field
 
 **CORRECT OUTPUT** (copy this pattern):
-{{"sessions":[{{"day":"Monday","start_time":"09:00:00","end_time":"10:30:00","subject_name":"Mathematics","task_type":"lecture_review","notes":"Cours Ch. 3 : Propriétés des suites et théorèmes de convergence"}},{{"day":"Wednesday","start_time":"14:00:00","end_time":"15:30:00","subject_name":"Mathematics","task_type":"exercise_practice","notes":"TD Ch. 3 : Exercices 12, 14 (convergence) et problème 18 (suites récurrentes)"}}],"total_hours":25.5,"reasoning":"Progression pédagogique structurée avec théorie suivie de TD d'application"}}
+{{"sessions":[{{"day":"Monday","start_time":"09:00:00","end_time":"10:30:00","subject_name":"Mathematics","task_type":"lecture_review","notes":"{example_notes_1}"}},{{"day":"Wednesday","start_time":"14:00:00","end_time":"15:30:00","subject_name":"Mathematics","task_type":"exercise_practice","notes":"{example_notes_2}"}}],"total_hours":25.5,"reasoning":"{example_reasoning}"}}
 
 **VALID TASK TYPES**: lecture_review, exercise_practice, exam_preparation, project_work, reading<|eot_id|>
 <|start_header_id|>assistant<|end_header_id|>
@@ -811,7 +847,8 @@ Any text outside the JSON object will cause a FATAL ERROR.
         weekly_study_goal: float,
         user_preferences: Dict[str, Any],
         user_id: int,
-        profile_context: Optional[Dict[str, Any]] = None
+        profile_context: Optional[Dict[str, Any]] = None,
+        language: str = "fr"
     ):
         """
         Async generator that yields SSE-formatted strings for StreamingResponse.
@@ -835,7 +872,7 @@ Any text outside the JSON object will cause a FATAL ERROR.
         start_time = time.time()
 
         prompt = self._construct_prompt(
-            planning_data, weekly_study_goal, user_preferences, profile_context
+            planning_data, weekly_study_goal, user_preferences, profile_context, language=language
         )
         request_hash = self._compute_request_hash(prompt)
 
@@ -977,7 +1014,8 @@ Any text outside the JSON object will cause a FATAL ERROR.
         weekly_study_goal: float,
         user_preferences: Dict[str, Any],
         user_id: int,
-        profile_context: Optional[Dict[str, Any]] = None
+        profile_context: Optional[Dict[str, Any]] = None,
+        language: str = "fr"
     ) -> Dict[str, Any]:
         """
         Generate study plan using AI with enhanced context.
@@ -988,6 +1026,7 @@ Any text outside the JSON object will cause a FATAL ERROR.
             user_preferences: User preferences
             user_id: User ID for logging
             profile_context: Additional profile context (semester dates, commitments, etc.)
+            language: Target output language ('fr', 'en', 'de')
         
         Returns:
             Dictionary with:
@@ -1006,12 +1045,13 @@ Any text outside the JSON object will cause a FATAL ERROR.
                 planning_data, 
                 weekly_study_goal, 
                 user_preferences,
-                profile_context
+                profile_context,
+                language=language
             )
             request_hash = self._compute_request_hash(prompt)
             
             # Debug logging
-            print(f"\n[AI_SERVICE] Generating plan for user {user_id}")
+            print(f"\n[AI_SERVICE] Generating plan for user {user_id} in language '{language}'")
             print(f"[AI_SERVICE] Prompt length: {len(prompt)} characters")
             print(f"[AI_SERVICE] Using backend: {'Colab' if self.use_colab else 'Ollama'}")
             
@@ -1067,7 +1107,7 @@ Any text outside the JSON object will cause a FATAL ERROR.
                 duration_ms = int((time.time() - start_time) * 1000)
                 print(f"[AI_SERVICE] Remote AI call failed ({e}). Falling back to algorithmic plan generator...")
                 try:
-                    fallback_plan = self._generate_fallback_plan(planning_data, weekly_study_goal)
+                    fallback_plan = self._generate_fallback_plan(planning_data, weekly_study_goal, language=language)
                     log = GenerationLog(
                         user_id=user_id,
                         request_hash=request_hash,
@@ -1116,10 +1156,11 @@ Any text outside the JSON object will cause a FATAL ERROR.
         self,
         planning_data: Dict[str, Any],
         weekly_study_goal: float,
+        language: str = "fr",
     ) -> Dict[str, Any]:
         """
         Deterministic, high-quality fallback generator when AI model/Colab is offline.
-        Uses valid slots from planning_data, prioritized subjects, and rich curriculum topics.
+        Uses valid slots from planning_data, prioritized subjects, and rich curriculum topics in the requested language.
         """
         from app.services.curriculum_topics import enrich_session_note
 
@@ -1189,7 +1230,7 @@ Any text outside the JSON object will cause a FATAL ERROR.
             count = subject_session_counts[subject_name]
 
             task_type = task_cycle[count % len(task_cycle)]
-            note = enrich_session_note(subject_name, task_type, "")
+            note = enrich_session_note(subject_name, task_type, "", language=language)
 
             sessions.append({
                 "day": chunk["day"],
@@ -1204,8 +1245,14 @@ Any text outside the JSON object will cause a FATAL ERROR.
             total_minutes += chunk.get("duration_minutes", 60)
 
         total_hours = round(total_minutes / 60.0, 2)
+        lang_code = (language or "fr").lower()[:2]
+        reasonings = {
+            "en": "Structured pedagogical plan: lecture reviews followed by practice exercises and applied projects.",
+            "de": "Pädagogisch strukturierter Lernplan: Vorlesungswiederholung gefolgt von Übungsaufgaben und Anwendungsprojekten.",
+            "fr": "Plan structuré par progression pédagogique : revues de cours suivies d'exercices pratiques et projets d'application."
+        }
         return {
             "sessions": sessions,
             "total_hours": total_hours,
-            "reasoning": "Plan structure par progression pedagogique : revues de cours suivies d'exercices pratiques et projets d'application."
+            "reasoning": reasonings.get(lang_code, reasonings["fr"])
         }

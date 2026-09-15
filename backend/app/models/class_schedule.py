@@ -30,8 +30,10 @@ class ClassSchedule(Base):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     session_type = Column(String(20), nullable=False, default="CM")  # CM, TD, TP, EXAM
+    group_name = Column(String(50), nullable=True)  # e.g., "Gruppe 1", "Groupe A", or None
     room_location = Column(String(100), nullable=True)
     is_mandatory = Column(Boolean, default=True, nullable=False)
+    is_fixed = Column(Boolean, default=True, nullable=False)  # True for fixed CM, False for flexible TD/TP
 
     # Audit & timestamps
     is_deleted = Column(Boolean, default=False, nullable=False, index=True)

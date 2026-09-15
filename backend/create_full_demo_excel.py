@@ -79,15 +79,15 @@ def generate_full_demo():
             ]
         },
         "ClassSchedules": {
-            "headers": ["Program_Name", "Track_Name", "Semester_Number", "Course_Code", "Course_Name", "Day_Of_Week", "Start_Time", "End_Time", "Session_Type", "Room_Location"],
+            "headers": ["Program_Name", "Track_Name", "Semester_Number", "Course_Code", "Course_Name", "Day_Of_Week", "Start_Time", "End_Time", "Session_Type", "Room_Location", "Group_Name", "Is_Fixed"],
             "rows": [
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Monday", "08:30", "10:30", "CM", "Amphi Alan Turing"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101-TD", "Algorithmique (Travaux Diriges)", "Monday", "11:00", "13:00", "TD", "Salle TD 204"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF102", "Architecture des Ordinateurs", "Tuesday", "09:00", "12:00", "CM", "Amphi Neumann"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "08:30", "11:30", "CM", "Amphi Turing"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103-TP", "Bases de Donnees (TP SQL)", "Wednesday", "14:00", "17:00", "TP", "Labo Info 3"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF104", "Developpement Web Fullstack", "Thursday", "10:00", "12:30", "CM", "Amphi Lovelace"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF104-TP", "Projet Web & Reseau", "Friday", "14:00", "17:00", "TP", "Labo Info 1"]
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Monday", "08:30", "10:30", "CM", "Amphi Alan Turing", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Tuesday", "10:30", "12:30", "TD", "Salle TD 204", "Groupe 1", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Thursday", "14:00", "16:00", "TD", "Salle TD 205", "Groupe 2", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF102", "Architecture des Ordinateurs", "Tuesday", "08:30", "10:30", "CM", "Amphi Neumann", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "08:30", "10:30", "CM", "Amphi Turing", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "14:00", "16:00", "TP", "Labo Info 1", "Groupe 1", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Friday", "14:00", "16:00", "TP", "Labo Info 2", "Groupe 2", "FALSE"]
             ]
         }
     }

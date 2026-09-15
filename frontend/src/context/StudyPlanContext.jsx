@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import PropTypes from 'prop-types';
 import apiClient from '../api/client';
 import { useAuth } from './AuthContext';
+import { useLanguage } from './LanguageContext';
 import { useCrossBrowserSync } from '../hooks/useCrossBrowserSync';
 
 const StudyPlanContext = createContext(null);
@@ -16,6 +17,7 @@ export const useStudyPlan = () => {
 
 export const StudyPlanProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
+  const { lang } = useLanguage();
   const [currentPlan, setCurrentPlan] = useState(null);
   const [planHistory, setPlanHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -72,7 +74,7 @@ export const StudyPlanProvider = ({ children }) => {
    * POST /study-plans/stream → SSE events token par token
    * Pas de polling, pas de timeout
    */
-  const generatePlan = async (weekStart, forceRegenerate = false) => {
+  const generatePlan = async (weekStart, forceRegenerate = false, customLanguage = null) => {
     setGenerating(true);
     setGenerationProgress('preparing');
     setError(null);
@@ -80,6 +82,7 @@ export const StudyPlanProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('access_token');
       const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const targetLang = customLanguage || lang || 'fr';
 
       const response = await fetch(`${baseURL}/api/v1/study-plans/stream`, {
         method: 'POST',
@@ -87,8 +90,13 @@ export const StudyPlanProvider = ({ children }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
           'Accept': 'text/event-stream',
+          'Accept-Language': targetLang,
         },
-        body: JSON.stringify({ week_start: weekStart, force_regenerate: forceRegenerate }),
+        body: JSON.stringify({
+          week_start: weekStart,
+          force_regenerate: forceRegenerate,
+          language: targetLang,
+        }),
       });
 
       if (!response.ok) {
@@ -164,7 +172,7 @@ export const StudyPlanProvider = ({ children }) => {
     monday.setDate(today.getDate() + daysToMonday);
     const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
 
-    return generatePlan(weekStart, true);
+    return generatePlan(weekStart, true, lang || 'fr');
   };
 
   const markSessionComplete = async (sessionId) => {

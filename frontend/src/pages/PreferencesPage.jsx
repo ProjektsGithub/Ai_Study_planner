@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import apiClient from '../api/client';
+import { formatApiError } from '../utils/errorUtils';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -134,7 +135,15 @@ const PreferencesPage = () => {
         }
         if (acad.filiere_id) {
           const cursusRes = await apiClient.get(`/api/v1/academic/cursus?filiere_id=${acad.filiere_id}`);
-          setCursusList(cursusRes.data || []);
+          const fetchedCursusList = cursusRes.data || [];
+          setCursusList(fetchedCursusList);
+          
+          if (!profileRes.data?.cursus && acad.cursus_id) {
+            const foundTrack = fetchedCursusList.find((c) => c.id === acad.cursus_id);
+            if (foundTrack) {
+              setFormData((prev) => ({ ...prev, cursus: foundTrack.name }));
+            }
+          }
         }
       }
     } catch (error) {
@@ -186,10 +195,17 @@ const PreferencesPage = () => {
 
   const handleCursusChange = (e) => {
     const curId = e.target.value ? parseInt(e.target.value) : '';
-    setAcademicData(prev => ({
+    const selectedTrack = cursusList.find((c) => c.id === curId);
+    setAcademicData((prev) => ({
       ...prev,
       cursus_id: curId,
     }));
+    if (selectedTrack) {
+      setFormData((prev) => ({
+        ...prev,
+        cursus: selectedTrack.name,
+      }));
+    }
   };
 
   const handleAcademicFieldChange = (e) => {
@@ -269,6 +285,34 @@ const PreferencesPage = () => {
         if (cleanedStudentData[f] === '') cleanedStudentData[f] = null;
       });
 
+      // Ensure numeric fields are properly typed or null
+      if (cleanedStudentData.preferred_session_duration) {
+        cleanedStudentData.preferred_session_duration = parseInt(cleanedStudentData.preferred_session_duration, 10) || null;
+      }
+      if (cleanedStudentData.total_course_hours_per_week !== null && cleanedStudentData.total_course_hours_per_week !== undefined) {
+        const val = parseFloat(cleanedStudentData.total_course_hours_per_week);
+        cleanedStudentData.total_course_hours_per_week = isNaN(val) ? null : val;
+      }
+      if (cleanedStudentData.other_commitments_hours !== null && cleanedStudentData.other_commitments_hours !== undefined) {
+        const val = parseFloat(cleanedStudentData.other_commitments_hours);
+        cleanedStudentData.other_commitments_hours = isNaN(val) ? null : val;
+      }
+
+      // Guarantee non-empty cursus required by student profile
+      let cursusName = (cleanedStudentData.cursus || '').trim();
+      if (!cursusName && academicData.cursus_id) {
+        const found = cursusList.find((c) => c.id === academicData.cursus_id);
+        if (found) cursusName = found.name;
+      }
+      if (!cursusName && academicData.filiere_id) {
+        const foundFil = filieres.find((f) => f.id === academicData.filiere_id);
+        if (foundFil) cursusName = foundFil.name;
+      }
+      if (!cursusName) {
+        cursusName = cleanedStudentData.academic_level ? `${cleanedStudentData.academic_level} Standard` : 'Général';
+      }
+      cleanedStudentData.cursus = cursusName;
+
       await apiClient.post('/api/v1/profile', cleanedStudentData);
 
       if (academicData.university_id && academicData.filiere_id && academicData.cursus_id) {
@@ -286,7 +330,10 @@ const PreferencesPage = () => {
       await loadData();
     } catch (error) {
       console.error('Error saving profile:', error);
-      setMessage({ type: 'error', text: error.response?.data?.detail || 'Error saving changes.' });
+      setMessage({
+        type: 'error',
+        text: formatApiError(error, t('preferences.error_saved', 'Erreur lors de l\'enregistrement des modifications.')),
+      });
     } finally {
       setSaving(false);
     }

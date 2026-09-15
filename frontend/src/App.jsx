@@ -7,6 +7,7 @@ import { AcademicDataProvider } from './context/AcademicDataContext';
 import { StudyPlanProvider } from './context/StudyPlanContext';
 import { GamificationProvider } from './context/GamificationContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import RouteErrorBoundary from './components/RouteErrorBoundary';
 import Layout from './components/layout/Layout';
 import HomeRedirect from './components/HomeRedirect';
 import LoginPage from './pages/LoginPage';
@@ -75,6 +76,7 @@ const router = createBrowserRouter([
   // ProtectedRoute (auth guard) → Layout (shell) → Page component
   {
     element: <ProtectedRoute />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         element: <Layout />,
@@ -103,6 +105,7 @@ const router = createBrowserRouter([
         <AdminLayout />
       </ProtectedRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true,                  element: <Navigate to="/admin/dashboard" replace /> },
       { path: 'dashboard',            element: <AdminDashboard /> },

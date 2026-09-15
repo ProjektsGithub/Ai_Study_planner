@@ -49,19 +49,27 @@ const PlannerPage = () => {
   const sessions = studyPlan?.sessions || [];
 
   const mergedSessions = useMemo(() => {
-    const fixedAcademicSessions = academicSchedule.map((item) => ({
-      id: `academic-${item.id}`,
-      course_name: item.course_name,
-      day: item.day_of_week,
-      start_time: item.start_time,
-      end_time: item.end_time,
-      task_type: 'university_class',
-      session_type: item.session_type,
-      is_academic_fixed: true,
-      room_location: item.room_location,
-      notes: `Cours universitaire (${item.session_type}) - ${item.room_location || 'Salle non spécifiée'}`,
-      completed: false,
-    }));
+    const fixedAcademicSessions = academicSchedule.map((item) => {
+      const typeLabel = item.session_type === 'CM' ? 'Cours Magistral (Vorlesung)' : item.session_type === 'TD' ? 'TD (Übung)' : item.session_type === 'TP' ? 'TP (Praktikum)' : 'Examen';
+      const groupSuffix = item.group_name && !['Promotion (Fixe)', 'All'].includes(item.group_name) ? ` [${item.group_name}]` : '';
+      return {
+        id: `academic-${item.id}`,
+        course_name: item.course_name,
+        subject_name: item.course_name,
+        course_code: item.course_code,
+        day: item.day_of_week,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        task_type: 'university_class',
+        session_type: item.session_type,
+        group_name: item.group_name,
+        is_fixed: item.is_fixed,
+        is_academic_fixed: true,
+        room_location: item.room_location,
+        notes: `${typeLabel}${groupSuffix} - ${item.room_location || 'Salle non spécifiée'}`,
+        completed: false,
+      };
+    });
     return [...fixedAcademicSessions, ...sessions];
   }, [academicSchedule, sessions]);
 

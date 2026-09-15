@@ -10,6 +10,7 @@ class GeneratePlanRequest(BaseModel):
     """Request schema for plan generation"""
     week_start: date = Field(..., description="Start date of the week (should be Monday)")
     force_regenerate: bool = Field(False, description="Force regeneration even if cached plan exists")
+    language: Optional[str] = Field("fr", description="Target language: fr, en, de")
     
     @field_validator("week_start")
     @classmethod

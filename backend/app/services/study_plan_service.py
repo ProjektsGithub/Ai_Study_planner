@@ -48,7 +48,8 @@ class StudyPlanService:
         self,
         user_id: int,
         week_start: date,
-        force_regenerate: bool = False
+        force_regenerate: bool = False,
+        language: str = "fr"
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         Generate a new study plan for the specified week.
@@ -129,7 +130,8 @@ class StudyPlanService:
                 weekly_study_goal=profile.weekly_study_goal,
                 user_preferences=profile.preferences or {},
                 user_id=user_id,
-                profile_context=profile_context
+                profile_context=profile_context,
+                language=language
             )
             
             if not ai_result["success"]:
