@@ -163,7 +163,21 @@ const BulkImport = () => {
       message.success('Bulk import executed successfully.');
       setCurrentStep(3); // advance to final step
     } catch (err) {
-      message.error(err.response?.data?.detail || 'Execution of bulk import failed.');
+      console.error('❌ IMPORT ERROR:', err);
+      console.error('Response:', err.response);
+      console.error('Data:', err.response?.data);
+      
+      const errorDetail = err.response?.data?.detail;
+      const errorMsg = typeof errorDetail === 'string' 
+        ? errorDetail 
+        : (errorDetail?.message || 'Execution of bulk import failed.');
+      
+      message.error(errorMsg);
+      
+      // Show detailed error in console
+      if (typeof errorDetail === 'object') {
+        console.error('Validation errors:', errorDetail.errors);
+      }
     } finally {
       setIsExecuting(false);
     }
@@ -291,10 +305,13 @@ const BulkImport = () => {
       {/* Header breadcrumb */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
-          <Breadcrumb style={{ marginBottom: 8 }}>
-            <Breadcrumb.Item><Link to="/admin/dashboard">Admin Platform</Link></Breadcrumb.Item>
-            <Breadcrumb.Item>Bulk Import Wizard</Breadcrumb.Item>
-          </Breadcrumb>
+          <Breadcrumb 
+            style={{ marginBottom: 8 }}
+            items={[
+              { title: <Link to="/admin/dashboard">Admin Platform</Link> },
+              { title: 'Bulk Import Wizard' }
+            ]}
+          />
           <Title level={2} style={{ margin: 0 }}>Excel Curriculum Import</Title>
           <Paragraph style={{ margin: 0, marginTop: 4 }}>
             Bulk upload curriculum configurations, universities, campuses, programs, semesters, and courses via Excel template spreadsheets.
@@ -357,12 +374,11 @@ const BulkImport = () => {
           </Col>
           <Col xs={24} lg={9}>
             <Card title="Excel Format Requirements" size="small" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-              <Paragraph style={{ fontSize: 13 }}>
+              <div style={{ fontSize: 13, marginBottom: 12 }}>
                 The import spreadsheet may contain the following sheets (tabs) in exact spelling:
-              </Paragraph>
-              <List
-                size="small"
-                dataSource={[
+              </div>
+              <div>
+                {[
                   'Universities',
                   'Campuses',
                   'Programs',
@@ -373,20 +389,19 @@ const BulkImport = () => {
                   'Courses',
                   'Prerequisites',
                   'ClassSchedules (Emplois du temps)',
-                ]}
-                renderItem={(item) => (
-                  <List.Item style={{ padding: '4px 0', fontSize: 12 }}>
+                ].map((item) => (
+                  <div key={item} style={{ padding: '4px 0', fontSize: 12, display: 'flex', alignItems: 'center' }}>
                     <BookOutlined style={{ color: item.includes('ClassSchedules') ? '#52c41a' : '#1890ff', marginRight: 8 }} />
                     <Text strong style={{ color: item.includes('ClassSchedules') ? '#389e0d' : 'inherit' }}>{item}</Text>
                     {item.includes('ClassSchedules') && <Tag color="green" style={{ marginLeft: 6 }}>NEW</Tag>}
-                  </List.Item>
-                )}
-              />
+                  </div>
+                ))}
+              </div>
               <Divider style={{ margin: '12px 0' }} />
               <Alert
                 type="info"
                 showIcon
-                message="Emplois du temps de classe"
+                title="Emplois du temps de classe"
                 description="Incluez l'onglet 'ClassSchedules' pour importer les cours magistraux, TD, TP, salles et horaires par filière."
                 style={{ fontSize: 12 }}
               />

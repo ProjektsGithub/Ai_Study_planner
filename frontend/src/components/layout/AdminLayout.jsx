@@ -472,7 +472,7 @@ const AdminLayout = () => {
             </Button>
           ]}
           width={450}
-          destroyOnClose
+          destroyOnHidden
         >
           <div style={{ padding: '8px 0' }}>
             <Paragraph>
