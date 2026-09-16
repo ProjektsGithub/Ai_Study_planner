@@ -83,7 +83,7 @@ class ImportService:
         Raises:
             ValueError: If file cannot be opened or has invalid structure
         """
-            try:
+        try:
             workbook = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
         except FileNotFoundError:
             raise ValueError(f"❌ Excel file not found: {file_path}")
