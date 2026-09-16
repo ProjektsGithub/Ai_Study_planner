@@ -272,7 +272,7 @@ const TeachingUnits = () => {
         const primary = lang === 'de' ? (record.name_de || record.name) : (record.name || record.name_de);
         const secondary = lang === 'de' ? (record.name_de ? record.name : '') : (record.name ? record.name_de : '');
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Text strong style={{ fontSize: 14 }}>{primary}</Text>
             {secondary && (
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -293,7 +293,7 @@ const TeachingUnits = () => {
         const semName = lang === 'de' ? (sem.name_de || sem.name) : (sem.name || sem.name_de);
         const trackName = track ? (lang === 'de' ? (track.name_de || track.name) : (track.name || track.name_de)) : '';
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Text style={{ fontSize: 13 }}>{semName} (S{sem.semester_number})</Text>
             {trackName && (
               <Text type="secondary" style={{ fontSize: 11 }}>
@@ -373,7 +373,7 @@ const TeachingUnits = () => {
       </div>
 
       {/* Filter panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '16px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '16px 24px' } }}>
         <Row gutter={16} align="middle">
           <Col xs={24} md={8}>
             <Input

@@ -283,7 +283,7 @@ const Semesters = () => {
         const primary = lang === 'de' ? (record.name_de || record.name) : (record.name || record.name_de);
         const secondary = lang === 'de' ? (record.name_de ? record.name : '') : (record.name ? record.name_de : '');
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Tag color="geekblue" style={{ fontSize: 13, fontWeight: 'bold' }}>
               {primary}
             </Tag>
@@ -304,7 +304,7 @@ const Semesters = () => {
         if (!track) return '—';
         const trackName = lang === 'de' ? (track.name_de || track.name) : (track.name || track.name_de);
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Text strong style={{ fontSize: 13 }}>{trackName}</Text>
             <Tag color={track.level === 'master' ? 'cyan' : track.level === 'bachelor' ? 'blue' : 'gold'} style={{ fontSize: 10, margin: 0 }}>
               {track.level.toUpperCase()}
@@ -389,7 +389,7 @@ const Semesters = () => {
       </div>
 
       {/* Filter and Search Panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '16px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '16px 24px' } }}>
         <Row gutter={16} align="middle">
           <Col xs={24} md={8}>
             <Input

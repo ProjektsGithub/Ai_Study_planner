@@ -134,7 +134,7 @@ const EntityHistory = ({ entityType, entityId }) => {
           border: '1px solid #f0f0f0',
           borderRadius: 4,
         }}
-        bodyStyle={{ padding: '8px 12px' }}
+        styles={{ body: { padding: '8px 12px' } }}
       >
         <span style={{ fontSize: 11, fontWeight: '600', color: '#8c8c8c' }}>FIELD MUTATIONS:</span>
         <div style={{ marginTop: 4 }}>

@@ -473,7 +473,7 @@ const Settings = () => {
         onValuesChange={() => setIsFormDirty(true)}
         loading={isSettingsLoading}
       >
-        <Card bodyStyle={{ padding: '0 24px 24px' }} style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+        <Card styles={{ body: { padding: '0 24px 24px' } }} style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
           <Tabs
             activeKey={activeTab}
             onChange={(key) => setActiveTab(key)}

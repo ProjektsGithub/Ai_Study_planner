@@ -319,7 +319,7 @@ const AuditLogs = () => {
       </div>
 
       {/* Advanced Filter Panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '20px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '20px 24px' } }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} sm={12} md={5}>
             <Select

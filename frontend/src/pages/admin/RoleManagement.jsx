@@ -269,7 +269,7 @@ const RoleManagement = () => {
       title: 'User Profile',
       key: 'user',
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong style={{ fontSize: '13.5px' }}>{record.user_name || '—'}</Text>
           <Text type="secondary" style={{ fontSize: '11px' }}>
             Email: {record.user_email || '—'} (ID: {record.user_id})
@@ -294,7 +294,7 @@ const RoleManagement = () => {
         if (record.role_name === 'university_admin') {
           const name = universityMap[record.university_id] || `University #${record.university_id}`;
           return (
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text style={{ fontSize: '13px' }}>{name}</Text>
               <Text type="secondary" style={{ fontSize: '10.5px' }}>Scope: University ID {record.university_id}</Text>
             </Space>
@@ -303,7 +303,7 @@ const RoleManagement = () => {
         if (record.role_name === 'program_coordinator') {
           const name = programMap[record.program_id] || `Study Program #${record.program_id}`;
           return (
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Text style={{ fontSize: '13px' }}>{name}</Text>
               <Text type="secondary" style={{ fontSize: '10.5px' }}>Scope: Program ID {record.program_id}</Text>
             </Space>
@@ -388,7 +388,7 @@ const RoleManagement = () => {
       </div>
 
       {/* Filter panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '16px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '16px 24px' } }}>
         <Row gutter={16} align="middle">
           <Col xs={24} md={8}>
             <InputNumber

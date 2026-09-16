@@ -317,7 +317,7 @@ const GlobalSearch = () => {
 
       {isOpen && query.trim().length >= 2 && (
         <Card
-          bodyStyle={{ padding: 0 }}
+          styles={{ body: { padding: 0 } }}
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',

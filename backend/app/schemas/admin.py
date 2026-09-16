@@ -245,10 +245,12 @@ class StudyProgramBase(BaseModel):
     @field_validator('code')
     @classmethod
     def validate_code(cls, v: Optional[str]) -> Optional[str]:
-        """Validate program code format (uppercase letters and numbers only)"""
+        """Validate program code format (letters, numbers, hyphens, underscores)"""
         if v is not None and v != "":
-            if not re.match(r'^[A-Z0-9]+$', v):
-                raise ValueError("Program code must contain only uppercase letters and numbers")
+            v_clean = v.strip().upper()
+            if not re.match(r'^[A-Z0-9_\-]+$', v_clean):
+                raise ValueError("Program code must contain only uppercase letters, numbers, hyphens, and underscores")
+            return v_clean
         return v
 
 
@@ -284,10 +286,12 @@ class StudyProgramUpdate(BaseModel):
     @field_validator('code')
     @classmethod
     def validate_code(cls, v: Optional[str]) -> Optional[str]:
-        """Validate program code format (uppercase letters and numbers only)"""
+        """Validate program code format (letters, numbers, hyphens, underscores)"""
         if v is not None and v != "":
-            if not re.match(r'^[A-Z0-9]+$', v):
-                raise ValueError("Program code must contain only uppercase letters and numbers")
+            v_clean = v.strip().upper()
+            if not re.match(r'^[A-Z0-9_\-]+$', v_clean):
+                raise ValueError("Program code must contain only uppercase letters, numbers, hyphens, and underscores")
+            return v_clean
         return v
 
 

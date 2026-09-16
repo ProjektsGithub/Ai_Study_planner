@@ -581,7 +581,7 @@ const Courses = () => {
           );
         }
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Text strong style={{ fontSize: 13 }}>
               {lang === 'de' ? (record.name_de || record.name) : (record.name || record.name_de)}
             </Text>
@@ -610,7 +610,7 @@ const Courses = () => {
         const semName = lang === 'de' ? (sem.name_de || sem.name) : (sem.name || sem.name_de);
         const trackName = track ? (lang === 'de' ? (track.name_de || track.name) : (track.name || track.name_de)) : '';
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Text style={{ fontSize: 12 }}>{semName} (S{sem.semester_number})</Text>
             {trackName && (
               <Tag color="cyan" style={{ fontSize: 9, margin: 0 }}>
@@ -811,7 +811,7 @@ const Courses = () => {
       </div>
 
       {/* Advanced Filtering Card */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '20px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '20px 24px' } }}>
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={6}>
             <Input

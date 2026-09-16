@@ -321,7 +321,7 @@ const Reports = () => {
       {summaryReport && (
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={12} md={6}>
-            <Card size="small" bodyStyle={{ padding: 16 }} style={{ background: '#f9f9fa' }}>
+            <Card size="small" styles={{ body: { padding: 16 } }} style={{ background: '#f9f9fa' }}>
               <Statistic
                 title="Total Academic Tracks"
                 value={summaryReport.total_tracks}
@@ -330,7 +330,7 @@ const Reports = () => {
             </Card>
           </Col>
           <Col xs={12} md={6}>
-            <Card size="small" bodyStyle={{ padding: 16 }} style={{ background: '#f9f9fa' }}>
+            <Card size="small" styles={{ body: { padding: 16 } }} style={{ background: '#f9f9fa' }}>
               <Statistic
                 title="Total Semesters"
                 value={summaryReport.rows?.reduce((acc, row) => acc + row.semester_count, 0) || 0}
@@ -339,7 +339,7 @@ const Reports = () => {
             </Card>
           </Col>
           <Col xs={12} md={6}>
-            <Card size="small" bodyStyle={{ padding: 16 }} style={{ background: '#f9f9fa' }}>
+            <Card size="small" styles={{ body: { padding: 16 } }} style={{ background: '#f9f9fa' }}>
               <Statistic
                 title="Total Teaching Units"
                 value={summaryReport.rows?.reduce((acc, row) => acc + row.teaching_unit_count, 0) || 0}
@@ -348,7 +348,7 @@ const Reports = () => {
             </Card>
           </Col>
           <Col xs={12} md={6}>
-            <Card size="small" bodyStyle={{ padding: 16 }} style={{ background: '#f9f9fa' }}>
+            <Card size="small" styles={{ body: { padding: 16 } }} style={{ background: '#f9f9fa' }}>
               <Statistic
                 title="Total Active Courses"
                 value={summaryReport.rows?.reduce((acc, row) => acc + row.course_count, 0) || 0}

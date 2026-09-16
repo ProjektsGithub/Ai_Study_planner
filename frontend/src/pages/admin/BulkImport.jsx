@@ -19,7 +19,7 @@ import {
   Col,
   List,
   Tag,
-  message,
+  App,
   Modal,
 } from 'antd';
 import {
@@ -39,12 +39,12 @@ import { useAuth } from '../../context/AuthContext';
 
 const { Title, Paragraph, Text } = Typography;
 const { Dragger } = Upload;
-const { Panel } = Collapse;
 const { confirm } = Modal;
 
 const BulkImport = () => {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
+  const { message } = App.useApp();
   const isSuperAdmin = hasRole('super_admin');
 
   // Steps state
@@ -245,7 +245,7 @@ const BulkImport = () => {
           </ul>
           <Alert
             type="warning"
-            message="Hard Delete Mode"
+            title="Hard Delete Mode"
             description="This will permanently remove all data from the database, including previously soft-deleted records. This ensures no duplicate key conflicts during re-import."
             showIcon
             style={{ marginTop: 12, marginBottom: 12 }}
@@ -498,7 +498,7 @@ const BulkImport = () => {
                 ) : (
                   <div>
                     <Alert
-                      message={`${validationData.error_count} format validation error(s) discovered`}
+                      title={`${validationData.error_count} format validation error(s) discovered`}
                       description="You must correct the spreadsheet rows listed below and re-upload before you can execute the import."
                       type="error"
                       showIcon
@@ -530,103 +530,99 @@ const BulkImport = () => {
             {previewData && (
               <div>
                 <Alert
-                  message={`Ready to import ${previewData.total_entities} total records.`}
+                  title={`Ready to import ${previewData.total_entities} total records.`}
                   description="Verify counts and click next to process transaction."
                   type="info"
                   showIcon
                   style={{ marginBottom: 20 }}
                 />
 
-                <Collapse accordion style={{ marginBottom: 24 }}>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Universities</Text>
-                        <Tag color="blue">{previewData.universities.count} records</Tag>
-                      </div>
-                    }
-                    key="1"
-                  >
-                    {getSampleTable(previewData.universities.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Campuses</Text>
-                        <Tag color="blue">{previewData.campuses.count} records</Tag>
-                      </div>
-                    }
-                    key="2"
-                  >
-                    {getSampleTable(previewData.campuses.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Study Programs</Text>
-                        <Tag color="blue">{previewData.programs.count} records</Tag>
-                      </div>
-                    }
-                    key="3"
-                  >
-                    {getSampleTable(previewData.programs.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Academic Tracks</Text>
-                        <Tag color="blue">{previewData.tracks.count} records</Tag>
-                      </div>
-                    }
-                    key="4"
-                  >
-                    {getSampleTable(previewData.tracks.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Semesters</Text>
-                        <Tag color="blue">{previewData.semesters.count} records</Tag>
-                      </div>
-                    }
-                    key="5"
-                  >
-                    {getSampleTable(previewData.semesters.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Teaching Units (UE)</Text>
-                        <Tag color="blue">{previewData.teaching_units.count} records</Tag>
-                      </div>
-                    }
-                    key="6"
-                  >
-                    {getSampleTable(previewData.teaching_units.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Courses</Text>
-                        <Tag color="blue">{previewData.courses.count} records</Tag>
-                      </div>
-                    }
-                    key="7"
-                  >
-                    {getSampleTable(previewData.courses.samples)}
-                  </Panel>
-                  <Panel
-                    header={
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
-                        <Text strong>Course Prerequisites</Text>
-                        <Tag color="blue">{previewData.prerequisites.count} records</Tag>
-                      </div>
-                    }
-                    key="8"
-                  >
-                    {getSampleTable(previewData.prerequisites.samples)}
-                  </Panel>
-                </Collapse>
+                <Collapse
+                  accordion
+                  style={{ marginBottom: 24 }}
+                  items={[
+                    {
+                      key: '1',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Universities</Text>
+                          <Tag color="blue">{previewData.universities.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.universities.samples),
+                    },
+                    {
+                      key: '2',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Campuses</Text>
+                          <Tag color="blue">{previewData.campuses.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.campuses.samples),
+                    },
+                    {
+                      key: '3',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Study Programs</Text>
+                          <Tag color="blue">{previewData.programs.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.programs.samples),
+                    },
+                    {
+                      key: '4',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Academic Tracks</Text>
+                          <Tag color="blue">{previewData.tracks.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.tracks.samples),
+                    },
+                    {
+                      key: '5',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Semesters</Text>
+                          <Tag color="blue">{previewData.semesters.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.semesters.samples),
+                    },
+                    {
+                      key: '6',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Teaching Units (UE)</Text>
+                          <Tag color="blue">{previewData.teaching_units.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.teaching_units.samples),
+                    },
+                    {
+                      key: '7',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Courses</Text>
+                          <Tag color="blue">{previewData.courses.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.courses.samples),
+                    },
+                    {
+                      key: '8',
+                      label: (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '95%' }}>
+                          <Text strong>Course Prerequisites</Text>
+                          <Tag color="blue">{previewData.prerequisites.count} records</Tag>
+                        </div>
+                      ),
+                      children: getSampleTable(previewData.prerequisites.samples),
+                    },
+                  ]}
+                />
 
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Button onClick={() => setCurrentStep(1)} icon={<ArrowLeftOutlined />}>

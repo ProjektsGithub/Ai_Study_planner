@@ -158,7 +158,7 @@ const AdminDashboard = () => {
       dataIndex: 'description',
       key: 'description',
       render: (text, record) => (
-        <Space direction="vertical" size={2}>
+        <Space orientation="vertical" size={2}>
           <Text strong style={{ fontSize: 13 }}>{text || 'Admin Action'}</Text>
           <Text type="secondary" style={{ fontSize: 11 }}>
             Entity: <Text code>{record.entity_type}</Text> (ID: {record.entity_id})
@@ -213,7 +213,7 @@ const AdminDashboard = () => {
     return (
       <div style={{ padding: '24px' }}>
         <Alert
-          message="Communication Error"
+          title="Communication Error"
           description="Failed to retrieve latest monitoring statistics and metrics from the backend API. Please make sure the local server is running."
           type="error"
           showIcon
@@ -251,10 +251,13 @@ const AdminDashboard = () => {
       {/* Breadcrumbs & Header Panel */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
-          <Breadcrumb style={{ marginBottom: 8 }}>
-            <Breadcrumb.Item><Link to="/admin/dashboard">Admin Platform</Link></Breadcrumb.Item>
-            <Breadcrumb.Item>Dashboard</Breadcrumb.Item>
-          </Breadcrumb>
+          <Breadcrumb
+            style={{ marginBottom: 8 }}
+            items={[
+              { title: <Link to="/admin/dashboard">Admin Platform</Link> },
+              { title: 'Dashboard' },
+            ]}
+          />
           <Title level={2} style={{ margin: 0 }}>Dashboard & Monitoring</Title>
           <Paragraph style={{ margin: 0, marginTop: 4 }}>
             Overview of the curriculum structures, AI generators, and hardware metrics.
@@ -277,7 +280,7 @@ const AdminDashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card
               hoverable
-              bordered={false}
+              variant="borderless"
               style={{
                 boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
                 borderTop: '3px solid #1890ff',
@@ -286,7 +289,7 @@ const AdminDashboard = () => {
               <Statistic
                 title="Active Universities"
                 value={stats?.universities ?? 0}
-                valueStyle={{ color: '#1890ff', fontWeight: 'bold' }}
+                styles={{ content: { color: '#1890ff', fontWeight: 'bold' } }}
                 prefix={<BankOutlined style={{ marginRight: 8 }} />}
                 suffix={
                   <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 8 }}>
@@ -300,7 +303,7 @@ const AdminDashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card
               hoverable
-              bordered={false}
+              variant="borderless"
               style={{
                 boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
                 borderTop: '3px solid #52c41a',
@@ -309,7 +312,7 @@ const AdminDashboard = () => {
               <Statistic
                 title="Curriculum Programs"
                 value={stats?.curriculum?.study_programs ?? 0}
-                valueStyle={{ color: '#52c41a', fontWeight: 'bold' }}
+                styles={{ content: { color: '#52c41a', fontWeight: 'bold' } }}
                 prefix={<BookOutlined style={{ marginRight: 8 }} />}
                 suffix={
                   <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 8 }}>
@@ -323,7 +326,7 @@ const AdminDashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card
               hoverable
-              bordered={false}
+              variant="borderless"
               style={{
                 boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
                 borderTop: '3px solid #faad14',
@@ -332,7 +335,7 @@ const AdminDashboard = () => {
               <Statistic
                 title="Total Courses"
                 value={stats?.curriculum?.courses ?? 0}
-                valueStyle={{ color: '#faad14', fontWeight: 'bold' }}
+                styles={{ content: { color: '#faad14', fontWeight: 'bold' } }}
                 prefix={<ReadOutlined style={{ marginRight: 8 }} />}
                 suffix={
                   <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 8 }}>
@@ -346,7 +349,7 @@ const AdminDashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card
               hoverable
-              bordered={false}
+              variant="borderless"
               style={{
                 boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
                 borderTop: '3px solid #722ed1',
@@ -355,7 +358,7 @@ const AdminDashboard = () => {
               <Statistic
                 title="Students Enrolled"
                 value={stats?.students?.total_students ?? 0}
-                valueStyle={{ color: '#722ed1', fontWeight: 'bold' }}
+                styles={{ content: { color: '#722ed1', fontWeight: 'bold' } }}
                 prefix={<UserOutlined style={{ marginRight: 8 }} />}
                 suffix={
                   <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 8 }}>
@@ -377,7 +380,7 @@ const AdminDashboard = () => {
                   <span>AI Generation Engine Success Rate</span>
                 </Space>
               }
-              bordered={false}
+              variant="borderless"
               style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.04)', height: '100%' }}
             >
               <Row gutter={16} align="middle">
@@ -389,11 +392,11 @@ const AdminDashboard = () => {
                       '0%': '#108ee9',
                       '100%': '#87d068',
                     }}
-                    width={120}
+                    size={120}
                   />
                 </Col>
                 <Col span={14}>
-                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                     <div>
                       <Text type="secondary">Total Configurations Handled: </Text>
                       <Text strong>{stats?.ai_generations?.total_generations ?? 0}</Text>
@@ -433,7 +436,7 @@ const AdminDashboard = () => {
                   <span>Bulk Imports Registry</span>
                 </Space>
               }
-              bordered={false}
+              variant="borderless"
               style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.04)', height: '100%' }}
             >
               <Row gutter={16} align="middle" style={{ minHeight: 120 }}>
@@ -441,7 +444,7 @@ const AdminDashboard = () => {
                   <Statistic
                     title="Executed Sheets"
                     value={stats?.imports?.total_imports ?? 0}
-                    valueStyle={{ color: '#eb2f96', fontWeight: 'bold' }}
+                    styles={{ content: { color: '#eb2f96', fontWeight: 'bold' } }}
                     suffix="Uploads"
                   />
                 </Col>
@@ -449,7 +452,7 @@ const AdminDashboard = () => {
                   <Statistic
                     title="Entities Registered"
                     value={stats?.imports?.total_entities_imported ?? 0}
-                    valueStyle={{ color: '#13c2c2', fontWeight: 'bold' }}
+                    styles={{ content: { color: '#13c2c2', fontWeight: 'bold' } }}
                     suffix="Objects"
                   />
                 </Col>
@@ -483,13 +486,13 @@ const AdminDashboard = () => {
             </Tag>
           )
         }
-        bordered={false}
+        variant="borderless"
         style={{
           boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
           marginBottom: 24,
           border: '1px solid #f0f0f0',
         }}
-        bodyStyle={{ padding: '20px 24px' }}
+        styles={{ body: { padding: '20px 24px' } }}
       >
         <Spin spinning={isHealthLoading}>
           <Row gutter={[24, 24]}>
@@ -601,7 +604,7 @@ const AdminDashboard = () => {
             <span>Recent Administrative Activities</span>
           </Space>
         }
-        bordered={false}
+        variant="borderless"
         style={{
           boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
           border: '1px solid #f0f0f0',

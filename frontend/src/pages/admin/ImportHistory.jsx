@@ -195,7 +195,7 @@ const ImportHistory = () => {
       render: (desc, record) => {
         const counts = record.created_counts || {};
         return (
-          <Space direction="vertical" size={4}>
+          <Space orientation="vertical" size={4}>
             <Text style={{ fontSize: 13 }}>{desc}</Text>
             <Space size={[4, 4]} wrap>
               {Object.entries(counts).map(([ent, cnt]) => {
@@ -263,7 +263,7 @@ const ImportHistory = () => {
       </div>
 
       {/* Control panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '12px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '12px 24px' } }}>
         <Row align="middle" justify="space-between">
           <Text type="secondary">
             Click Rollback to soft-delete all items created in a specific transaction timestamp window.

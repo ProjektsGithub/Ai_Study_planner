@@ -245,7 +245,7 @@ const ValidationRules = () => {
       title: 'Rule Name',
       key: 'rule_name',
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong style={{ fontSize: 13 }}>{record.name}</Text>
           {record.name_de && (
             <Text type="secondary" style={{ fontSize: 11 }}>DE: {record.name_de}</Text>
@@ -319,7 +319,7 @@ const ValidationRules = () => {
       </div>
 
       {/* Select Track Panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '16px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '16px 24px' } }}>
         <Row gutter={16} align="middle">
           <Col xs={24} md={12}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

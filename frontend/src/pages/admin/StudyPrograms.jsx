@@ -448,7 +448,7 @@ const StudyPrograms = () => {
         const primary = lang === 'de' ? (record.name_de || record.name) : (record.name || record.name_de);
         const secondary = lang === 'de' ? (record.name_de ? record.name : '') : (record.name ? record.name_de : '');
         return (
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Text strong style={{ fontSize: 14 }}>{primary}</Text>
             {secondary && (
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -544,7 +544,7 @@ const StudyPrograms = () => {
       title: 'Track Name',
       key: 'name',
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong style={{ fontSize: 13 }}>{record.name}</Text>
           {record.name_de && (
             <Text type="secondary" style={{ fontSize: 11 }}>
@@ -609,7 +609,7 @@ const StudyPrograms = () => {
       </div>
 
       {/* Filter and Search Panel */}
-      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} bodyStyle={{ padding: '16px 24px' }}>
+      <Card style={{ marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }} styles={{ body: { padding: '16px 24px' } }}>
         <Row gutter={16}>
           <Col xs={24} md={12} lg={8}>
             <Input
@@ -816,7 +816,7 @@ const StudyPrograms = () => {
           </Paragraph>
 
           <Spin spinning={isLinkedUnisLoading}>
-            <Space direction="vertical" style={{ width: '100%' }} size={12}>
+            <Space orientation="vertical" style={{ width: '100%' }} size={12}>
               {allUnisData?.universities?.map((uni) => (
                 <Checkbox
                   key={uni.id}
