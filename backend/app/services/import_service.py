@@ -83,10 +83,23 @@ class ImportService:
         Raises:
             ValueError: If file cannot be opened or has invalid structure
         """
-        try:
+    try:
             workbook = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        except FileNotFoundError:
+            raise ValueError(f"❌ Excel file not found: {file_path}")
         except Exception as e:
-            raise ValueError(f"Failed to open Excel file: {str(e)}")
+            error_type = type(e).__name__
+            raise ValueError(
+                f"❌ Failed to open Excel file.\n"
+                f"Error Type: {error_type}\n"
+                f"Details: {str(e)}\n\n"
+                f"💡 Possible causes:\n"
+                f"  - File is corrupted or not a valid .xlsx file\n"
+                f"  - File is password-protected\n"
+                f"  - File is open in another program (Excel, LibreOffice)\n"
+                f"  - File contains unsupported Excel features\n\n"
+                f"📝 Try: Close the file in Excel and save it as a new .xlsx file"
+            )
         
         import_data = {
             "universities": [],

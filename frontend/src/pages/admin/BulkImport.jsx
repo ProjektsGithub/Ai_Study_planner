@@ -109,7 +109,32 @@ const BulkImport = () => {
       );
       setValidationData(response.data);
     } catch (err) {
-      message.error(err.response?.data?.detail || 'Failed to validate uploaded file.');
+      console.error('❌ VALIDATION ERROR:', err);
+      console.error('Response:', err.response);
+      console.error('Data:', err.response?.data);
+      
+      const errorDetail = err.response?.data?.detail;
+      let errorMsg = 'Failed to validate uploaded file.';
+      
+      if (typeof errorDetail === 'string') {
+        // Keep line breaks for better readability
+        errorMsg = errorDetail;
+      }
+      
+      // Log to console for detailed debugging
+      console.error('📋 Full validation error:', errorMsg);
+      
+      // Show error with longer duration and preserve formatting
+      Modal.error({
+        title: 'Validation Error',
+        content: (
+          <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '12px' }}>
+            {errorMsg}
+          </div>
+        ),
+        width: 700,
+      });
+      
       setCurrentStep(0); // return to upload
     } finally {
       setIsLoadingValidation(false);
@@ -147,8 +172,24 @@ const BulkImport = () => {
       onSuccess(response.data);
       setCurrentStep(1); // advance to validation
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || 'Failed to upload import file.';
-      message.error(errorMsg);
+      console.error('❌ UPLOAD ERROR:', err);
+      console.error('Response:', err.response);
+      console.error('Data:', err.response?.data);
+      
+      const errorDetail = err.response?.data?.detail;
+      let errorMsg = 'Failed to upload import file.';
+      
+      if (typeof errorDetail === 'string') {
+        errorMsg = errorDetail;
+      } else if (typeof errorDetail === 'object' && errorDetail !== null) {
+        // Detailed error object
+        errorMsg = errorDetail.message || JSON.stringify(errorDetail);
+      }
+      
+      // Show detailed error in console for debugging
+      console.error('📋 Full error details:', errorMsg);
+      
+      message.error(errorMsg, 10); // Show for 10 seconds
       onError(err);
     }
   };
