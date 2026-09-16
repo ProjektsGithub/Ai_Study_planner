@@ -185,12 +185,12 @@ const BulkImport = () => {
 
   const handleResetAllData = () => {
     confirm({
-      title: 'Reset All Curriculum Data',
+      title: 'Reset All Curriculum Data (PERMANENT DELETE)',
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
           <Paragraph>
-            <Text strong type="danger">This action will permanently delete ALL:</Text>
+            <Text strong type="danger">⚠️ This action will PERMANENTLY DELETE ALL curriculum data:</Text>
           </Paragraph>
           <ul>
             <li>Universities</li>
@@ -199,21 +199,32 @@ const BulkImport = () => {
             <li>Academic Tracks</li>
             <li>Semesters</li>
             <li>Teaching Units</li>
-            <li>Courses</li>
+            <li>Courses (including soft-deleted courses)</li>
+            <li>Class Schedules</li>
           </ul>
+          <Alert
+            type="warning"
+            message="Hard Delete Mode"
+            description="This will permanently remove all data from the database, including previously soft-deleted records. This ensures no duplicate key conflicts during re-import."
+            showIcon
+            style={{ marginTop: 12, marginBottom: 12 }}
+          />
           <Paragraph type="danger">
-            This operation cannot be undone. Are you absolutely sure?
+            <Text strong>This operation CANNOT be undone!</Text> All data will be lost permanently.
           </Paragraph>
         </div>
       ),
-      okText: 'Yes, Reset Everything',
+      okText: 'Yes, Delete Everything Permanently',
       okType: 'danger',
       cancelText: 'Cancel',
+      width: 600,
       async onOk() {
         setIsResetting(true);
         try {
-          const response = await apiClient.post('/api/v1/admin/imports/reset?confirm=true');
-          message.success(`Reset completed: ${response.data.total_deleted} entities deleted`);
+          // Call with hard_delete=true (default) for permanent deletion
+          const response = await apiClient.post('/api/v1/admin/imports/reset?confirm=true&hard_delete=true');
+          message.success(`Reset completed: ${response.data.total_deleted} entities permanently deleted`);
+          
           // Refresh page state
           setImportSessionId(null);
           setUploadedDetails(null);
@@ -222,7 +233,9 @@ const BulkImport = () => {
           setExecutionResult(null);
           setCurrentStep(0);
         } catch (err) {
-          message.error(err.response?.data?.detail || 'Reset operation failed.');
+          console.error('Reset error:', err);
+          const errorMsg = err.response?.data?.detail || 'Reset operation failed.';
+          message.error(errorMsg);
         } finally {
           setIsResetting(false);
         }

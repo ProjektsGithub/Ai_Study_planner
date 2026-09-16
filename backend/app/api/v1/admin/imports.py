@@ -714,11 +714,12 @@ async def rollback_import(
 )
 async def reset_all_data(
     confirm: bool = Query(False, description="Must be set to true to confirm reset"),
+    hard_delete: bool = Query(True, description="If true, permanently deletes all data. If false, soft-deletes only."),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Reset all imported curriculum data (soft-delete all entities).
+    Reset all imported curriculum data (HARD DELETE by default to prevent duplicate key conflicts).
     
     This endpoint performs a complete reset of:
     - All Universities
@@ -728,9 +729,12 @@ async def reset_all_data(
     - All Semesters
     - All Teaching Units
     - All Courses
+    - All Class Schedules
     
     Query Parameters:
     - **confirm**: Must be set to true to confirm the reset operation.
+    - **hard_delete**: If true (default), permanently deletes all data including soft-deleted records.
+                       If false, only soft-deletes active records (may cause duplicate key issues on re-import).
     
     Returns:
         Summary of deleted entity counts.
@@ -748,6 +752,7 @@ async def reset_all_data(
         )
     
     from datetime import timezone as tz
+    from app.models.class_schedule import ClassSchedule
     
     deleted_counts = {
         "universities": 0,
@@ -757,57 +762,117 @@ async def reset_all_data(
         "semesters": 0,
         "teaching_units": 0,
         "courses": 0,
+        "class_schedules": 0,
     }
     
     try:
-        # Soft-delete all courses
-        courses = db.query(Course).filter(Course.is_deleted == False).all()
-        for course in courses:
-            course.is_deleted = True
-            course.deleted_at = datetime.now(tz.utc)
-            deleted_counts["courses"] += 1
-        
-        # Soft-delete all teaching units
-        teaching_units = db.query(TeachingUnit).filter(TeachingUnit.is_deleted == False).all()
-        for tu in teaching_units:
-            tu.is_deleted = True
-            tu.deleted_at = datetime.now(tz.utc)
-            deleted_counts["teaching_units"] += 1
-        
-        # Soft-delete all semesters
-        semesters = db.query(Semester).filter(Semester.is_deleted == False).all()
-        for sem in semesters:
-            sem.is_deleted = True
-            sem.deleted_at = datetime.now(tz.utc)
-            deleted_counts["semesters"] += 1
-        
-        # Soft-delete all tracks
-        tracks = db.query(AcademicTrack).filter(AcademicTrack.is_deleted == False).all()
-        for track in tracks:
-            track.is_deleted = True
-            track.deleted_at = datetime.now(tz.utc)
-            deleted_counts["tracks"] += 1
-        
-        # Soft-delete all programs
-        programs = db.query(StudyProgram).filter(StudyProgram.is_deleted == False).all()
-        for prog in programs:
-            prog.is_deleted = True
-            prog.deleted_at = datetime.now(tz.utc)
-            deleted_counts["programs"] += 1
-        
-        # Soft-delete all campuses
-        campuses = db.query(Campus).filter(Campus.is_deleted == False).all()
-        for campus in campuses:
-            campus.is_deleted = True
-            campus.deleted_at = datetime.now(tz.utc)
-            deleted_counts["campuses"] += 1
-        
-        # Soft-delete all universities
-        universities = db.query(University).filter(University.is_deleted == False).all()
-        for uni in universities:
-            uni.is_deleted = True
-            uni.deleted_at = datetime.now(tz.utc)
-            deleted_counts["universities"] += 1
+        if hard_delete:
+            # HARD DELETE: Permanently remove ALL records (including soft-deleted ones)
+            # This prevents duplicate key constraint violations on re-import
+            
+            # Delete class schedules (no soft delete support)
+            class_schedules = db.query(ClassSchedule).all()
+            for cs in class_schedules:
+                db.delete(cs)
+                deleted_counts["class_schedules"] += 1
+            
+            # Delete all courses (including soft-deleted)
+            courses = db.query(Course).all()
+            for course in courses:
+                db.delete(course)
+                deleted_counts["courses"] += 1
+            
+            # Delete all teaching units
+            teaching_units = db.query(TeachingUnit).all()
+            for tu in teaching_units:
+                db.delete(tu)
+                deleted_counts["teaching_units"] += 1
+            
+            # Delete all semesters
+            semesters = db.query(Semester).all()
+            for sem in semesters:
+                db.delete(sem)
+                deleted_counts["semesters"] += 1
+            
+            # Delete all tracks
+            tracks = db.query(AcademicTrack).all()
+            for track in tracks:
+                db.delete(track)
+                deleted_counts["tracks"] += 1
+            
+            # Delete all programs
+            programs = db.query(StudyProgram).all()
+            for prog in programs:
+                db.delete(prog)
+                deleted_counts["programs"] += 1
+            
+            # Delete all campuses
+            campuses = db.query(Campus).all()
+            for campus in campuses:
+                db.delete(campus)
+                deleted_counts["campuses"] += 1
+            
+            # Delete all universities
+            universities = db.query(University).all()
+            for uni in universities:
+                db.delete(uni)
+                deleted_counts["universities"] += 1
+            
+            operation_type = "PERMANENTLY DELETED"
+        else:
+            # SOFT DELETE: Only mark active records as deleted (legacy behavior)
+            # Warning: This may cause duplicate key issues on re-import
+            
+            # Soft-delete all courses
+            courses = db.query(Course).filter(Course.is_deleted == False).all()
+            for course in courses:
+                course.is_deleted = True
+                course.deleted_at = datetime.now(tz.utc)
+                deleted_counts["courses"] += 1
+            
+            # Soft-delete all teaching units
+            teaching_units = db.query(TeachingUnit).filter(TeachingUnit.is_deleted == False).all()
+            for tu in teaching_units:
+                tu.is_deleted = True
+                tu.deleted_at = datetime.now(tz.utc)
+                deleted_counts["teaching_units"] += 1
+            
+            # Soft-delete all semesters
+            semesters = db.query(Semester).filter(Semester.is_deleted == False).all()
+            for sem in semesters:
+                sem.is_deleted = True
+                sem.deleted_at = datetime.now(tz.utc)
+                deleted_counts["semesters"] += 1
+            
+            # Soft-delete all tracks
+            tracks = db.query(AcademicTrack).filter(AcademicTrack.is_deleted == False).all()
+            for track in tracks:
+                track.is_deleted = True
+                track.deleted_at = datetime.now(tz.utc)
+                deleted_counts["tracks"] += 1
+            
+            # Soft-delete all programs
+            programs = db.query(StudyProgram).filter(StudyProgram.is_deleted == False).all()
+            for prog in programs:
+                prog.is_deleted = True
+                prog.deleted_at = datetime.now(tz.utc)
+                deleted_counts["programs"] += 1
+            
+            # Soft-delete all campuses
+            campuses = db.query(Campus).filter(Campus.is_deleted == False).all()
+            for campus in campuses:
+                campus.is_deleted = True
+                campus.deleted_at = datetime.now(tz.utc)
+                deleted_counts["campuses"] += 1
+            
+            # Soft-delete all universities
+            universities = db.query(University).filter(University.is_deleted == False).all()
+            for uni in universities:
+                uni.is_deleted = True
+                uni.deleted_at = datetime.now(tz.utc)
+                deleted_counts["universities"] += 1
+            
+            operation_type = "soft-deleted"
         
         db.commit()
         invalidate_cache()
@@ -822,15 +887,17 @@ async def reset_all_data(
             data={
                 "deleted_counts": deleted_counts,
                 "total_deleted": total_deleted,
+                "hard_delete": hard_delete,
             },
             user_id=current_user.id,
         )
         
         return {
             "success": True,
-            "message": f"All curriculum data has been reset: {total_deleted} entities soft-deleted",
+            "message": f"All curriculum data has been reset: {total_deleted} entities {operation_type}",
             "deleted_counts": deleted_counts,
             "total_deleted": total_deleted,
+            "hard_delete": hard_delete,
         }
         
     except Exception as e:
