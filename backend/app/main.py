@@ -89,6 +89,24 @@ async def lifespan(app: FastAPI):
     # Create missing database tables
     Base.metadata.create_all(bind=engine)
 
+    # Ensure newly added columns exist in existing tables (auto-migration)
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE class_schedules 
+                ADD COLUMN IF NOT EXISTS group_name VARCHAR(50) DEFAULT NULL,
+                ADD COLUMN IF NOT EXISTS is_fixed BOOLEAN DEFAULT TRUE;
+            """))
+            conn.execute(text("""
+                ALTER TABLE student_course_enrollments 
+                ADD COLUMN IF NOT EXISTS selected_td_slot_id INTEGER REFERENCES class_schedules(id) ON DELETE SET NULL,
+                ADD COLUMN IF NOT EXISTS selected_tp_slot_id INTEGER REFERENCES class_schedules(id) ON DELETE SET NULL;
+            """))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Auto-migration error on startup: {e}")
+
     # Ensure upload directory exists
     upload_dir = Path("uploads") / "imports"
     upload_dir.mkdir(parents=True, exist_ok=True)

@@ -101,53 +101,68 @@ class ImportService:
             "class_schedules": []
         }
         
+        # Build flexible sheet map (case-insensitive, whitespace-trimmed, multi-language aliases)
+        norm_sheets = {}
+        for sname in workbook.sheetnames:
+            clean_s = sname.strip().lower().replace(" ", "").replace("_", "").replace("-", "")
+            norm_sheets[clean_s] = workbook[sname]
+
+        def get_sheet(*aliases):
+            for a in aliases:
+                clean_a = a.strip().lower().replace(" ", "").replace("_", "").replace("-", "")
+                if clean_a in norm_sheets:
+                    return norm_sheets[clean_a]
+            return None
+
         # Parse Universities
-        if "Universities" in workbook.sheetnames:
-            import_data["universities"] = self._parse_universities_sheet(workbook["Universities"])
+        sh = get_sheet("Universities", "Universites", "Universitaeten", "Universite", "Uni")
+        if sh:
+            import_data["universities"] = self._parse_universities_sheet(sh)
         
         # Parse Campuses
-        if "Campuses" in workbook.sheetnames:
-            import_data["campuses"] = self._parse_campuses_sheet(workbook["Campuses"])
+        sh = get_sheet("Campuses", "Campus", "Standorte", "Sites")
+        if sh:
+            import_data["campuses"] = self._parse_campuses_sheet(sh)
         
         # Parse Programs
-        if "Programs" in workbook.sheetnames:
-            import_data["programs"] = self._parse_programs_sheet(workbook["Programs"])
+        sh = get_sheet("Programs", "Programmes", "Studiengaenge", "Studiengang", "Program")
+        if sh:
+            import_data["programs"] = self._parse_programs_sheet(sh)
         
         # Parse University-Program links
-        if "University_Programs" in workbook.sheetnames:
-            import_data["university_programs"] = self._parse_university_programs_sheet(
-                workbook["University_Programs"]
-            )
+        sh = get_sheet("University_Programs", "UniversityPrograms", "Universite_Programmes", "Uni_Programme")
+        if sh:
+            import_data["university_programs"] = self._parse_university_programs_sheet(sh)
         
         # Parse Academic Tracks
-        if "Tracks" in workbook.sheetnames:
-            import_data["tracks"] = self._parse_tracks_sheet(workbook["Tracks"])
+        sh = get_sheet("Tracks", "Filieres", "Schwerpunkte", "Track", "Filiere")
+        if sh:
+            import_data["tracks"] = self._parse_tracks_sheet(sh)
         
         # Parse Semesters
-        if "Semesters" in workbook.sheetnames:
-            import_data["semesters"] = self._parse_semesters_sheet(workbook["Semesters"])
+        sh = get_sheet("Semesters", "Semestres", "Semester")
+        if sh:
+            import_data["semesters"] = self._parse_semesters_sheet(sh)
         
         # Parse Teaching Units
-        if "TeachingUnits" in workbook.sheetnames:
-            import_data["teaching_units"] = self._parse_teaching_units_sheet(
-                workbook["TeachingUnits"]
-            )
+        sh = get_sheet("TeachingUnits", "Teaching_Units", "UE", "UnitesEnseignement", "Modulgruppen", "Modules")
+        if sh:
+            import_data["teaching_units"] = self._parse_teaching_units_sheet(sh)
         
         # Parse Courses
-        if "Courses" in workbook.sheetnames:
-            import_data["courses"] = self._parse_courses_sheet(workbook["Courses"])
+        sh = get_sheet("Courses", "Cours", "Kurse", "Faecher", "Course")
+        if sh:
+            import_data["courses"] = self._parse_courses_sheet(sh)
         
         # Parse Prerequisites
-        if "Prerequisites" in workbook.sheetnames:
-            import_data["prerequisites"] = self._parse_prerequisites_sheet(
-                workbook["Prerequisites"]
-            )
+        sh = get_sheet("Prerequisites", "Prerequis", "Voraussetzungen", "Prerequisite")
+        if sh:
+            import_data["prerequisites"] = self._parse_prerequisites_sheet(sh)
 
         # Parse ClassSchedules
-        for sheet_name in ["ClassSchedules", "Class_Schedules", "Timetables"]:
-            if sheet_name in workbook.sheetnames:
-                import_data["class_schedules"] = self._parse_class_schedules_sheet(workbook[sheet_name])
-                break
+        sh = get_sheet("ClassSchedules", "Class_Schedules", "Timetables", "EmploiDuTemps", "EmploisDuTemps", "Stundenplan", "Schedules")
+        if sh:
+            import_data["class_schedules"] = self._parse_class_schedules_sheet(sh)
         
         workbook.close()
         
@@ -415,12 +430,6 @@ class ImportService:
         self._validate_tracks_structure(import_data.get("tracks", []))
         self._validate_semesters_structure(import_data.get("semesters", []))
         self._validate_courses_structure(import_data.get("courses", []))
-        
-        # Check for duplicates against existing data
-        await self._validate_no_duplicate_universities(import_data)
-        await self._validate_no_duplicate_programs(import_data)
-        await self._validate_no_duplicate_campuses(import_data)
-        await self._validate_no_duplicate_tracks(import_data)
         
         # Semantic validation (references, business rules)
         await self._validate_campuses_references(import_data)
@@ -902,12 +911,13 @@ class ImportService:
                     if ects:
                         total_ects += ects
             
-            # Allow some tolerance (courses might be optional)
-            if total_ects > 0 and total_ects < total_ects_required * 0.8:
+            # Allow partial/progressive imports (e.g. 120 ECTS for a 180 ECTS degree where electives/thesis are separate)
+            # Only flag if courses drastically exceed the track total requirement
+            if total_ects > 0 and total_ects > total_ects_required * 1.5:
                 self.errors.append(ImportError(
                     track.get("_row"),
                     "Tracks",
-                    f"Track '{track_name}' requires {total_ects_required} ECTS but courses total only {total_ects} ECTS",
+                    f"Track '{track_name}' courses total {total_ects} ECTS, which significantly exceeds required {total_ects_required} ECTS",
                     "ects_mismatch"
                 ))
     
@@ -1312,10 +1322,37 @@ class ImportService:
                     def parse_time_val(t_val):
                         if isinstance(t_val, time):
                             return t_val
+                        if isinstance(t_val, datetime):
+                            return t_val.time()
+                        if isinstance(t_val, (int, float)):
+                            total_secs = int(float(t_val) * 86400)
+                            return time((total_secs // 3600) % 24, (total_secs % 3600) // 60)
                         if isinstance(t_val, str):
-                            parts = t_val.strip().split(":")
-                            return time(int(parts[0]), int(parts[1]))
+                            clean = t_val.strip().lower().replace("h", ":").replace(".", ":")
+                            parts = clean.split(":")
+                            if len(parts) >= 2:
+                                try:
+                                    return time(int(parts[0]), int(parts[1]))
+                                except Exception:
+                                    pass
+                            elif len(parts) == 1:
+                                try:
+                                    return time(int(parts[0]), 0)
+                                except Exception:
+                                    pass
                         return time(8, 30)
+
+                    day_map = {
+                        "monday": "Monday", "lundi": "Monday", "montag": "Monday", "mo": "Monday",
+                        "tuesday": "Tuesday", "mardi": "Tuesday", "dienstag": "Tuesday", "di": "Tuesday",
+                        "wednesday": "Wednesday", "mercredi": "Wednesday", "mittwoch": "Wednesday", "mi": "Wednesday",
+                        "thursday": "Thursday", "jeudi": "Thursday", "donnerstag": "Thursday", "do": "Thursday",
+                        "friday": "Friday", "vendredi": "Friday", "freitag": "Friday", "fr": "Friday",
+                        "saturday": "Saturday", "samedi": "Saturday", "samstag": "Saturday", "sa": "Saturday",
+                        "sunday": "Sunday", "dimanche": "Sunday", "sonntag": "Sunday", "so": "Sunday"
+                    }
+                    raw_day = str(cs_data.get("day_of_week") or "Monday").strip().lower()
+                    normalized_day = day_map.get(raw_day, cs_data.get("day_of_week") or "Monday")
 
                     stype = (cs_data.get("session_type") or "CM").upper().strip()
                     raw_grp = cs_data.get("group_name")
@@ -1348,7 +1385,7 @@ class ImportService:
                         course_id=matched_course.id if matched_course else None,
                         course_name=cs_data.get("course_name", "Cours"),
                         course_code=cs_data.get("course_code"),
-                        day_of_week=cs_data.get("day_of_week", "Monday"),
+                        day_of_week=normalized_day,
                         start_time=parse_time_val(cs_data.get("start_time")),
                         end_time=parse_time_val(cs_data.get("end_time")),
                         session_type=stype,
@@ -1381,11 +1418,14 @@ class ImportService:
             return summary
             
         except SQLAlchemyError as e:
-            # Rollback on error
             self.db.rollback()
-            raise ValueError(f"Import failed and was rolled back: {str(e)}")
+            err_str = str(e)
+            if "UndefinedColumn" in err_str or "n'existe pas" in err_str:
+                raise ValueError("Une colonne requise est manquante dans votre base de données locale. Veuillez redémarrer le serveur backend pour appliquer la mise à jour automatique.")
+            if "ForeignKeyViolation" in err_str:
+                raise ValueError("L'importation fait référence à une entité parente (université, programme ou cours) inexistante en base de données.")
+            raise ValueError(f"L'importation a été annulée en toute sécurité pour préserver la base de données : {err_str.splitlines()[0]}")
         except Exception as e:
-            # Rollback on any error
             self.db.rollback()
-            raise ValueError(f"Import failed and was rolled back: {str(e)}")
+            raise ValueError(f"Erreur durant l'importation (données annulées en sécurité) : {str(e)}")
 

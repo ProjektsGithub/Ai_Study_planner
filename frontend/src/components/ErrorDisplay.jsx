@@ -31,18 +31,52 @@ const ErrorDisplay = ({ title, error, message, onRetry }) => {
     }
     if (error.response) {
       errorDetails += `Status: ${error.response.status} ${error.response.statusText}\n`;
-      errorDetails += `Response Data: ${JSON.stringify(error.response.data, null, 2)}`;
+      errorDetails += `Response Data: ${JSON.stringify(error.response.data, null, 2)}\n`;
     } else if (error.stack) {
       errorDetails += error.stack;
     }
   }
 
-  const errorTitle = title || 'An operation error occurred';
+  // Intelligent error sanitization: hide raw SQL/psycopg dumps from user view
+  let userFriendlyMessage = detailedMessage;
+  if (typeof detailedMessage === 'string') {
+    if (
+      detailedMessage.includes('UndefinedColumn') ||
+      detailedMessage.includes("n'existe pas") ||
+      detailedMessage.includes('does not exist')
+    ) {
+      const colMatch = detailedMessage.match(/colonne ([a-zA-Z0-9_.]+)/i) || detailedMessage.match(/column ([a-zA-Z0-9_.]+)/i);
+      const colText = colMatch ? ` (champ: ${colMatch[1]})` : '';
+      if (!errorDetails) errorDetails = detailedMessage;
+      userFriendlyMessage = `Mise à niveau requise : Une structure de données${colText} est manquante dans votre base de données locale. L'application appliquera automatiquement la synchronisation au prochain redémarrage du backend.`;
+    } else if (
+      detailedMessage.includes('psycopg.errors') ||
+      detailedMessage.includes('SQLAlchemyError') ||
+      detailedMessage.includes('[SQL:')
+    ) {
+      if (!errorDetails) errorDetails = detailedMessage;
+      userFriendlyMessage = 'Une opération sur la base de données a échoué. Vos données sont protégées et la transaction a été sécurisée. Veuillez réessayer ou contacter le support.';
+    } else if (
+      detailedMessage.includes('duplicate key') ||
+      detailedMessage.includes('unique constraint')
+    ) {
+      if (!errorDetails) errorDetails = detailedMessage;
+      userFriendlyMessage = 'Cet élément existe déjà dans le système. Les doublons ont été évités pour préserver la cohérence des données.';
+    } else if (
+      detailedMessage.includes('ForeignKeyViolation') ||
+      detailedMessage.includes('foreign key constraint')
+    ) {
+      if (!errorDetails) errorDetails = detailedMessage;
+      userFriendlyMessage = "Une référence vers un élément parent (université, programme, filière ou cours) est introuvable ou n'a pas encore été importée.";
+    }
+  }
+
+  const errorTitle = title || 'Une erreur est survenue';
 
   const description = (
     <div style={{ marginTop: '8px' }}>
-      <Paragraph style={{ margin: 0, fontSize: '13px', color: '#595959' }}>
-        {detailedMessage || 'Please verify system parameters, check your connectivity, or contact an administrator.'}
+      <Paragraph style={{ margin: 0, fontSize: '13px', color: '#595959', lineHeight: '1.6' }}>
+        {userFriendlyMessage || 'Veuillez vérifier les paramètres saisis, vérifier votre connexion ou contacter un administrateur.'}
       </Paragraph>
       
       {errorDetails && (

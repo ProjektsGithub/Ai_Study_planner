@@ -69,25 +69,41 @@ def generate_full_demo():
             "rows": [
                 ["Semester 1", "UE Core Computer Science", "Algorithmique & Structures de Donnees", "Algorithmen & Datenstrukturen", "INF101", 6, 2.0, 3, "Algorithms & Data Structures", "Grundlegende Algorithmen"],
                 ["Semester 1", "UE Core Computer Science", "Architecture des Ordinateurs", "Rechnerarchitektur", "INF102", 6, 2.0, 4, "Computer Architecture & Assembly", "Rechnerarchitektur und Assembler"],
-                ["Semester 1", "UE Core Computer Science", "Bases de Donnees Relationnelles", "Datenbanksysteme", "INF103", 6, 2.0, 3, "Relational Databases & SQL", "Relationale Datenbanken & SQL"]
+                ["Semester 1", "UE Core Computer Science", "Bases de Donnees Relationnelles", "Datenbanksysteme", "INF103", 6, 2.0, 3, "Relational Databases & SQL", "Relationale Datenbanken & SQL"],
+                ["Semester 1", "UE Core Computer Science", "Mathematiques pour l Informatique", "Mathematik fur Informatiker", "MAT101", 6, 2.0, 4, "Discrete Mathematics & Linear Algebra", "Diskrete Mathematik & Lineare Algebra"],
+                ["Semester 1", "UE Core Computer Science", "Anglais Technique & Communication", "Technisches Englisch", "ENG101", 6, 1.5, 2, "Technical English & Scientific Communication", "Fachsprache Englisch & Kommunikation"]
             ]
         },
         "Prerequisites": {
             "headers": ["Course_Name", "Prerequisite_Name"],
             "rows": [
-                ["Bases de Donnees Relationnelles", "Algorithmique & Structures de Donnees"]
+                ["Bases de Donnees Relationnelles", "Algorithmique & Structures de Donnees"],
+                ["Architecture des Ordinateurs", "Algorithmique & Structures de Donnees"]
             ]
         },
         "ClassSchedules": {
             "headers": ["Program_Name", "Track_Name", "Semester_Number", "Course_Code", "Course_Name", "Day_Of_Week", "Start_Time", "End_Time", "Session_Type", "Room_Location", "Group_Name", "Is_Fixed"],
             "rows": [
+                # Course 1: INF101 (CM + TD Groupe 1 ou 2)
                 ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Monday", "08:30", "10:30", "CM", "Amphi Alan Turing", "Promotion (Fixe)", "TRUE"],
                 ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Tuesday", "10:30", "12:30", "TD", "Salle TD 204", "Groupe 1", "FALSE"],
                 ["Licence Informatique & IA", "Software Engineering Track", 1, "INF101", "Algorithmique & Structures de Donnees", "Thursday", "14:00", "16:00", "TD", "Salle TD 205", "Groupe 2", "FALSE"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF102", "Architecture des Ordinateurs", "Tuesday", "08:30", "10:30", "CM", "Amphi Neumann", "Promotion (Fixe)", "TRUE"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "08:30", "10:30", "CM", "Amphi Turing", "Promotion (Fixe)", "TRUE"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "14:00", "16:00", "TP", "Labo Info 1", "Groupe 1", "FALSE"],
-                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Friday", "14:00", "16:00", "TP", "Labo Info 2", "Groupe 2", "FALSE"]
+                # Course 2: INF102 (CM + TP Groupe 1 ou 2)
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF102", "Architecture des Ordinateurs", "Tuesday", "08:30", "10:30", "CM", "Amphi John von Neumann", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF102", "Architecture des Ordinateurs", "Wednesday", "10:30", "12:30", "TP", "Labo Info Hardware", "Groupe 1", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF102", "Architecture des Ordinateurs", "Friday", "10:30", "12:30", "TP", "Labo Info Hardware", "Groupe 2", "FALSE"],
+                # Course 3: INF103 (CM + TP Groupe 1 ou 2)
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "08:30", "10:30", "CM", "Amphi Ada Lovelace", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Wednesday", "14:00", "16:00", "TP", "Labo Info Base de Donnees", "Groupe 1", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "INF103", "Bases de Donnees Relationnelles", "Friday", "14:00", "16:00", "TP", "Labo Info Base de Donnees", "Groupe 2", "FALSE"],
+                # Course 4: MAT101 (CM + TD Groupe 1 ou 2)
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "MAT101", "Mathematiques pour l Informatique", "Thursday", "08:30", "10:30", "CM", "Amphi Carl Friedrich Gauss", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "MAT101", "Mathematiques pour l Informatique", "Monday", "14:00", "16:00", "TD", "Salle TD 101", "Groupe 1", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "MAT101", "Mathematiques pour l Informatique", "Wednesday", "16:00", "18:00", "TD", "Salle TD 102", "Groupe 2", "FALSE"],
+                # Course 5: ENG101 (CM + TD Groupe 1 ou 2)
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "ENG101", "Anglais Technique & Communication", "Friday", "08:30", "10:30", "CM", "Amphi Albert Einstein", "Promotion (Fixe)", "TRUE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "ENG101", "Anglais Technique & Communication", "Tuesday", "14:00", "16:00", "TD", "Laboratoire Langues 1", "Groupe 1", "FALSE"],
+                ["Licence Informatique & IA", "Software Engineering Track", 1, "ENG101", "Anglais Technique & Communication", "Thursday", "10:30", "12:30", "TD", "Laboratoire Langues 2", "Groupe 2", "FALSE"]
             ]
         }
     }
