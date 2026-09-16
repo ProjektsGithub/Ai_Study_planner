@@ -14,6 +14,7 @@ const ProgressionPage = () => {
     ectsBreakdown,
     academicProfile,
     fetchECTSProgression,
+    fetchSubjects,
     loading
   } = useAcademicData();
 
@@ -23,7 +24,8 @@ const ProgressionPage = () => {
 
   useEffect(() => {
     fetchECTSProgression();
-  }, [fetchECTSProgression]);
+    fetchSubjects();
+  }, [fetchECTSProgression, fetchSubjects]);
 
   // Current semester from profile (default to 1)
   const currentSemesterNum = academicProfile?.current_semester || 1;
@@ -31,8 +33,10 @@ const ProgressionPage = () => {
   useEffect(() => {
     if (academicProfile?.current_semester) {
       setSelectedSemester(`S${academicProfile.current_semester}`);
+      // Reload subjects when semester changes
+      fetchSubjects();
     }
-  }, [academicProfile?.current_semester]);
+  }, [academicProfile?.current_semester, fetchSubjects]);
 
   // Filter subjects for the selected semester (support both 'S1' and 1)
   const targetSemNum = selectedSemester.replace('S', '');

@@ -49,12 +49,27 @@ export const AcademicDataProvider = ({ children }) => {
       const res = await apiClient.put('/api/v1/academic/profile', data);
       setAcademicProfile(res.data);
       await fetchProfile();
+      
+      // Force reload all data when semester or cursus changes
+      if (data.current_semester !== undefined || data.cursus_id !== undefined) {
+        await Promise.all([
+          fetchSubjects(),
+          fetchECTSProgression(),
+          fetchAnalysis(),
+        ]);
+        
+        // Emit custom event to notify other components (like SubjectsPage)
+        if (data.current_semester !== undefined) {
+          window.dispatchEvent(new CustomEvent('semesterChanged', { detail: { semester: data.current_semester } }));
+        }
+      }
+      
       return res.data;
     } catch (err) {
       console.error('Error updating academic profile:', err);
       throw err;
     }
-  }, [fetchProfile]);
+  }, [fetchProfile, fetchSubjects, fetchECTSProgression, fetchAnalysis]);
 
   const updateStudentProfile = useCallback(async (data) => {
     try {

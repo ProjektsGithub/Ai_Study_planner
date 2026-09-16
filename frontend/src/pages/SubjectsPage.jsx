@@ -370,6 +370,7 @@ const SubjectsPage = () => {
   const [savingId, setSavingId] = useState(null);
   const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const loadCourses = useCallback(async () => {
     setLoading(true);
@@ -387,7 +388,17 @@ const SubjectsPage = () => {
 
   useEffect(() => {
     loadCourses();
-  }, [loadCourses]);
+  }, [loadCourses, refreshKey]);
+
+  // Listen for semester changes via custom event
+  useEffect(() => {
+    const handleSemesterChange = () => {
+      setRefreshKey(prev => prev + 1);
+    };
+    
+    window.addEventListener('semesterChanged', handleSemesterChange);
+    return () => window.removeEventListener('semesterChanged', handleSemesterChange);
+  }, []);
 
   // Auto-save when status changes
   const handleStatusChange = useCallback(async (courseId, newStatus) => {

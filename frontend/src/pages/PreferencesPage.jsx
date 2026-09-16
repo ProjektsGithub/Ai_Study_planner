@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAcademicData } from '../context/AcademicDataContext';
 import { useLanguage } from '../context/LanguageContext';
 import apiClient from '../api/client';
 import { formatApiError } from '../utils/errorUtils';
@@ -40,6 +41,7 @@ const PreferencesPage = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { updateAcademicProfile, updateStudentProfile, fetchAllData } = useAcademicData();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -316,7 +318,8 @@ const PreferencesPage = () => {
       await apiClient.post('/api/v1/profile', cleanedStudentData);
 
       if (academicData.university_id && academicData.filiere_id && academicData.cursus_id) {
-        await apiClient.put('/api/v1/academic/profile', {
+        // Use context method to update academic profile - this will auto-reload all data
+        await updateAcademicProfile({
           university_id: academicData.university_id,
           filiere_id: academicData.filiere_id,
           cursus_id: academicData.cursus_id,
@@ -328,6 +331,9 @@ const PreferencesPage = () => {
 
       setMessage({ type: 'success', text: t('preferences.success_saved', 'Profil académique et préférences enregistrés avec succès !') });
       await loadData();
+      
+      // Force reload all academic data in context to ensure fresh data everywhere
+      await fetchAllData();
     } catch (error) {
       console.error('Error saving profile:', error);
       setMessage({
