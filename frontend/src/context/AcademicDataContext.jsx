@@ -109,8 +109,8 @@ export const AcademicDataProvider = ({ children }) => {
       setAcademicProfile(res.data);
       await fetchProfile();
       
-      // Force reload all data when semester or cursus changes
-      if (data.current_semester !== undefined || data.cursus_id !== undefined) {
+      // Force reload all data when semester, cursus, or retake semesters change
+      if (data.current_semester !== undefined || data.cursus_id !== undefined || data.retake_semesters !== undefined) {
         await Promise.all([
           fetchSubjects(),
           fetchECTSProgression(),
@@ -118,9 +118,12 @@ export const AcademicDataProvider = ({ children }) => {
         ]);
         
         // Emit custom event to notify other components (like SubjectsPage)
-        if (data.current_semester !== undefined) {
-          window.dispatchEvent(new CustomEvent('semesterChanged', { detail: { semester: data.current_semester } }));
-        }
+        window.dispatchEvent(new CustomEvent('semesterChanged', { 
+          detail: { 
+            semester: data.current_semester,
+            retakes: data.retake_semesters
+          } 
+        }));
       }
       
       return res.data;

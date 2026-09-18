@@ -122,13 +122,17 @@ const PreferencesPage = () => {
 
       if (academicProfileRes.data) {
         const acad = academicProfileRes.data;
+        const currentSem = acad.current_semester || 1;
+        const allowed = getAllowedRetakes(currentSem);
+        const validRetakes = (acad.retake_semesters || []).filter(s => allowed.includes(s));
+
         setAcademicData({
           university_id: acad.university_id || '',
           filiere_id: acad.filiere_id || '',
           cursus_id: acad.cursus_id || '',
-          current_semester: acad.current_semester || 1,
+          current_semester: currentSem,
           academic_year: acad.academic_year || new Date().getFullYear(),
-          retake_semesters: acad.retake_semesters || [],
+          retake_semesters: validRetakes,
         });
 
         if (acad.university_id) {
@@ -212,18 +216,28 @@ const PreferencesPage = () => {
 
   const handleAcademicFieldChange = (e) => {
     const { name, value } = e.target;
-    setAcademicData(prev => ({
-      ...prev,
-      [name]: name === 'current_semester' || name === 'academic_year' ? parseInt(value) || value : value,
-    }));
+    const parsedVal = name === 'current_semester' || name === 'academic_year' ? parseInt(value) || value : value;
+    setAcademicData(prev => {
+      const next = {
+        ...prev,
+        [name]: parsedVal,
+      };
+      if (name === 'current_semester') {
+        const allowed = getAllowedRetakes(parsedVal);
+        next.retake_semesters = (prev.retake_semesters || []).filter(s => allowed.includes(s));
+      }
+      return next;
+    });
   };
 
   const handleRetakeSemesterToggle = (semNumber) => {
     setAcademicData(prev => {
-      const current = prev.retake_semesters || [];
+      const currentSem = parseInt(prev.current_semester) || 1;
+      const allowed = getAllowedRetakes(currentSem);
+      const current = (prev.retake_semesters || []).filter(s => allowed.includes(s));
       const updated = current.includes(semNumber)
         ? current.filter(s => s !== semNumber)
-        : [...current, semNumber].sort((a, b) => a - b);
+        : [...current, semNumber].filter(s => allowed.includes(s)).sort((a, b) => a - b);
       return { ...prev, retake_semesters: updated };
     });
   };
@@ -318,6 +332,10 @@ const PreferencesPage = () => {
       await apiClient.post('/api/v1/profile', cleanedStudentData);
 
       if (academicData.university_id && academicData.filiere_id && academicData.cursus_id) {
+        const currentSem = parseInt(academicData.current_semester) || 1;
+        const allowed = getAllowedRetakes(currentSem);
+        const validRetakes = (academicData.retake_semesters || []).filter(s => allowed.includes(s));
+
         // Use context method to update academic profile - this will auto-reload all data
         await updateAcademicProfile({
           university_id: academicData.university_id,
@@ -325,7 +343,7 @@ const PreferencesPage = () => {
           cursus_id: academicData.cursus_id,
           current_semester: academicData.current_semester,
           academic_year: academicData.academic_year,
-          retake_semesters: academicData.retake_semesters || [],
+          retake_semesters: validRetakes,
         });
       }
 

@@ -31,6 +31,25 @@ import app.services.super_admin_client as client
 logger = logging.getLogger(__name__)
 
 
+RETAKE_RULES = {
+    1: [],
+    2: [],
+    3: [],
+    4: [2],
+    5: [1, 3],
+    6: [2, 4],
+}
+
+
+def get_allowed_retakes(current_sem: int) -> List[int]:
+    """Return allowed retake semester numbers based on academic rules."""
+    if current_sem in RETAKE_RULES:
+        return RETAKE_RULES[current_sem]
+    if current_sem >= 7:
+        return list(range(1, current_sem))
+    return []
+
+
 class AcademicProfileService:
     """Service for managing student academic profile linked to Super Admin Platform."""
 
@@ -224,6 +243,15 @@ class AcademicProfileService:
         old_cursus_id = profile.cursus_id
         old_semester = profile.current_semester
         old_retakes = list(profile.retake_semesters or [])
+
+        # Validate and filter retake_semesters based on allowed retakes for current semester
+        target_sem = update_dict.get("current_semester", profile.current_semester) or 1
+        allowed_retakes = get_allowed_retakes(target_sem)
+        if "retake_semesters" in update_dict:
+            raw_retakes = update_dict["retake_semesters"] or []
+            update_dict["retake_semesters"] = [r for r in raw_retakes if r in allowed_retakes]
+        elif "current_semester" in update_dict and profile.retake_semesters:
+            update_dict["retake_semesters"] = [r for r in profile.retake_semesters if r in allowed_retakes]
 
         # Apply updates
         for field, value in update_dict.items():
