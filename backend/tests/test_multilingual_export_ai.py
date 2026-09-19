@@ -21,6 +21,14 @@ def test_translations_dict():
         assert 'academic_types' in t and 'CM' in t['academic_types'], f"Missing academic_types in {lang}"
         assert 'task_types' in t and 'lecture_review' in t['task_types'], f"Missing task_types in {lang}"
         assert 'stats' in t and 'ai_sessions' in t['stats'], f"Missing stats in {lang}"
+        # New 2-page & luminous PDF keys
+        assert 'kpis' in t and 'total_workload' in t['kpis'], f"Missing kpis in {lang}"
+        assert 'roadmap_title' in t, f"Missing roadmap_title in {lang}"
+        assert 'ai_strategy_title' in t, f"Missing ai_strategy_title in {lang}"
+        assert 'subject_goals_title' in t, f"Missing subject_goals_title in {lang}"
+        assert 'session_details_title' in t, f"Missing session_details_title in {lang}"
+        assert 'study_tips_title' in t and 'study_tips_content' in t, f"Missing study tips in {lang}"
+        assert 'col_directives' in t and 'col_check' in t, f"Missing detailed session columns in {lang}"
         print(f"  [OK] PDF_TRANSLATIONS[{lang}] verified ({t['header_title']})")
 
 def test_prompt_construction():
@@ -116,7 +124,21 @@ def test_pdf_flowables():
 
         legend = service._build_legend({'Math': ('#4F46E5', '#EEF2FF')}, has_academic=True)
         assert len(legend) > 0, f"Failed building legend for {lang}"
-        print(f"  [OK] Successfully built PDF flowables for lang='{lang}'")
+
+        # Test Page 2 flowables
+        ai_strat = service._build_ai_strategy(mock_plan, landscape(A4), 40)
+        assert len(ai_strat) > 0, f"Failed building AI strategy for {lang}"
+
+        subj_goals = service._build_subject_goals([], [mock_session], mock_plan, landscape(A4), 40)
+        assert len(subj_goals) > 0, f"Failed building subject goals for {lang}"
+
+        detailed_sessions = service._build_detailed_sessions([mock_session], {'Math': ('#4F46E5', '#EEF2FF')}, landscape(A4), 40)
+        assert len(detailed_sessions) > 0, f"Failed building detailed sessions for {lang}"
+
+        study_tips = service._build_study_tips(landscape(A4), 40)
+        assert len(study_tips) > 0, f"Failed building study tips for {lang}"
+
+        print(f"  [OK] Successfully built Page 1 & Page 2 flowables for lang='{lang}'")
 
 if __name__ == "__main__":
     test_translations_dict()
