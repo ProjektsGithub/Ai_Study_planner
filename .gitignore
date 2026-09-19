@@ -181,3 +181,15 @@ notebooks/inference_logs.json
 notebooks/lora_adapters/
 notebooks/models/
 notebooks/.ngrok/
+
+# Uploads (generated files)
+backend/uploads/*.pdf
+backend/uploads/*.xlsx
+backend/uploads/*.docx
+
+# Diagnostic and utility scripts
+backend/diagnose_*.py
+backend/fix_*.py
+backend/clean_*.py
+backend/force_*.py
+backend/list_*.py
