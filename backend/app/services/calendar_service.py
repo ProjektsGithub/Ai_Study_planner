@@ -63,6 +63,23 @@ class CalendarService:
             "METHOD:PUBLISH",
             f"X-WR-CALNAME:Plan d'étude — semaine du {week_start.strftime('%d/%m/%Y')}",
             "X-WR-TIMEZONE:Europe/Paris",
+            "BEGIN:VTIMEZONE",
+            "TZID:Europe/Paris",
+            "BEGIN:DAYLIGHT",
+            "TZOFFSETFROM:+0100",
+            "TZOFFSETTO:+0200",
+            "TZNAME:CEST",
+            "DTSTART:19700329T020000",
+            "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU",
+            "END:DAYLIGHT",
+            "BEGIN:STANDARD",
+            "TZOFFSETFROM:+0200",
+            "TZOFFSETTO:+0100",
+            "TZNAME:CET",
+            "DTSTART:19701025T030000",
+            "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU",
+            "END:STANDARD",
+            "END:VTIMEZONE",
         ]
 
         for session in sessions:
@@ -108,20 +125,42 @@ class CalendarService:
             # Nom du sujet
             subject_name = session.subject.name if session.subject else "Matière inconnue"
             task_type = getattr(session, "task_type", "Étude")
-            description = f"Matière: {subject_name}\\nType: {task_type}\\nPlan: AI Study Planner"
+            
+            # Échapper les caractères spéciaux pour iCal (RFC 5545)
+            def escape_ical_text(text: str) -> str:
+                """Échappe les caractères spéciaux pour le format iCal"""
+                return text.replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;").replace("\n", "\\n")
+            
+            summary = escape_ical_text(f"{subject_name} — {task_type}")
+            description = escape_ical_text(
+                f"Matière: {subject_name}\n"
+                f"Type: {task_type}\n"
+                f"Plan: AI Study Planner"
+            )
 
             uid = f"session-{session.id}-plan-{session.study_plan_id}@aiplanner"
             now_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-            dt_start_str = dt_start.strftime("%Y%m%dT%H%M%SZ")
-            dt_end_str = dt_end.strftime("%Y%m%dT%H%M%SZ")
+            
+            # Utiliser la timezone Europe/Paris au lieu de UTC
+            dt_start_local = datetime(
+                session_date.year, session_date.month, session_date.day,
+                sh, sm, 0
+            )
+            dt_end_local = datetime(
+                session_date.year, session_date.month, session_date.day,
+                eh, em, 0
+            )
+            
+            dt_start_str = dt_start_local.strftime("%Y%m%dT%H%M%S")
+            dt_end_str = dt_end_local.strftime("%Y%m%dT%H%M%S")
 
             return [
                 "BEGIN:VEVENT",
                 f"UID:{uid}",
                 f"DTSTAMP:{now_stamp}",
-                f"DTSTART:{dt_start_str}",
-                f"DTEND:{dt_end_str}",
-                f"SUMMARY:{subject_name} — {task_type}",
+                f"DTSTART;TZID=Europe/Paris:{dt_start_str}",
+                f"DTEND;TZID=Europe/Paris:{dt_end_str}",
+                f"SUMMARY:{summary}",
                 f"DESCRIPTION:{description}",
                 f"ORGANIZER;CN={user.name}:mailto:{user.email}",
                 "STATUS:CONFIRMED",
