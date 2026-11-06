@@ -13,9 +13,15 @@ from app.models.user import User
 from app.models.student_profile import StudentProfile
 from app.core.security import get_password_hash
 
-# Create test database
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_profile.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+from sqlalchemy.pool import StaticPool
+
+# Create test database (in-memory SQLite for fast tests)
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -28,17 +34,17 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
 client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
 def setup_database():
     """Setup and teardown test database"""
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.pop(get_db, None)
 
 
 def create_test_user_and_login():

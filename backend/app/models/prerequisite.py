@@ -21,8 +21,8 @@ class Prerequisite(Base):
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # User who created relationship
     
     # Relationships
-    course = relationship("Course", foreign_keys=[course_id], back_populates="prerequisite_for")
-    prerequisite_course = relationship("Course", foreign_keys=[prerequisite_course_id], back_populates="required_by")
+    course = relationship("Course", foreign_keys=[course_id])
+    prerequisite_course = relationship("Course", foreign_keys=[prerequisite_course_id])
     
     @validates('course_id', 'prerequisite_course_id')
     def validate_course_ids(self, key, value):

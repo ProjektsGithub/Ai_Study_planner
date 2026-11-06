@@ -340,6 +340,59 @@ async def chat_health(current_user: User = Depends(get_current_user)):
 
 # ── Main chat endpoint ────────────────────────────────────────────────────────
 
+def _generate_fallback_chat_reply(message: str, context: Optional[dict]) -> str:
+    """
+    Deterministic pedagogical fallback response when Colab/Ollama is offline,
+    so live demos never crash with 503.
+    """
+    msg_lower = message.lower()
+    subjects = (context or {}).get("subjects") or []
+    today_sessions = (context or {}).get("today_sessions") or []
+    wp = (context or {}).get("weekly_progress") or {}
+
+    if any(k in msg_lower for k in ("aujourd'hui", "today", "programme", "séance", "session")):
+        if today_sessions:
+            items = ", ".join(
+                f"{s.get('subject_name')} ({s.get('start_time', '')[:5]}-{s.get('end_time', '')[:5]})"
+                for s in today_sessions[:3]
+            )
+            return (
+                f"Aujourd'hui, ton planning prévoit : {items}. "
+                "Commence par la matière la plus exigeante pendant que ta concentration est maximale, "
+                "et fais une pause de 10 minutes toutes les 90 minutes."
+            )
+        return (
+            "Tu n'as aucune séance planifiée aujourd'hui. Profite de ce créneau pour revoir tes fiches "
+            "de synthèse ou préparer les exercices du prochain TD."
+        )
+
+    if any(k in msg_lower for k in ("examen", "exam", "réviser", "revision", "partiel")):
+        subj_hint = f" (notamment en {subjects[0]})" if subjects else ""
+        return (
+            f"Pour préparer efficacement tes examens{subj_hint}, alterne 45 minutes de rappel actif "
+            "(sans regarder le cours) et 45 minutes d'annales chronométrées. "
+            "Concentre-toi en priorité sur les matières à fort coefficient ECTS."
+        )
+
+    if any(k in msg_lower for k in ("progression", "avancement", "progress", "objectif")):
+        done = wp.get("completed", 0)
+        total = wp.get("total", 0)
+        if total:
+            pct = round((done / total) * 100)
+            return (
+                f"Tu as complété {done}/{total} séances cette semaine ({pct}%). "
+                "Garde ce rythme régulier : la répétition espacée est beaucoup plus efficace que le blocage de dernière minute."
+            )
+
+    subj_str = f" sur {', '.join(subjects[:3])}" if subjects else ""
+    return (
+        f"Je te conseille de structurer ton étude{subj_str} en trois étapes : "
+        "1) relire les concepts clés du cours magistral dans les 24-48h, "
+        "2) préparer les fiches d'exercices avant chaque TD, "
+        "3) t'entraîner sur des annales en conditions réelles."
+    )
+
+
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
@@ -349,6 +402,7 @@ async def chat(
     """
     Send a message to the AI study assistant.
     Returns a short, focused reply (max 350 tokens).
+    Falls back to a deterministic pedagogical assistant if Colab/Ollama is offline.
     """
     if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message vide.")
@@ -363,13 +417,69 @@ async def chat(
     )
 
     start = time.time()
-    if use_colab:
-        reply = await _call_colab(prompt)
-    else:
-        reply = await _call_ollama(prompt)
+    try:
+        if use_colab:
+            reply = await _call_colab(prompt)
+        else:
+            reply = await _call_ollama(prompt)
+        reply = _truncate_hallucination(reply)
+    except HTTPException:
+        reply = _generate_fallback_chat_reply(request.message, request.context)
+    except Exception:
+        reply = _generate_fallback_chat_reply(request.message, request.context)
 
-    reply = _truncate_hallucination(reply)
     if not reply:
-        reply = "Désolé, je n'ai pas pu générer une réponse. Réessaie dans quelques instants."
+        reply = _generate_fallback_chat_reply(request.message, request.context)
 
     return ChatResponse(reply=reply, generation_time=round(time.time() - start, 2))
+
+
+# ── LoRA diagnostics endpoint ─────────────────────────────────────────────────
+
+@router.get("/lora/status")
+async def lora_status(current_user: User = Depends(get_current_user)):
+    """
+    Diagnostique l'état LoRA :
+    - Si LORA_ENABLED=True et AI_SERVICE_TYPE=colab, interroge /lora/list sur Colab.
+    - Retourne les adapters disponibles sur Drive + ceux en cache GPU.
+    """
+    lora_enabled = getattr(settings, "LORA_ENABLED", False)
+    lora_adapter = getattr(settings, "LORA_DEFAULT_ADAPTER", None)
+    use_colab    = getattr(settings, "AI_SERVICE_TYPE", "ollama") == "colab"
+
+    base_info = {
+        "lora_enabled": lora_enabled,
+        "lora_default_adapter": lora_adapter,
+        "backend": "colab" if use_colab else "ollama",
+    }
+
+    if not lora_enabled:
+        return {**base_info, "message": "LoRA désactivé dans le .env (LORA_ENABLED=False)."}
+
+    if not use_colab:
+        return {**base_info, "message": "LoRA dynamique fonctionne uniquement avec AI_SERVICE_TYPE=colab."}
+
+    url, api_key = _get_colab_config()
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{url}/lora/list", headers=headers)
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                **base_info,
+                "ok": True,
+                "available_on_drive": data.get("available_on_drive", []),
+                "cached_in_memory":   data.get("cached_in_memory", []),
+                "hint": (
+                    f"L'adapter '{lora_adapter}' sera chargé automatiquement à la première requête de planning. "
+                    "Pour l'entraîner, lancez la CELLULE 3bis du notebook Colab."
+                ) if lora_adapter not in data.get("available_on_drive", []) else
+                    f"✅ Adapter '{lora_adapter}' disponible sur Drive et prêt à l'emploi.",
+            }
+        return {**base_info, "ok": False, "error": f"Colab /lora/list → HTTP {resp.status_code}"}
+    except httpx.ConnectError:
+        return {**base_info, "ok": False, "error": "Serveur Colab inaccessible."}
+    except Exception as e:
+        return {**base_info, "ok": False, "error": str(e)}

@@ -9,25 +9,6 @@ from app.models.audit_log import AuditLog
 from app.models.admin_role import AdminRole
 from app.models.admin_permission import AdminPermission
 from app.models.user_role import UserRole
-from app.core.database import Base, engine
-
-
-@pytest.fixture
-def db_session():
-    """Create a test database session"""
-    # Create tables
-    Base.metadata.create_all(bind=engine)
-    
-    # Create session
-    from sqlalchemy.orm import sessionmaker
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = SessionLocal()
-    
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
 
 
 class TestAuditLog:

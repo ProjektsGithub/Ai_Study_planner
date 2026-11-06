@@ -7,10 +7,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
-from app.core.database import Base
+import app.models  # noqa: F401 — register all models
+from app.core.database import Base, engine as prod_engine
+from app.core.security import create_access_token
 from app.models.user import User
 from app.models.university import University
 from app.models.audit_log import AuditLog
+
+# Silence verbose SQLAlchemy query logging during test runs
+prod_engine.echo = False
 
 
 # Create test database engine (in-memory SQLite)
@@ -58,6 +63,15 @@ def test_user(db_session: Session) -> User:
     db_session.commit()
     db_session.refresh(user)
     return user
+
+
+@pytest.fixture(scope="function")
+def auth_headers(test_user: User) -> dict:
+    """
+    Create Bearer authorization headers for test_user
+    """
+    token = create_access_token({"sub": str(test_user.id)})
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture(scope="session")

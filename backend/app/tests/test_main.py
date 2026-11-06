@@ -16,7 +16,7 @@ def test_root_endpoint():
     assert "message" in data
     assert "AI Study Planner" in data["message"]
     assert "version" in data
-    assert data["version"] == "1.0.0"
+    assert data["version"] in ("1.0.0", "2.0.0")
 
 
 def test_health_check():

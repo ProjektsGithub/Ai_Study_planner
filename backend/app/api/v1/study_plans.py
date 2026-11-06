@@ -210,6 +210,7 @@ async def stream_study_plan(
             # ── 2. Stream AI generation ───────────────────────────────
             ai_service = AIService(db)
             plan_data = None
+            used_fallback = False
             target_lang = request.language or "fr"
 
             async for chunk in ai_service.generate_study_plan_stream(
@@ -227,6 +228,7 @@ async def stream_study_plan(
                         evt = _json.loads(raw)
                         if evt.get("type") == "done":
                             plan_data = evt.get("plan")
+                            used_fallback = bool(evt.get("fallback", False))
                             # Don't yield yet — save to DB first
                             continue
                     except Exception:
@@ -285,7 +287,9 @@ async def stream_study_plan(
             # NOTE: do NOT call db.commit() here — _save_plan_to_database already committed
 
             saved_plan = service.get_current_plan(current_user.id)
-            yield _sse({"type": "done", "plan": saved_plan})
+            if isinstance(saved_plan, dict):
+                saved_plan["fallback"] = used_fallback
+            yield _sse({"type": "done", "plan": saved_plan, "fallback": used_fallback})
 
         except Exception as exc:
             import traceback

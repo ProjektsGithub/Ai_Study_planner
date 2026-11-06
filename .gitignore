@@ -164,7 +164,19 @@ backend/*_IMPLEMENTATION.md
 # Coverage reports
 backend/.coverage
 backend/coverage.xml
+backend/htmlcov/
 backend/.pytest_cache/
+backend/*.db-journal
+backend/test_export_*.ics
+backend/last_real_prompt.txt
+backend/check_plans.py
+
+# Temporary / local documentation files
+DIAGRAMME_COMPOSANTS.md
+GUIDE_SOUTENANCE_DEMO_ET_TESTS.md
+PROJEKTSTRUKTUR.md
+STRUCTURE_PROJET.md
+backend/PROMPT_DESIGN_SYSTEM.md
 
 # Frontend build
 frontend/dist/
